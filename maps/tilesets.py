@@ -1,7 +1,11 @@
 # encoding=utf-8
 # pykarta/tilesets.py
 # Copyright 2013, 2014, Trinity College
+<<<<<<< HEAD
 # Last modified: 15 August 2014
+=======
+# Last modified: 19 July 2014
+>>>>>>> c189ca99c1047a3faa49e90287a48d04772a5908
 
 #=============================================================================
 # Known tile sets
@@ -78,7 +82,11 @@ tilesets.append(MapTileset('stamen-watercolor',
 #-----------------------------------------------------------------------------
 for i in (
 		("streets", "david672orford.map-tyhg017g"),
+<<<<<<< HEAD
 		#("josm", "openstreetmap.map-4wvf9l0l"),
+=======
+		("josm", "openstreetmap.map-4wvf9l0l"),
+>>>>>>> c189ca99c1047a3faa49e90287a48d04772a5908
 		):
 	tilesets.append(MapTileset('mapbox-%s' % i[0],
 		url_template='http://a.tiles.mapbox.com/v3/%s/{z}/{x}/{y}.png' % i[1],
@@ -220,6 +228,7 @@ class MapTilesetBing(MapTileset):
 		MapTileset.__init__(self, key, **kwargs)
 		self.metadata_url = metadata_url
 	def online_init(self):
+<<<<<<< HEAD
 		url = self.metadata_url.replace("{api_key}", self.api_keys["bing"])
 		response = simple_urlopen(url, extra_headers=self.extra_headers)
 		metadata = json.load(response)
@@ -231,6 +240,18 @@ class MapTilesetBing(MapTileset):
 		self.zoom_min = resource['zoomMin']
 		self.zoom_max = resource['zoomMax']
 		#print "Bing zoom levels: %d thru %d" % (self.zoom_min, self.zoom_max)
+=======
+		response = simple_urlopen(self.metadata_url, extra_headers=self.extra_headers)
+		metadata = json.load(response)
+		print "Bing metadata:", json.dumps(metadata, indent=4, separators=(',', ': '))
+		resource = metadata['resourceSets'][0]['resources'][0]
+		url_template = resource['imageUrl'].replace("{subdomain}","t#R").replace("{quadkey}","#W").replace("{culture}","en-us")
+		print "Bing URL template:", url_template
+		self.set_url_template(url_template)
+		self.zoom_min = resource['zoomMin']
+		self.zoom_max = resource['zoomMax']
+		print "Bing zoom levels: %d thru %d" % (self.zoom_min, self.zoom_max)
+>>>>>>> c189ca99c1047a3faa49e90287a48d04772a5908
 
 for key, bing_key in (
 	('road', 'Road'),
@@ -238,7 +259,11 @@ for key, bing_key in (
 	('aerial-with-labels', 'AerialWithLabels')
 	):
 	tilesets.append(MapTilesetBing('bing-%s' % key,
+<<<<<<< HEAD
 		metadata_url='http://dev.virtualearth.net/REST/v1/Imagery/Metadata/%s?key={api_key}' % bing_key,
+=======
+		metadata_url='http://dev.virtualearth.net/REST/v1/Imagery/Metadata/%s?key=%s' % (bing_key, api_keys['bing']),
+>>>>>>> c189ca99c1047a3faa49e90287a48d04772a5908
 		attribution="Bing"
 		))
 
@@ -278,6 +303,7 @@ for name, url_template in (
 # Note: As of May 2013, Google still objects to direct use of its tile
 # servers, so we will not be actually using this.
 #-----------------------------------------------------------------------------
+<<<<<<< HEAD
 #class MapTilesetGoogle(MapTileset):
 #	def __init__(self, key, **kwargs):
 #		MapTileset.__init__(self, key, **kwargs)
@@ -296,4 +322,42 @@ for name, url_template in (
 #	url_template='http://mt#R.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
 #	attribution = u"Map data ©2012 Google, INEGI",
 #	))
+=======
+class MapTilesetGoogle(MapTileset):
+	def __init__(self, key, **kwargs):
+		MapTileset.__init__(self, key, **kwargs)
+		self.extra_headers["User-Agent"] = "Mozilla/5.0"
+		self.extra_headers["Referer"] = "http://maps.google.com/"
+
+tilesets.append(MapTilesetGoogle('google', 
+	url_template='http://mt#R.google.com/vt/x={x}&s=&y={y}&z={z}',
+	attribution = u"Map data ©2012 Google, INEGI",
+	))
+tilesets.append(MapTilesetGoogle('google-satellite', 
+	url_template='http://khm#R.google.com/kh/v=123&x={x}&y={y}&z={z}',
+	attribution = u"Map data ©2012 Google, INEGI",
+	))
+tilesets.append(MapTilesetGoogle('google-hybrid', 
+	url_template='http://mt#R.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+	attribution = u"Map data ©2012 Google, INEGI",
+	))
+
+#-----------------------------------------------------------------------------
+# Nokia OVI
+# (Nokia purchased Navteq in 2007.)
+# See http://www.neongeo.com/wiki/doku.php?id=map_servers
+# See http://developer.here.com/ (recently discovered)
+#-----------------------------------------------------------------------------
+for name, key in (
+	('normal', 'normal.day'),
+	('normal-grey', 'normal.day.grey'),
+	('normal-transit', 'normal.day.transit'),
+	('satellite', 'satellite.day'),
+	('terrain', 'terrain.day'),
+	):
+	tilesets.append(MapTileset('nokia-%s' % name, 
+		url_template='http://maptile.maps.svc.ovi.com/maptiler/maptile/newest/%s/{z}/{x}/{y}/256/png8' % key,
+		attribution="Nokia OVI",
+		))
+>>>>>>> c189ca99c1047a3faa49e90287a48d04772a5908
 
