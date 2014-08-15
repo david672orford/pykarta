@@ -14,8 +14,10 @@ class MapTilesets(object):
 	def __init__(self):
 		self.tilesets_list = []
 		self.tilesets_dict = {}
+		self.api_keys = {}
 
 	def append(self, tileset):
+		tileset.api_keys = self.api_keys
 		self.tilesets_list.append(tileset)
 		self.tilesets_dict[tileset.key] = tileset
 
