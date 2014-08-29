@@ -11,7 +11,7 @@ import time
 
 from pykarta.maps.widget import MapWidget, MapPrint
 from pykarta.geometry import Point, BoundingBox
-from pykarta.maps.layers import MapLayer, MapTileLayerDebug, MapLayerScale, MapLayerAttribution
+from pykarta.maps.layers import MapLayerBuilder, MapLayer, MapLayerScale, MapLayerAttribution
 from pykarta.maps.layers.vector import MapVectorLayer, \
 	MapVectorMarker, \
 	MapVectorLineString, \
@@ -24,12 +24,6 @@ from pykarta.maps.layers.vector import MapVectorLayer, \
 	MapDrawPolygon, \
 	MapDrawBoundingBox
 from pykarta.maps.layers.marker import MapMarkerLayer
-from pykarta.maps.layers.shapefile import MapShapefileLayer
-from pykarta.maps.layers.mapquest import MapTrafficLayer
-
-import pykarta.maps.tilesets_geojson
-
-shapefilename = "../../../../massgis/longdisttrails/LONGDISTTRAILS_ARC_4326"
 
 #-----------------------------------
 # GUI surounding map widget
@@ -91,12 +85,20 @@ class DemoGUI(object):
 #-----------------------------------
 def build_map_widget():
 	map_widget = MapWidget(
-		tile_source = "osm-default-svg",
+		#tile_source = "osm-default-svg",
 		#tile_source=["mapquest-openaerial", "stamen-toner-labels"],
 		#tile_source="bing-road",
-		#tile_source=["osm-default", "osm-geojson-roads"],
-		#tile_source=["osm-geojson-roads", "osm-geojson-buildings"],
-		debug_level=1,
+		#tile_source=["osm-default", "osm-vector-roads"],
+		#tile_source=["osm-vector-roads", "osm-vector-buildings"],
+		tile_source=[
+			"osm-vector-landuse",
+			"osm-vector-water",
+			"osm-vector-roads",
+			"osm-vector-road-labels",
+			"osm-vector-buildings",
+			"osm-vector-pois",
+			],
+		debug_level=5,
 		)
 	#map_widget.set_rotation(True)
 
@@ -104,13 +106,13 @@ def build_map_widget():
 	#map_widget.add_layer("trivial", TrivialLayer())
 	
 	# Shows tile numbers and boundaries
-	map_widget.add_layer("tile_debug", MapTileLayerDebug())
+	map_widget.add_layer("tile_debug", MapLayerBuilder("tile-debug"))
 	
 	# Traffic Jams
-	#map_widget.add_layer("traffic", MapTrafficLayer())
+	#map_widget.add_layer("traffic", MapLayerBuilder("mapquest_traffic"))
 	
 	# Shapefile layer
-	#map_widget.add_layer("trails", MapShapefileLayer(shapefilename))
+	#map_widget.add_layer("trails", MapLayerBuilder(shapefilename))
 
 	# POI marker layer
 	#map_widget.symbols.add_symbol("Dot.svg")

@@ -1,5 +1,5 @@
 # pykarta/geometry/polygon.py
-# Last modified: 21 July 2014
+# Last modified: 22 August 2014
 
 #=============================================================================
 # Simple (no holes) Polygons
@@ -35,7 +35,7 @@ class Polygon(LineString):
 		return area;
 
 	def centroid(self):
-		print self.points
+		#print self.points
 		x=0
 		y=0
 		j=len(self.points)-1;
@@ -47,7 +47,10 @@ class Polygon(LineString):
 			y+=(p1[1]+p2[1])*f
 			j=i
 		f=self.area()*6
-		return Point(x/f, y/f)
+		if(f == 0):
+			return self.points[0]
+		else:
+			return Point(x/f, y/f)
 
 	# See:
 	# http://www.faqs.org/faqs/graphics/algorithms-faq/ (section 2.03)

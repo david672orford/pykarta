@@ -1,5 +1,9 @@
 # pykarta/gps/satnavs.py
-# Last modified: 7 March 2013
+# Last modified: 20 August 2014
+
+# This module sends Tomtom API commands over Bluetooth. Before you
+# can use this, you must install the cooresponding Bluetooth daemon
+# on your GPS navigator.
 
 # See https://code.google.com/p/pybluez/
 import bluetooth

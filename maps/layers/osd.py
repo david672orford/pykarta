@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/osd.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 21 July 2014
+# Last modified: 26 August 2014
 
 import cairo
 import math
@@ -150,20 +150,25 @@ class MapLayerAttribution(MapLayer):
 		ctx.select_font_face("sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 		ctx.set_font_size(8)
 		ctx.set_source_rgb(0.0, 0.0, 0.0)
-		printed = set([])
+		printed = set([])		# deduplicate
 		for layer in self.containing_map.layers_ordered:
 			attribution = layer.attribution
 			if attribution and attribution not in printed:
-				ctx.move_to(x, y)
-				ctx.text_path(attribution)
-				ctx.set_line_width(1.5)
-				ctx.set_source_rgb(1.0, 1.0, 1.0)	# white halo
-				ctx.stroke_preserve()
-				ctx.set_source_rgb(0.0, 0.0, 0.0)	# black letters
-				ctx.fill()
-
+				if isinstance(attribution, cairo.ImageSurface):
+					height = attribution.get_height()
+					ctx.set_source_surface(attribution, x, y-height)
+					ctx.paint()
+					y -= height
+				else:
+					ctx.move_to(x, y)
+					ctx.text_path(attribution)
+					ctx.set_line_width(1.5)
+					ctx.set_source_rgb(1.0, 1.0, 1.0)	# white halo
+					ctx.stroke_preserve()
+					ctx.set_source_rgb(0.0, 0.0, 0.0)	# black letters
+					ctx.fill()
+					y -= 10
 				printed.add(attribution)
-				y -= 10
 
 #========================================================================
 # Live GPS position layer

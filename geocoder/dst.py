@@ -1,13 +1,11 @@
 # pykarta/geocoder/dst.py
-# Copyright 2013, Trinity College Computing Center
-# Last modified: 6 June 2013
+# Copyright 2013, 2014, Trinity College Computing Center
+# Last modified: 16 August 2014
 
 import json
 import urllib
-import httplib
-import time
 
-from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
+from geocoder_base import GeocoderBase, GeocoderResult
 from pykarta.address import disabbreviate_street
 
 # See http://www.datasciencetoolkit.org/developerdocs

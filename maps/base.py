@@ -1,8 +1,8 @@
 # encoding=utf-8
 #=============================================================================
-# pykarta/maps/maps_base.py
+# pykarta/maps/base.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 9 May 2014
+# Last modified: 25 August 2014
 #=============================================================================
 
 import os
@@ -13,9 +13,8 @@ import weakref
 
 from pykarta.geometry import Point, BoundingBox
 from pykarta.maps.projection import *
-import pykarta.maps.tilesets
 import pykarta.maps.symbols
-import pykarta.maps.layers
+from pykarta.maps.layers import MapLayerBuilder, MapCacheCleaner
 import pykarta.misc
 
 cache_cleaner_thread = None
@@ -57,7 +56,8 @@ class MapBase(object):
 		self.rotate = False
 		self.symbols = pykarta.maps.symbols.MapSymbolSet()
 		self.zoom_cb = None
-		self.base_layer_keys = []
+		self.layers_group_1 = []
+		self.layers_group_2 = []
 		self.layers_ordered = []
 		self.layers_byname = {}
 		self.layers_osd = []
@@ -70,7 +70,7 @@ class MapBase(object):
 		global cache_cleaner_thread
 		if cache_cleaner_thread is None:
 			self.feedback.debug(1, "Starting cache cleaner thread...")
-			cache_cleaner_thread = pykarta.maps.layers.MapCacheCleaner(self.tile_cache_basedir)
+			cache_cleaner_thread = MapCacheCleaner(self.tile_cache_basedir)
 			cache_cleaner_thread.start()
 
 	def __del__(self):
@@ -352,8 +352,11 @@ class MapBase(object):
 		return self.layers_ordered[len(self.layers_ordered)-1].set_tool(tool)
 
 	# Add a layer to this map
-	def add_layer(self, layer_name, layer_obj, on_top=True, overlay=False):
+	def add_layer(self, layer_name, layer_obj, group=3):
+		""" add a layer object to the map """
 		self.feedback.debug(1, "add_layer(\"%s\", ...)" % layer_name)
+		assert(layer_name not in self.layers_byname, "layer already added")
+
 		layer_obj.name = layer_name
 
 		# Tell the layer that we are adding it to the map
@@ -361,17 +364,19 @@ class MapBase(object):
 
 		# Actually add the layer to the map.
 		self.layers_byname[layer_name] = layer_obj
-		if overlay:
-			self.layers_ordered.insert(len(self.base_layer_keys), layer_obj)
-		elif on_top:
+		if group == 1:
+			self.layers_ordered.insert(len(self.layers_group_1), layer_obj)
+			self.layers_group_1.append(layer_name)
+		elif group == 2:
+			self.layers_ordered.insert(len(self.layers_group_1) + len(self.layers_group_2), layer_obj)
+			self.layers_group_2.append(layer_name)
+		else:
 			self.layers_ordered.append(layer_obj)
-		else:	# bottom
-			self.layers_ordered.insert(0, layer_obj)
 
-		# If this is the bottom layer or the only layer, let it determine
+		# If this is the first layer in group 1, let it determine
 		# the min and max zoom levels.
-		if not on_top or len(self.layers_ordered) == 1:
-			self.as_base_layer(layer_obj)
+		if len(self.layers_ordered) == 1:
+			self._inspect_base_layer(layer_obj)
 
 		# This layer has not yet been drawn
 		layer_obj.set_stale()
@@ -379,7 +384,9 @@ class MapBase(object):
 
 		return layer_obj
 
-	def as_base_layer(self, layer_obj):
+	# This is called on the base layer so that we can bring the map
+	# into its max zoom limits.
+	def _inspect_base_layer(self, layer_obj):
 		try:
 			self.zoom_min = layer_obj.zoom_min
 			self.zoom_max = layer_obj.zoom_max
@@ -389,12 +396,19 @@ class MapBase(object):
 		self.set_zoom(self.zoom)        # bring zoom within limits
 
 	def get_layer(self, layer_name):
+		""" retrieve the layer object for the named layer """
 		return self.layers_byname.get(layer_name)
 
 	def remove_layer(self, layer_name):
+		""" removed the named layer from the map """
 		self.feedback.debug(1, "remove_layer(\"%s\")" % layer_name)
+		assert(layer_name in self.layers_byname)
 		layer_obj = self.layers_byname[layer_name]
 		del self.layers_byname[layer_name]
+		if layer_name in self.layers_group_1:
+			self.layers_group_1.remove(layer_name)
+		if layer_name in self.layers_group_2:
+			self.layers_group_2.remove(layer_name)
 		self.layers_ordered.remove(layer_obj)
 		self.queue_draw()
 		return layer_obj
@@ -428,27 +442,22 @@ class MapBase(object):
 	# If tile_source is a list of strings, multiple layers will be added.
 	def set_tile_source(self, tile_source):
 		self.feedback.debug(1, "set_tile_source(%s)" % str(tile_source))
+
 		# Accept either a string or a list of strings
 		if isinstance(tile_source, basestring):
 			tile_source = [tile_source]
-		# If this is a different tile source...
-		if self.base_layer_keys != tile_source:
-			for layer_key in self.base_layer_keys:
-				self.remove_layer(layer_key)
-			self.base_layer_keys = []
 
-			for layer_key in reversed(tile_source):
-				if layer_key == "osm-default-svg":		# exception
-					layer_obj = pykarta.maps.layers.MapLayerSVG(layer_key, extra_zoom=2.0)
-				elif layer_key.endswith(".mbtiles"):
-					layer_obj = pykarta.maps.layers.MapTileLayerMbtiles(layer_key)
-				elif layer_key.startswith("screen-"):
-					layer_obj = pykarta.maps.layers.MapScreenLayer(float(layer_key[7:]))
-				else:
-					tileset = pykarta.maps.tilesets.tilesets[layer_key]
-					layer_obj = pykarta.maps.layers.MapTileLayerHTTP(tileset)
-				self.add_layer(layer_key, layer_obj, on_top=False)
-			self.base_layer_keys = tile_source
+		# If this is a different tile source...
+		if self.layers_group_1 != tile_source:
+			# Remove the existing base layers
+			for layer_name in self.layers_group_1[:]:
+				self.remove_layer(layer_name)
+
+			# Create and add the new layers
+			for layer_name in tile_source:
+				layer_obj = MapLayerBuilder(layer_name)
+				self.add_layer(layer_name, layer_obj, group=1)
+			self.base_layer_names = tile_source
 
 			self.set_zoom(self.zoom)		# bring zoom within limits
 
@@ -459,9 +468,11 @@ class MapBase(object):
 			self.offline = offline
 			i = 0
 			for layer in self.layers_ordered:
+				# Retrigger layer setup
 				layer.set_map(layer.containing_map)
+				# Layer setup may have retrieved max zoom.
 				if i == 0:
-					self.as_base_layer(layer)
+					self._inspect_base_layer(layer)
 				i += 1
 		self.queue_draw()
 

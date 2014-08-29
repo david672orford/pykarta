@@ -1,6 +1,6 @@
 #! /usr/bin/python
 # address_processor.py
-# Last modified: 18 December 2012
+# Last modified: 22 August 2014
 
 import string
 import re
@@ -441,8 +441,8 @@ def abbreviate_street(street):
 	street = re.sub('\s+', ' ', street)
 	street = re.sub('\. ', ' ', street)
 	words = street.split(' ')
-	new_words = []
-	for w in words:
+	new_words = [words[0]]
+	for w in words[1:]:
 		new_words.append(street_abbreviator_table.get(w, w))
 	return ' '.join(new_words)
 

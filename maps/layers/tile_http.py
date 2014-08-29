@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tile_http.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 27 July 2014
+# Last modified: 26 August 2014
 
 import os
 import errno
@@ -20,12 +20,15 @@ from pykarta.misc import file_age_in_days, BoundMethodProxy, NoInet, tile_count,
 # TMS tile layer loaded over HTTP
 #=============================================================================
 class MapTileLayerHTTP(MapTileLayer):
-	def __init__(self, tileset):
+	def __init__(self, tileset, options={}):
 		MapTileLayer.__init__(self)
 		self.tileset = tileset
-		self.tileset_online_init_called = False
-		self.custom_renderer_class = self.tileset.custom_renderer_class
 		self.cache_enabled = self.tileset.layer_cache_enabled
+		self.tileset_online_init_called = False
+
+		self.renderer = tileset.renderer
+		if "renderer" in options:
+			self.renderer = tileset.renderers[options["renderer"]]
 
 		# How long (in milliseconds) to wait after receiving a tile
 		# for the next one to arrive before redrawing
@@ -43,6 +46,7 @@ class MapTileLayerHTTP(MapTileLayer):
 	# or for the screen (where lazy tile loading is disirable).
 	def set_map(self, containing_map):
 		MapTileLayer.set_map(self, containing_map)
+
 		# If this tileset has not yet had a chance to download metadata and
 		# we are currently online, give it that chance now.
 		if not self.containing_map.offline and not self.tileset_online_init_called:
@@ -81,11 +85,11 @@ class MapTileLayerHTTP(MapTileLayer):
 		if pending:
 			self.missing_tiles[zoom] = self.missing_tiles.get(zoom, 0) + 1
 		if filename is not None:
-			if self.custom_renderer_class:
-				return MapCustomTile(filename, zoom, x, y, self.custom_renderer_class)
+			if self.renderer is not None:
+				return MapCustomTile(self, filename, zoom, x, y)
 			else:
 				try:
-					return MapRasterTile(filename=filename, transparent=self.tileset.transparent, saturation=self.tileset.saturation)
+					return MapRasterTile(self, filename=filename)
 				except:
 					self.containing_map.feedback.debug(1, " defective tile file: %s" % filename)
 		return None

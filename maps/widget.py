@@ -1,7 +1,7 @@
 #=============================================================================
 # pykarta/maps/widget.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 15 August 2014
+# Last modified: 28 August 2014
 #=============================================================================
 
 import gtk
@@ -12,8 +12,7 @@ import time
 
 import pyapp.i18n
 from pykarta.maps import MapBase, MapCairo, MapFeedback
-from pykarta.maps.layers import MapTileLayerHTTP
-from pykarta.maps.layers import MapLayerSVG
+from pykarta.maps.layers import MapLayerBuilder, MapTileLayerHTTP
 from pykarta.misc import BoundMethodProxy
 
 #=============================================================================
@@ -203,7 +202,7 @@ class MapWidget(gtk.DrawingArea, MapBase):
 
 	# Mouse pointer moved over map
 	def motion_notify_event(self, widget, gdkevent):
-		self.feedback.debug(1, "mouse pointer at (%d, %d) %s" % (gdkevent.x, gdkevent.y, str(gdkevent.type)))
+		self.feedback.debug(10, "mouse pointer at (%d, %d) %s" % (gdkevent.x, gdkevent.y, str(gdkevent.type)))
 
 		if self.coordinates_cb:
 			self.coordinates_cb(self.unproject_point(gdkevent.x, gdkevent.y))
@@ -312,11 +311,12 @@ class MapPrint(MapCairo):
 		for layer in map_widget.layers_ordered:
 			print " %s" % layer.name
 			if layer.name == "osm-default":
-				layer = MapLayerSVG("osm-default-svg")
+				layer_obj = MapLayerBuilder("osm-default-svg")
 			else:
-				layer = copy.copy(layer)
-			self.add_layer(layer.name, layer)
-		self.base_layer_keys = map_widget.base_layer_keys
+				layer_obj = copy.copy(layer)
+			self.add_layer(layer.name, layer_obj)
+		# FIXME: do we have to preserve groups?
+		#self.base_layer_keys = map_widget.base_layer_keys
 
 		# Same OSD layers as MapWidget
 		for layer in map_widget.layers_osd:

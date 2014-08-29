@@ -1,7 +1,7 @@
 # pykarta/maps/layers/vector.py
 # An editable vector layer
 # Copyright 2013, 2014, Trinity College
-# Last modified: 15 August 2014
+# Last modified: 22 August 2014
 
 import math
 import gtk
@@ -339,7 +339,7 @@ class MapVectorPolygon(MapVectorObj):
 		return self.geometry.contains_point(lat_lon)
 	def draw(self, ctx):
 		pykarta.draw.polygon(ctx, self.projected_points)
-		pykarta.draw.fill_with_style(ctx, self.style)
+		pykarta.draw.fill_with_style(ctx, self.style, preserve=True)
 		pykarta.draw.stroke_with_style(ctx, self.style)
 		if self.editable:
 			pykarta.draw.node_pluses(ctx, self.phantom_points, style={})
@@ -524,7 +524,7 @@ class MapDrawPolygon(MapDrawBase):
 	def draw(self, ctx):
 		if len(self.projected_points) > 1:
 			pykarta.draw.line_string(ctx, self.projected_points)
-			pykarta.draw.fill_with_style(ctx, self.style)
+			pykarta.draw.fill_with_style(ctx, self.style, preserve=True)
 			pykarta.draw.stroke_with_style(ctx, self.style)
 		if len(self.projected_points) > 0 and self.hover_point is not None:
 			pykarta.draw.node_dots(ctx, self.projected_points)

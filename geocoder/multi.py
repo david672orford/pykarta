@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/multi.py
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 23 July 2014
+# Last modified: 29 August 2014
 
 import os
 from pykarta.misc import file_age_in_days, get_cachedir
@@ -13,6 +13,7 @@ from nominatim import GeocoderNominatim
 from google import GeocoderGoogle
 from dst import GeocoderDST
 from bing import GeocoderBing
+from massgis import GeocoderMassGIS
 
 #=============================================================================
 # This geocoder is a wrapper for a list of actual geocoders. It calls them
@@ -24,11 +25,12 @@ class GeocoderMulti(GeocoderBase):
 	def __init__(self):
 		self.cache = GeocoderCache()
 		self.geocoders = [
-			GeocoderSpreadsheet(),
-			GeocoderNominatim(),
-			GeocoderBing(),
-			GeocoderGoogle(),
-			GeocoderDST(),
+			(GeocoderSpreadsheet(), True),
+			(GeocoderNominatim(), False),
+			(GeocoderBing(), False),
+			(GeocoderGoogle(), False),
+			(GeocoderMassGIS(), True),
+			#(GeocoderDST(), True),
 			]
 
 	# Query the geocoders and cache the answers
@@ -43,20 +45,28 @@ class GeocoderMulti(GeocoderBase):
 		result = GeocoderResult(address, "None")
 		should_cache = False
 
-		# Run each geocoder in turn until we find a match
-		for geocoder in self.geocoders:
+		# Run each geocoder in turn until we find a good-quality match.
+		# If all we can get is an interpolated match, take the first one.
+		best = None
+		for geocoder, stop_on_interpolated in self.geocoders:
 			self.debug("Trying:", geocoder.__class__.__name__)
 			iresult = geocoder.FindAddr(address, countrycode=countrycode)
 			if iresult.coordinates is not None:
-				result.postal_code = iresult.postal_code
-				result.coordinates = iresult.coordinates
-				result.precision = iresult.precision
-				result.source = iresult.source
-				should_cache = geocoder.should_cache()
-				if iresult.precision != "INTERPOLATED":
+				best = (geocoder, iresult)
+				if stop_on_interpolated or iresult.precision != "INTERPOLATED":
 					break		# good enough
 			else:
 				result.alternative_addresses.extend(iresult.alternative_addresses)
+			self.debug("")
+
+		if best is not None:
+			geocoder, iresult = best
+			self.debug("Best result given by %s" % geocoder.__class__.__name__)
+			result.postal_code = iresult.postal_code
+			result.coordinates = iresult.coordinates
+			result.precision = iresult.precision
+			result.source = iresult.source
+			should_cache = geocoder.should_cache()
 
 		# Store the result.
 		if should_cache:
@@ -144,6 +154,3 @@ if __name__ == "__main__":
 				name="%s %s (%s)" % (address[0], address[1], result.source),
 				sym="Pin, Red",
 				)
-
-
-

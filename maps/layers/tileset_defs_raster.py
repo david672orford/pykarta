@@ -1,24 +1,19 @@
 # encoding=utf-8
-# pykarta/tilesets.py
+# pykarta/tileset_defs_raster.py
 # Copyright 2013, 2014, Trinity College
-<<<<<<< HEAD
-# Last modified: 15 August 2014
-=======
-# Last modified: 19 July 2014
->>>>>>> c189ca99c1047a3faa49e90287a48d04772a5908
+# Last modified: 26 August 2014
 
 #=============================================================================
-# Known tile sets
+# Raster tile sets
+# This is imported by builder.py.
 #=============================================================================
 
-import urllib
 import json
-
-from pykarta.maps.tilesets_obj import MapTileset, MapTilesetWMS, MapTilesets
+from tileset_defs import tilesets
+from tileset_objs import MapTileset, MapTilesetWMS
 from pykarta.misc.http import simple_urlopen
 from pykarta.maps.projection import *
-
-tilesets = MapTilesets()
+from pykarta.maps.image_loaders import surface_from_file_data
 
 #-----------------------------------------------------------------------------
 # Openstreetmap.org
@@ -28,21 +23,21 @@ tilesets = MapTilesets()
 #-----------------------------------------------------------------------------
 tilesets.append(MapTileset('osm-default',
 	url_template='http://tile.openstreetmap.org/{z}/{x}/{y}.png',
-	attribution=u"Map © OpenStreetMap contributors",
+	attribution=u"Map Data: © OpenStreetMap contributors",
 	zoom_max=19,
-	transparent=(241,238,232),
+	transparent_color=(241,238,232),
 	))
 tilesets.append(MapTileset('osm-cycle',
 	url_template='http://tile.opencyclemap.org/cycle/{z}/{x}/{y}.png',
-	attribution=u"Map © OpenStreetMap contributors",
+	attribution=u"Map Data: © OpenStreetMap contributors",
 	))
 tilesets.append(MapTileset('osm-transport',
 	url_template='http://tile2.opencyclemap.org/transport/{z}/{x}/{y}.png',
-	attribution=u"Map © OpenStreetMap contributors",
+	attribution=u"Map Data: © OpenStreetMap contributors",
 	))
 tilesets.append(MapTileset('osm-humanitarian',
 	url_template='http://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-	attribution=u"Map © OpenStreetMap contributors",
+	attribution=u"Map Data: © OpenStreetMap contributors",
 	))
 
 #-----------------------------------------------------------------------------
@@ -82,11 +77,7 @@ tilesets.append(MapTileset('stamen-watercolor',
 #-----------------------------------------------------------------------------
 for i in (
 		("streets", "david672orford.map-tyhg017g"),
-<<<<<<< HEAD
 		#("josm", "openstreetmap.map-4wvf9l0l"),
-=======
-		("josm", "openstreetmap.map-4wvf9l0l"),
->>>>>>> c189ca99c1047a3faa49e90287a48d04772a5908
 		):
 	tilesets.append(MapTileset('mapbox-%s' % i[0],
 		url_template='http://a.tiles.mapbox.com/v3/%s/{z}/{x}/{y}.png' % i[1],
@@ -99,7 +90,8 @@ for i in (
 #-----------------------------------------------------------------------------
 for i in ("osm-no-labels", "osm-labels-en", "osm-labels-ru", "bw-mapnik"):
 	tilesets.append(MapTileset('toolserver-%s' % i,
-		url_template='http://a.www.toolserver.org/tiles/%s/{z}/{x}/{y}.png' % i
+		url_template='http://a.www.toolserver.org/tiles/%s/{z}/{x}/{y}.png' % i,
+		attribution=u"Map Data: © OpenStreetMap contributors",
 	))
 tilesets.append(MapTileset('toolserver-shadows',
 	url_template='http://toolserver.org/~cmarqu/hill/{z}/{x}/{y}.png'
@@ -110,30 +102,47 @@ tilesets.append(MapTileset('toolserver-shadows',
 #-----------------------------------------------------------------------------
 
 # http://www.openstreetbrowser.org/
+# Colors are lurid
 tilesets.append(MapTileset('openstreetbrowser',
 	url_template='http://tiles-base.openstreetbrowser.org/tiles/basemap_base/{z}/{x}/{y}.png'
 	))
 for i in ("places_places", "overlay_pt", "transport_pt_amenities", "leisure_leisure", "culture_religion"):
 	tilesets.append(MapTileset('openstreetbrowser-%s' % i,
-		url_template='http://tiles-category.openstreetbrowser.org/tiles/%s/{z}/{x}/{y}.png?50433c8a029de' % i
+		url_template='http://tiles-category.openstreetbrowser.org/tiles/%s/{z}/{x}/{y}.png?50433c8a029de' % i,
+		attribution=u"Map Data: © OpenStreetMap contributors",
 		))
 
 # See http://wiki.openstreetmap.org/wiki/TopOSM
 for i in (("color-relief", "contours", "features")):
 	tilesets.append(MapTileset('toposm-%s' % i,
-		url_template='http://a.tile.stamen.com/toposm-%s/{z}/{x}/{y}.png' % i
+		url_template='http://a.tile.stamen.com/toposm-%s/{z}/{x}/{y}.png' % i,
+		attribution=u"Map Data: © OpenStreetMap contributors",
 		))
 
 # Öpnvkarte (also know as Openbusmap.org)
 # See: http://wiki.openstreetmap.org/wiki/%C3%96pnvkarte
 tilesets.append(MapTileset('opnvkarte',
-	url_template='http://tile.memomaps.de/tilegen/{z}/{x}/{y}.png'
+	url_template='http://tile.memomaps.de/tilegen/{z}/{x}/{y}.png',
+	attribution=u"Map Data: © OpenStreetMap contributors",
 	))
 
 # See: http://lists.openstreetmap.org/pipermail/talk/2011-June/058892.html
 tilesets.append(MapTileset('geoiq-acetate',
 	url_template='http://a3.acetate.geoiq.com/tiles/acetate-roads/{z}/{x}/{y}.png',
+	attribution=u"Map Data: © OpenStreetMap contributors",
 	))
+
+# http://www.openmapsurfer.uni-hd.de/
+# Better colors and style than in osm-default
+# roads--color roads layer
+# roadsg--grayscale roads layer
+# hybrid--semi-transparent layer
+# adminb--administrative borders
+for i in ("roads", "roadsg", "adminb", "hybrid"):
+	tilesets.append(MapTileset('openmapsurfer-%s' % i,
+		url_template='http://openmapsurfer.uni-hd.de/tiles/%s/x={x}&y={y}&z={z}' % i,
+		attribution=u"Map Data: © OpenStreetMap contributors",
+		))
 
 #-----------------------------------------------------------------------------
 # MassGIS
@@ -220,6 +229,7 @@ tilesets.append(MapTileset('arcgis-delorme-world-basemap',
 #-----------------------------------------------------------------------------
 # Microsoft Bing map layers
 # See http://www.bingmapsportal.com/
+# See http://www.microsoft.com/maps/product/terms.html
 # OsmGpsMap does not document #W but implements it
 # FIXME: add include=ImageryProviders to query and use result
 #-----------------------------------------------------------------------------
@@ -228,11 +238,10 @@ class MapTilesetBing(MapTileset):
 		MapTileset.__init__(self, key, **kwargs)
 		self.metadata_url = metadata_url
 	def online_init(self):
-<<<<<<< HEAD
 		url = self.metadata_url.replace("{api_key}", self.api_keys["bing"])
 		response = simple_urlopen(url, extra_headers=self.extra_headers)
 		metadata = json.load(response)
-		#print "Bing metadata:", json.dumps(metadata, indent=4, separators=(',', ': '))
+		print "Bing metadata:", json.dumps(metadata, indent=4, separators=(',', ': '))
 		resource = metadata['resourceSets'][0]['resources'][0]
 		url_template = resource['imageUrl'].replace("{subdomain}","t#R").replace("{quadkey}","#W").replace("{culture}","en-us")
 		#print "Bing URL template:", url_template
@@ -240,18 +249,7 @@ class MapTilesetBing(MapTileset):
 		self.zoom_min = resource['zoomMin']
 		self.zoom_max = resource['zoomMax']
 		#print "Bing zoom levels: %d thru %d" % (self.zoom_min, self.zoom_max)
-=======
-		response = simple_urlopen(self.metadata_url, extra_headers=self.extra_headers)
-		metadata = json.load(response)
-		print "Bing metadata:", json.dumps(metadata, indent=4, separators=(',', ': '))
-		resource = metadata['resourceSets'][0]['resources'][0]
-		url_template = resource['imageUrl'].replace("{subdomain}","t#R").replace("{quadkey}","#W").replace("{culture}","en-us")
-		print "Bing URL template:", url_template
-		self.set_url_template(url_template)
-		self.zoom_min = resource['zoomMin']
-		self.zoom_max = resource['zoomMax']
-		print "Bing zoom levels: %d thru %d" % (self.zoom_min, self.zoom_max)
->>>>>>> c189ca99c1047a3faa49e90287a48d04772a5908
+		self.attribution = surface_from_file_data(simple_urlopen(metadata['brandLogoUri']).read())
 
 for key, bing_key in (
 	('road', 'Road'),
@@ -259,11 +257,7 @@ for key, bing_key in (
 	('aerial-with-labels', 'AerialWithLabels')
 	):
 	tilesets.append(MapTilesetBing('bing-%s' % key,
-<<<<<<< HEAD
 		metadata_url='http://dev.virtualearth.net/REST/v1/Imagery/Metadata/%s?key={api_key}' % bing_key,
-=======
-		metadata_url='http://dev.virtualearth.net/REST/v1/Imagery/Metadata/%s?key=%s' % (bing_key, api_keys['bing']),
->>>>>>> c189ca99c1047a3faa49e90287a48d04772a5908
 		attribution="Bing"
 		))
 
@@ -300,10 +294,9 @@ for name, url_template in (
 #-----------------------------------------------------------------------------
 # Google Maps
 # See http://www.neongeo.com/wiki/doku.php?id=map_servers
-# Note: As of May 2013, Google still objects to direct use of its tile
+# Note: As of May 2013, Google objects to direct use of its tile
 # servers, so we will not be actually using this.
 #-----------------------------------------------------------------------------
-<<<<<<< HEAD
 #class MapTilesetGoogle(MapTileset):
 #	def __init__(self, key, **kwargs):
 #		MapTileset.__init__(self, key, **kwargs)
@@ -322,42 +315,4 @@ for name, url_template in (
 #	url_template='http://mt#R.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
 #	attribution = u"Map data ©2012 Google, INEGI",
 #	))
-=======
-class MapTilesetGoogle(MapTileset):
-	def __init__(self, key, **kwargs):
-		MapTileset.__init__(self, key, **kwargs)
-		self.extra_headers["User-Agent"] = "Mozilla/5.0"
-		self.extra_headers["Referer"] = "http://maps.google.com/"
-
-tilesets.append(MapTilesetGoogle('google', 
-	url_template='http://mt#R.google.com/vt/x={x}&s=&y={y}&z={z}',
-	attribution = u"Map data ©2012 Google, INEGI",
-	))
-tilesets.append(MapTilesetGoogle('google-satellite', 
-	url_template='http://khm#R.google.com/kh/v=123&x={x}&y={y}&z={z}',
-	attribution = u"Map data ©2012 Google, INEGI",
-	))
-tilesets.append(MapTilesetGoogle('google-hybrid', 
-	url_template='http://mt#R.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-	attribution = u"Map data ©2012 Google, INEGI",
-	))
-
-#-----------------------------------------------------------------------------
-# Nokia OVI
-# (Nokia purchased Navteq in 2007.)
-# See http://www.neongeo.com/wiki/doku.php?id=map_servers
-# See http://developer.here.com/ (recently discovered)
-#-----------------------------------------------------------------------------
-for name, key in (
-	('normal', 'normal.day'),
-	('normal-grey', 'normal.day.grey'),
-	('normal-transit', 'normal.day.transit'),
-	('satellite', 'satellite.day'),
-	('terrain', 'terrain.day'),
-	):
-	tilesets.append(MapTileset('nokia-%s' % name, 
-		url_template='http://maptile.maps.svc.ovi.com/maptiler/maptile/newest/%s/{z}/{x}/{y}/256/png8' % key,
-		attribution="Nokia OVI",
-		))
->>>>>>> c189ca99c1047a3faa49e90287a48d04772a5908
 

@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tile_mbtiles.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 10 May 2014
+# Last modified: 26 August 2014
 
 from pykarta.maps.layers.base import MapTileLayer, MapRasterTile
 
@@ -35,9 +35,12 @@ class MapTileLayerMbtiles(MapTileLayer):
 		self.cursor.execute("select tile_data from tiles where zoom_level = ? and tile_column = ? and tile_row = ?", (zoom, x, y))
 		result = self.cursor.fetchone()
 		if result is not None:
-			try:
-				return MapRasterTile(data=result[0])
-			except:
-				pass
+			if self.tileset.custom_renderer_class:
+				raise AssertionError("Not yet implemented")
+			else:
+				try:
+					return MapRasterTile(self, data=result[0])
+				except:
+					pass
 		return None
 

@@ -167,3 +167,8 @@ class GeocoderGoogle(GeocoderBase):
 	def should_cache(self):
 		return True
 
+if __name__ == "__main__":
+	gc = GeocoderGoogle()
+	gc.debug_enabled = True
+	print gc.FindAddr(["61","Steiger Drive","","Westfield","MA","01085"])
+

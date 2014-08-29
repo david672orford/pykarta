@@ -1,6 +1,6 @@
 # pykarta/geocoder/geocoder_base.py
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 22 June 2014
+# Last modified: 22 August 2014
 
 import httplib
 import socket
@@ -31,25 +31,41 @@ class GeocoderBase:
 			sys.stderr.write(string.join(string_list, " "))
 			sys.stderr.write("\n")
 
+	def debug_indented(self, text):
+		if self.debug_enabled:
+			for line in text.split('\n'):
+				sys.stderr.write("    %s\n" % line)
+
 	# Send an HTTP query to the geocoder server
 	# Set self.url_server and self.delay before calling
-	def get(self, path, query=None):
+	def get(self, path, query=None, method="GET", content_type=None):
 		if self.conn is None:
 			self.debug("  Opening HTTP connexion to %s..." % self.url_server)
 			self.conn = httplib.HTTPConnection(self.url_server)
 		try:
+			message_body = None
 			if query is not None:
-				path = path + "?" + urllib.urlencode(query)
-			self.debug("  GET %s" % path)
-			self.conn.putrequest("GET", path)
+				if method == "GET":
+					path = path + "?" + urllib.urlencode(query)
+				elif method == "POST":
+					message_body = query
+			self.debug("  %s %s" % (method, path))
+
+			# FIXME: can't we just use self.conn.request()?
+			self.conn.putrequest(method, path)
 			self.conn.putheader("User-Agent", "PyKarta 0.1") 
-			self.conn.endheaders()
+			if method == "POST":
+				self.conn.putheader("Content-Length", len(message_body))
+			if content_type is not None:
+				self.conn.putheader("Content-Type", content_type)
+			self.conn.endheaders(message_body=message_body)
+
 			time.sleep(self.delay)
 
 			http_resp = self.conn.getresponse()
 			self.debug("    %s %s" % (http_resp.status, http_resp.reason))
 			if http_resp.status != 200:
-				raise GeocoderError("HTTP GET failed")
+				raise GeocoderError("HTTP %s failed" % method)
 
 			resp_text = http_resp.read()
 			if resp_text == "":

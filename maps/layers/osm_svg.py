@@ -1,5 +1,5 @@
 # encoding=utf-8
-# pykarta/maps/layers/svg.py
+# pykarta/maps/layers/osm_svg.py
 # Copyright 2013, 2014, Trinity College
 # Last modified: 11 May 2014
 

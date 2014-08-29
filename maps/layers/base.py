@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/base.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 12 May 2014
+# Last modified: 27 August 2014
 
 import math
 import cairo
@@ -86,43 +86,6 @@ class MapLayer(object):
 		return False
 
 #=============================================================================
-# Objects to represent loaded tiles
-#=============================================================================
-
-# Used for raster image tiles
-class MapRasterTile(object):
-	def __init__(self, filename=None, data=None, transparent=None, saturation=None):
-		if filename is not None:
-			pixbuf = pixbuf_from_file(filename)
-		elif data is not None:
-			pixbuf = pixbuf_from_file_data(data)
-		else:
-			raise AssertionError
-
-		# See http://www.pygtk.org/pygtk2reference/class-gdkpixbuf.html
-		if transparent is not None:
-			pixbuf = pixbuf.add_alpha(True, *transparent)
-		if saturation is not None:
-			pixbuf.saturate_and_pixelate(pixbuf, saturation, False)
-
-		self.tile_surface = surface_from_pixbuf(pixbuf)
-
-	# Draw a 265x265 unit tile at position (xpixoff, ypixoff).
-	def draw(self, ctx, xpixoff, ypixoff, opacity):
-		ctx.set_source_surface(self.tile_surface, xpixoff, ypixoff)
-		ctx.paint_with_alpha(opacity)
-
-# Used for vector tiles
-class MapCustomTile(object):
-	def __init__(self, filename, zoom, x, y, custom_renderer_class):
-		#print "New Custom Tile:", filename
-		self.sig = filename
-		self.renderer = custom_renderer_class(filename, zoom, x, y)
-	def draw(self, ctx, xpixoff, ypixoff, opacity):
-		#print "Draw Custom Tile:", self.sig
-		self.renderer.draw(ctx, xpixoff, ypixoff, opacity)
-
-#=============================================================================
 # Base of all tile layers
 #=============================================================================
 class MapTileLayer(MapLayer):
@@ -135,7 +98,8 @@ class MapTileLayer(MapLayer):
 		self.tiles = []
 		self.tile_scale_factor = None
 		self.int_zoom = None
-		self.tile_ranges = None
+		self.tile_ranges = None			# used for precaching
+		self.renderer = None
 
 	def __del__(self):
 		print "Map: tile layer %s destroyed" % self.name
@@ -144,27 +108,30 @@ class MapTileLayer(MapLayer):
 	def do_viewport(self):
 		#print "New tiles viewport..."
 		lat, lon, zoom = self.containing_map.get_center_and_zoom()
-		tile_size = 256
 		half_width_in_pixels = self.containing_map.width / 2.0
 		half_height_in_pixels = self.containing_map.height / 2.0
 
 		if type(zoom) == int:
 			self.int_zoom = zoom
 			self.tile_scale_factor = 1.0
+			self.tile_size = 256
 		else:
 			self.int_zoom = int(zoom + 0.5)
 			self.tile_scale_factor = math.pow(2, zoom) / (1 << self.int_zoom)
+			self.tile_size = 256.0 * self.tile_scale_factor
 		#print "zoom:", zoom
 		#print "int_zoom:", self.int_zoom
 		#print "tile_scale_factor:", self.tile_scale_factor
 
-		# In print mode, try to double the resolution by using tiles
-		# for one zoom level higher and scaling them down.
-		if self.containing_map.print_mode and self.int_zoom < self.zoom_max:
-			if self.tile_scale_factor is None:
-				self.tile_scale_factor = 1.0
-			self.int_zoom += 1
-			self.tile_scale_factor /= 2.0
+		# In print mode when using raster tiles, try to double the resolution
+		# by using tiles for one zoom level higher and scaling them down.
+		# FIXME: This was broken by changes to how we scale.
+		#        Maybe we should just remove it.
+		#if self.renderer is None and self.containing_map.print_mode and self.int_zoom < self.zoom_max:
+		#	if self.tile_scale_factor is None:
+		#		self.tile_scale_factor = 1.0
+		#	self.int_zoom += 1
+		#	self.tile_scale_factor /= 2.0
 
 		# Make a list of the tiles to use used and their positions on the screen.
 		self.tiles = []
@@ -173,8 +140,8 @@ class MapTileLayer(MapLayer):
 			center_tile_x, center_tile_y = project_to_tilespace(lat, lon, self.int_zoom)
 
 			# Find out how many tiles (and factions thereof) are required to reach the edges.
-			half_width_in_tiles = half_width_in_pixels / (float(tile_size) * self.tile_scale_factor)
-			half_height_in_tiles = half_height_in_pixels / (float(tile_size) * self.tile_scale_factor)
+			half_width_in_tiles = half_width_in_pixels / float(self.tile_size)
+			half_height_in_tiles = half_height_in_pixels / float(self.tile_size)
 
 			# Find the first and last tile row and column which will be at least
 			# partially visible inside the viewport.
@@ -192,53 +159,67 @@ class MapTileLayer(MapLayer):
 
 			# Step through the tiles in the grid appending them to a list of
 			# those which do_draw() will render.
-			xpixoff = (half_width_in_pixels - (center_tile_x - x_range_start) * tile_size * self.tile_scale_factor) / self.tile_scale_factor
-			starting_ypixoff = (half_height_in_pixels - (center_tile_y - y_range_start) * tile_size * self.tile_scale_factor) / self.tile_scale_factor
-			tile_size *= 0.998		# shave slightly less than 1/2 pixel in order to prevent rounding gaps between tiles
+			# FIXME: in screen mode make sure that the values of xpixoff and ypixoff
+			# are always integers.
+			xpixoff = (half_width_in_pixels - (center_tile_x - x_range_start) * self.tile_size)
+			starting_ypixoff = (half_height_in_pixels - (center_tile_y - y_range_start) * self.tile_size)
 			for x in range(x_range_start, x_range_end + 1):
 				ypixoff = starting_ypixoff
 				for y in range(y_range_start, y_range_end + 1):
 					#print " Tile:", x, y, xpixoff, ypixoff
 					self.tiles.append((self.int_zoom, x % (1 << self.int_zoom), y, xpixoff, ypixoff))
-					ypixoff += tile_size
-				xpixoff += tile_size
+					ypixoff += self.tile_size
+				xpixoff += self.tile_size
 
 			self.tile_ranges = (x_range_start, x_range_end, y_range_start, y_range_end)
 
 	# Called whenever redrawing required
 	def do_draw(self, ctx):
 		#print "Draw tiles..."
-		ctx.scale(self.tile_scale_factor, self.tile_scale_factor)
 
 		progress = 1
-		for tile in self.tiles:
+		tile_objs = []
+		for zoom, x, y, xpixoff, ypixoff in self.tiles:
+			#print zoom, x, y, xpixoff, ypixoff
+			ctx.save()
+			ctx.translate(xpixoff, ypixoff)
+
+			# If this map blocks until all of the tiles are load, display progress.
 			if not self.containing_map.lazy_tiles:
 				numtiles = len(self.tiles)
 				self.containing_map.feedback.progress(progress, numtiles, _("Downloading {layername} tile {progress} of {numtiles}").format(layername=self.name, progress=progress, numtiles=numtiles))
-			zoom, x, y, xpixoff, ypixoff = tile
 
 			tile = self.load_tile_cached(zoom, x, y, True)
-			if tile is not None:
-				tile.draw(ctx, xpixoff, ypixoff, self.opacity)
 
-			else:
+			if tile is not None:
+				tile.draw(ctx, self.tile_scale_factor, self.opacity)
+			else:		# search for lower zoom tile as temporary substitute
 				for lower_zoom in range(zoom-1, self.zoom_min-1, -1):
 					zoom_diff = zoom - lower_zoom
 					bigger_tile = self.load_tile_cached(lower_zoom, x >> zoom_diff, y >> zoom_diff, False)
-					if bigger_tile != None:
-						ctx.save()
-						ctx.translate(xpixoff, ypixoff)
-						ctx.rectangle(0, 0, 256, 256)
+					if bigger_tile is not None:
+						subtile_scale_factor = 1 << zoom_diff
+						subtile_mask = subtile_scale_factor - 1
+						x_adj = -(self.tile_size * (x & subtile_mask))
+						y_adj = -(self.tile_size * (y & subtile_mask))
+						ctx.rectangle(0, 0, self.tile_size, self.tile_size)
 						ctx.clip()
-						scale = 1 << zoom_diff
-						pixels = 256 >> zoom_diff
-						mask = scale - 1
-						ctx.scale(scale, scale)
-						bigger_tile.draw(ctx, -(pixels * (x & mask)), -(pixels * (y & mask)), self.opacity)
-						ctx.restore()
+						ctx.translate(x_adj, y_adj)
+						bigger_tile.draw(ctx, self.tile_scale_factor * subtile_scale_factor, self.opacity)
 						break
 
+			ctx.restore()
+			tile_objs.append(tile)
 			progress += 1
+
+		if self.renderer is not None:
+			for zoom, x, y, xpixoff, ypixoff in self.tiles:
+				tile = tile_objs.pop(0)
+				if tile is not None:
+					ctx.save()
+					ctx.translate(xpixoff, ypixoff)
+					tile.draw2(ctx, self.tile_scale_factor)
+					ctx.restore()
 
 	# This wraps load_tile() and caches the most recently used tiles in RAM.
 	def load_tile_cached(self, zoom, x, y, may_download):
@@ -267,5 +248,45 @@ class MapTileLayer(MapLayer):
 	# available, return None.
 	def load_tile(self, zoom, x, y, may_download):
 		return None
+
+#=============================================================================
+# Objects to represent loaded tiles
+#=============================================================================
+
+# Used for raster image tiles
+class MapRasterTile(object):
+	def __init__(self, layer, filename=None, data=None):
+		if filename is not None:
+			pixbuf = pixbuf_from_file(filename)
+		elif data is not None:
+			pixbuf = pixbuf_from_file_data(data)
+		else:
+			raise AssertionError
+
+		# See http://www.pygtk.org/pygtk2reference/class-gdkpixbuf.html
+		transparent_color = layer.tileset.transparent_color
+		if transparent_color is not None:
+			pixbuf = pixbuf.add_alpha(True, *transparent_color)
+		saturation = layer.tileset.saturation
+		if saturation is not None:
+			pixbuf.saturate_and_pixelate(pixbuf, saturation, False)
+
+		self.tile_surface = surface_from_pixbuf(pixbuf)
+
+	# Draw a 265x265 unit tile at position (xpixoff, ypixoff).
+	def draw(self, ctx, scale, opacity):
+		#scale *= 1.01	# remove gaps due to rounding errors
+		ctx.scale(scale, scale)
+		ctx.set_source_surface(self.tile_surface, 0, 0)
+		ctx.paint_with_alpha(opacity)
+
+# Used for vector tiles
+class MapCustomTile(object):
+	def __init__(self, layer, filename, zoom, x, y):
+		self.renderer = layer.renderer(layer, filename, zoom, x, y)
+	def draw(self, ctx, scale, opacity):
+		self.renderer.draw(ctx, scale, opacity)
+	def draw2(self, ctx, scale):
+		self.renderer.draw2(ctx, scale)
 
 

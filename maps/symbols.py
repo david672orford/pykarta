@@ -1,6 +1,6 @@
 # pykarta/maps/symbols.py
-# Copyright 2014, Trinity College
-# Last modified: 26 July 2014
+# Copyright 2013, 2014, Trinity College
+# Last modified: 25 August 2014
 
 import os
 import re
@@ -10,6 +10,7 @@ import cairo
 #	import rsvg
 #except:
 import pykarta.fallback.rsvg as rsvg
+from pykarta.maps.image_loaders import pixbuf_from_file, surface_from_pixbuf
 
 #========================================================================
 # SVG Map Symbols
@@ -35,6 +36,10 @@ class MapSymbolSet(object):
 	# coordinates) are extracted from the filename.
 	def add_symbol(self, filename):
 		symbol = MapSymbol(filename, self.scaler)
+		self.symbols[symbol.name] = symbol
+
+	def add_raster_symbol(self, filename):
+		symbol = MapRasterSymbol(filename)
 		self.symbols[symbol.name] = symbol
 
 	# Retrieve a member of this symbol set.
@@ -173,4 +178,32 @@ class MapSymbolPrintRenderer(object):
 		ctx.translate(-self.anchor_x, -self.anchor_y)
 		self.svg.render_cairo(ctx)
 		ctx.restore()
+
+# We use this for BMP POI symbols from the Internet
+class MapRasterSymbol(object):
+	def __init__(self, filename):
+		self.pixbuf = pixbuf_from_file(filename)
+		self.surface = surface_from_pixbuf(self.pixbuf)
+		basename = os.path.basename(filename)
+		base, ext = os.path.splitext(basename)
+		self.name = base
+		self.scale = 0.5
+		self.label_offset = 12 * self.scale
+		self.x_size = 20 * self.scale
+		self.hit_box = 12 * self.scale
+		self.anchor_x = 12		# not scaled
+		self.anchor_y = 12
+	def get_pixbuf(self):
+		return self.pixbuf
+	def get_renderer(self, containing_map):
+		return self
+	def blit(self, ctx, x, y):
+		ctx.save()
+		ctx.translate(x, y)
+		ctx.scale(self.scale, self.scale)
+		ctx.set_source_surface(self.surface, 0-self.anchor_x, 0-self.anchor_y)
+		ctx.paint()
+		ctx.restore()
+	def hit(self, x, y):
+		return abs(x) <= self.hit_box and abs(y) <= self.hit_box
 

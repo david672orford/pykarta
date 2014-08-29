@@ -1,6 +1,6 @@
-# pykarta/maps/tilesets_obj.py
+# pykarta/maps/tileset_objs.py
 # Copyright 2013, Trinity College
-# Last modified: 15 August 2013
+# Last modified: 24 August 2013
 
 import time
 import urllib
@@ -23,6 +23,7 @@ class MapTilesets(object):
 
 	# Return a member named by key.
 	def __getitem__(self, key):
+		assert key in self.tilesets_dict, "Tileset %s does not exist" % key
 		return self.tilesets_dict[key]
 
 	# Return the keys in their original order.
@@ -32,15 +33,15 @@ class MapTilesets(object):
 # Describes a set of tiles
 class MapTileset(object):
 	def __init__(self, key,
-			url_template=None,
-			custom_renderer_class=None,
-			zoom_min=0, zoom_max=18,
-			attribution=None,
-			opacity=1.0,
-			max_age_in_days=30,
-			layer_cache_enabled=False,
-			transparent=None,
-			saturation=None
+			url_template=None,			# whence to get tiles
+			renderer=None,				# class to use to render data, None for raster tiles
+			zoom_min=0, zoom_max=18,	# zoom range covered
+			attribution=None,			# string or Cairo surface with logo or credit statement
+			max_age_in_days=30,			# how long to use files from cache
+			layer_cache_enabled=False,	# cache rendered layer in a Cairo surface?
+			opacity=1.0,				# used to fade out raster tiles
+			transparent_color=None,		# color of raster tiles to convert to transparent
+			saturation=None				# <1.0=desaturate, >1.0=increase saturation
 			):
 		self.key = key
 		if url_template:
@@ -53,9 +54,9 @@ class MapTileset(object):
 		self.attribution = attribution
 		self.opacity = opacity
 		self.max_age_in_days = max_age_in_days
-		self.custom_renderer_class = custom_renderer_class
+		self.renderer = renderer
 		self.layer_cache_enabled = layer_cache_enabled
-		self.transparent = transparent
+		self.transparent_color = transparent_color
 		self.saturation = saturation
 
 		self.extra_headers = {
