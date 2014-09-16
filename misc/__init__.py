@@ -1,6 +1,6 @@
 # pykarta/misc/__init__.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 9 May 2014
+# Last modified: 12 September 2014
 
 import os
 import time
@@ -77,22 +77,31 @@ def tile_count(width, height, zoom_levels):
 # The file does not receive the indicted name until it is complete.
 class SaveAtomically(object):
 	def __init__(self, filename, backup=False):
-		(base, ext) = os.path.splitext(filename)
 		self.filename = filename
-		self.tmp = "%s.tmp" % base
-		self.bak = "%s.bak" % base
-		self.fh = open(self.tmp, 'wb')
 		self.backup = backup
+
+		# MS-DOS naming scheme
+		#(base, ext) = os.path.splitext(self.filename)
+		#self.tempname = "%s.tmp" % base
+		#self.backname = "%s.bak" % base
+
+		# Unix naming scheme
+		self.tempname = "%s.tmp" % self.filename
+		self.backname = "%s~" % self.filename
+
+		self.fh = open(self.tempname, 'wb')
+
 	def write(self, data):
 		self.fh.write(data)
+
 	def close(self):
 		self.fh.close()
 		if os.path.exists(self.filename):
 			if self.backup:
-				if os.path.exists(self.bak):
-					os.remove(self.bak)
-				os.rename(self.filename, self.bak)
+				if os.path.exists(self.backname):
+					os.remove(self.backname)
+				os.rename(self.filename, self.backname)
 			else:
 				os.unlink(self.filename)
-		os.rename(self.tmp, self.filename)
+		os.rename(self.tempname, self.filename)
 

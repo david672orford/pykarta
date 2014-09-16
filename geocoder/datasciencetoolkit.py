@@ -1,6 +1,6 @@
-# pykarta/geocoder/dst.py
+# pykarta/geocoder/datasciencetoolkit.py
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 16 August 2014
+# Last modified: 16 September 2014
 
 import json
 import urllib
@@ -9,15 +9,16 @@ from geocoder_base import GeocoderBase, GeocoderResult
 from pykarta.address import disabbreviate_street
 
 # See http://www.datasciencetoolkit.org/developerdocs
-class GeocoderDST(GeocoderBase):
-	def __init__(self):
+class GeocoderDataScienceToolKit(GeocoderBase):
+	def __init__(self, **kwargs):
+		GeocoderBase.__init__(self, **kwargs)
 		self.url_server = "www.datasciencetoolkit.org"
 		self.url_path = "/street2coordinates"
 		self.delay = 1.0	# one request per second
 
 	# Given a street address, try to find the latitude and longitude.
 	def FindAddr(self, address, countrycode=None):
-		result = GeocoderResult(address, "DST")
+		result = GeocoderResult(address, "DSTK")
 
 		query = "%s %s, %s, %s %s" \
 				% (address[self.f_house_number], address[self.f_street],

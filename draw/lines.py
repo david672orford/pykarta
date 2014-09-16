@@ -1,6 +1,6 @@
 # pykarta/draw/lines.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 26 August 2014
+# Last modified: 30 August 2014
 
 import cairo
 import math
@@ -60,54 +60,6 @@ def arrowhead_barbs(start_point, end_point, arrow_length=15, arrow_angle_degrees
 	y2 = end_y + arrow_length * math.sin(angle + arrow_angle)
 	return [[x1, y1], [x2, y2]]
 
-# Stroke the path in the specified style. This was inspired by Cascadenik.
-def stroke_with_style(ctx, style):
-	# Nobody should be using the old keys
-	assert not "color" in style			# color -> line-color
-	assert not "dash-pattern" in style	# dash-pattern -> line-dash
-	assert not "width" in style			# width -> line-width
-
-	ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-
-	# This stroke goes 'under' the main stroke. It can be used to put
-	# a border around the main stroke or the dash pattern can be used
-	# to give it wiskers.
-	if 'underline-width' in style:
-		ctx.set_line_width(style['underline-width'])
-		ctx.set_source_rgba(*style['underline-color'])
-		ctx.set_dash(style.get('underline-dash', ()))
-		ctx.stroke_preserve()
-
-	# This is the main stroke. It is always made.
-	ctx.set_line_width(style.get('line-width', 1))
-	ctx.set_source_rgba(*style.get('line-color', (0.0, 0.0, 0.0, 1.0)))
-	ctx.set_dash(style.get('line-dash', ()))
-	ctx.stroke_preserve()
-
-	# This stroke goes over the main stroke. We can use it to run a solid
-	# or dashed line down the center of the main stroke.
-	if 'overline-width' in style:
-		ctx.set_line_width(style['overline-width'])
-		ctx.set_source_rgba(*style['overline-color'])
-		ctx.set_dash(style.get('overline-dash', ()))
-		ctx.stroke_preserve()
-
-	# This whole function is pitched as a substitute for stroke(), so
-	# it should clear the path.
-	ctx.new_path()
-
-# Fill a polygon according to the specified style. By default it is
-# filled with transparent white. To disable filling, set fill-color
-# to None in the style.
-def fill_with_style(ctx, style, preserve=False):
-	fill_color = style.get("fill-color", (1.0, 1.0, 1.0, 0.5))
-	if fill_color is not None:
-		ctx.set_source_rgba(*fill_color)
-		if preserve:
-			ctx.fill_preserve()
-		else:
-			ctx.fill()
-
 # Draw circles to represent the nodes of a geometric shape. Examples of
 # such nodes would be route points or a polygon vertexes.
 def node_dots(ctx, points, style={}):
@@ -146,5 +98,4 @@ def node_pluses(ctx, points, style={}):
 	ctx.set_line_width(2.0)
 	ctx.set_source_rgba(*color)
 	ctx.stroke()
-
 

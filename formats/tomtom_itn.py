@@ -1,7 +1,7 @@
 #! /usr/bin/python
-# format_tomtom_itn.py
-# Copyright 2012, Trinity College Computing Center
-# Last modified: 16 March 2012
+# pykarta/formats/tomtom_itn.py
+# Copyright 2013, 2014, Trinity College Computing Center
+# Last modified: 1 September 2014
 
 # See:
 # http://www.tomtom.com/lib/doc/TomTomTips/index.html?itinerary_as_text_file.htm
@@ -26,15 +26,22 @@ class ItnReader(object):
 			yield point
 
 class ItnWriter(object):
-	def __init__(self):
+	def __init__(self, writable_object):
+		self.fh = writable_object
 		self.points = []
+		self.saved = False
+
+	def __del__(self):
+		if not self.saved:
+			self.save()
 
 	def add(self, point):
 		if len(self.points) == 48:
 			raise AssertionError("Too many route points")
 		self.points.append(point)
 
-	def write(self, fh):
+	def save(self):
+		self.saved = True
 		for i in range(len(self.points)):
 			point = self.points[i]
 			# See Tomtom SDK3 page 8 for a description of these codes
@@ -47,7 +54,7 @@ class ItnWriter(object):
 			else:
 				flags = 1
 		
-			fh.write("%d|%d|%s|%d|\n" % (
+			self.fh.write("%d|%d|%s|%d|\n" % (
 				int(point.lon * 100000),
 				int(point.lat * 100000),
 				point.description,
@@ -64,8 +71,8 @@ if __name__ == "__main__":
 	print "========================================"
 
 	reader = ItnReader(sys.stdin)
-	writer = ItnWriter()
+	writer = ItnWriter(sys.stdout)
 	for point in reader.points:
 		writer.add(ItnPoint(point.lat, point.lon, point.description, point.stopover))
-	writer.write(sys.stdout)
+	writer.save()
 	

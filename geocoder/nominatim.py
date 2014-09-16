@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/nominatim.py
-# Copyright 2013, Trinity College Computing Center
-# Last modified: 15 February 2013
+# Copyright 2013, 2014, Trinity College Computing Center
+# Last modified: 16 September 2014
 
 import xml.etree.cElementTree as ET
 import json
@@ -12,7 +12,8 @@ from pykarta.geometry import Point, Polygon, BoundingBox
 
 # See http://wiki.openstreetmap.org/wiki/Nominatim
 class GeocoderNominatim(GeocoderBase):
-	def __init__(self, instance="osm"):
+	def __init__(self, instance="osm", **kwargs):
+		GeocoderBase.__init__(self, **kwargs)
 
 		# OSM server is slow, but up-to-date.
 		if instance == "osm":
@@ -83,9 +84,11 @@ class GeocoderNominatim(GeocoderBase):
 			if self.result_truly_matches(address, found_address_list):
 				self.debug("  Match")
 				result.coordinates = (float(place.get('lat')), float(place.get('lon')))
-				if osm_type == "way" or osm_type == "node":
+				if osm_type == "node":			# FIXME: distinguish between ROOF and ENTRANCE
 					result.precision = "ROOF"
-				else:		# TIGER interpolation?
+				elif osm_type == "way":			# Building outline?
+					result.precision = "ROOF"
+				else:							# TIGER interpolation?
 					result.precision = "INTERPOLATED"
 				break
 			else:

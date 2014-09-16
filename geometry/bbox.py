@@ -36,19 +36,6 @@ class BoundingBox(object):
 		else:
 			return "<invalid>"
 
-	## Used only by Openlayers border editor
-	#def as_rectangle(self):
-	#	if self.valid:
-	#		return (
-	#			Point(self.min_lat, self.min_lon),	# bottom left
-	#			Point(self.min_lat, self.max_lon),	# bottom right
-	#			Point(self.max_lat, self.max_lon),	# top right
-	#			Point(self.max_lat, self.min_lon),	# top left
-	#			Point(self.min_lat, self.min_lon),	# bottom left again
-	#			)
-	#	else:
-	#		return None
-
 	def as_polygon(self):
 		from polygon import Polygon
 		if self.valid:

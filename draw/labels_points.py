@@ -1,6 +1,6 @@
 # pykarta/draw/labels_points.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 20 August 2014
+# Last modified: 12 September 2014
 
 import cairo
 from shapes import rounded_rectangle
@@ -10,7 +10,8 @@ from shapes import rounded_rectangle
 # overlap it. Stroke and fill.
 def poi_label(ctx, x, y, text, fontsize=8):
 	# Font
-	ctx.select_font_face("sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+	#ctx.select_font_face("sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+	ctx.select_font_face("ubuntu", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 	ctx.set_font_size(fontsize)
 
 	#extents = ctx.text_extents(text)
@@ -31,7 +32,8 @@ def poi_label(ctx, x, y, text, fontsize=8):
 # box will be drawn around it. The box will be just big enough to contain
 # the indicated text. Strokes and fills.
 def centered_label(ctx, x, y, text, fontsize=12, shield=True):
-	ctx.select_font_face("sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+	#ctx.select_font_face("sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+	ctx.select_font_face("ubuntu", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 	ctx.set_font_size(fontsize)
 
 	ctx.new_path()

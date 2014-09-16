@@ -1,6 +1,7 @@
 # pykarta/maps/layers/marker.py
 # A simple marker layer
-# Last modified: 15 August 2013
+# Copyright 2013, 2014, Trinity College
+# Last modified: 4 September 2014
 
 from pykarta.maps.layers import MapLayer
 from pykarta.draw import poi_label
@@ -10,7 +11,7 @@ from pykarta.maps.projection import project_to_tilespace
 class MapMarker(object):
 	__slots__ = ('lat', 'lon', 'x', 'y', 'symbol_name', 'symbol', 'label')
 
-class MapMarkerLayer(MapLayer):
+class MapLayerMarker(MapLayer):
 	def __init__(self):
 		MapLayer.__init__(self)
 		self.index_zoom = 14

@@ -1,22 +1,23 @@
 # pykarta/geocoder/massgis.py
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 22 August 2014
+# Last modified: 9 September 2014
 
 import lxml.etree as ET
-from geocoder_base import GeocoderBase, GeocoderResult
+from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 import pykarta.address
 
 # https://wiki.state.ma.us/confluence/pages/viewpage.action?pageId=451772508
 
 class GeocoderMassGIS(GeocoderBase):
-	def __init__(self):
+	def __init__(self, **kwargs):
+		GeocoderBase.__init__(self, **kwargs)
 		self.url_server = "gisprpxy.itd.state.ma.us"
 		self.url_path = "/MassGISCustomGeocodeLatLongApplication/MassGISCustomGeocodeService.asmx"
 		self.delay = 1.0	# one request per second
 
 	def FindAddr(self, address, countrycode=None):
 		result = GeocoderResult(address, "MassGIS")
-		if address[self.f_state] in ("MA", "CT", "NY", "NH", "VT"):
+		if address[self.f_state] in ("MA", "CT", "NY", "NH", "VT"):	# covers these states in whole or in part
 			self.FindAddr2(address, result)
 		if result.coordinates is None:
 			self.debug("  No match")
@@ -56,9 +57,9 @@ class GeocoderMassGIS(GeocoderBase):
 			query_address.append(query_term)
 
 		query_text = ET.tostring(ET.ElementTree(element=query), encoding="utf-8", xml_declaration=True, pretty_print=True)
-		print query_text
+		#print query_text
 
-		resp_text = self.get(self.url_path, query=query_text, method="POST", content_type="text/xml")
+		resp_text = self.get_with_retry(self.url_path, query=query_text, method="POST", content_type="text/xml")
 		#print resp_text
 		try:
 			tree = ET.XML(resp_text)

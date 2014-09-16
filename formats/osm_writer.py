@@ -1,5 +1,5 @@
 #! /usr/bin/python
-# Copyright 2011, 2014, Trinity College Computing Center
+# Copyright 2013, 2014, Trinity College Computing Center
 # Reader and writer for OSM XML files
 # Written by David Chappell
 # Last modified: 7 August 2014

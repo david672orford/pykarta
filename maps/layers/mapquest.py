@@ -1,7 +1,7 @@
 # pykarta/maps/layers/mapquest.py
 # Mapquest layers
-# Copyright 2013, Trinity College
-# Last modified: 15 April 2013
+# Copyright 2013, 2014, Trinity College
+# Last modified: 4 September 2014
 
 import gtk
 import urllib
@@ -25,7 +25,7 @@ from pykarta.draw import poi_label
 #   every time the user moved the map
 # * automatically redownload every 10 minutes or so
 #=============================================================================
-class MapTrafficLayer(MapLayer):
+class MapLayerTraffic(MapLayer):
 	# These are the scales which Mapquest recommends for the
 	# indicated mercartor zoom levels.
 	scales = {

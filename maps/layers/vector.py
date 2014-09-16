@@ -1,10 +1,11 @@
 # pykarta/maps/layers/vector.py
 # An editable vector layer
 # Copyright 2013, 2014, Trinity College
-# Last modified: 22 August 2014
+# Last modified: 14 September 2014
 
-import math
 import gtk
+import cairo
+import math
 import weakref
 
 from pykarta.maps.layers import MapLayer
@@ -14,7 +15,7 @@ import pykarta.draw
 #============================================================================
 # A container layer which can hold vector objects
 #============================================================================
-class MapVectorLayer(MapLayer):
+class MapLayerVector(MapLayer):
 	def __init__(self, tool_done_cb=None, obj_modified_cb=None):
 		MapLayer.__init__(self)
 		self.layer_objs = []
@@ -184,21 +185,29 @@ class MapDragger(object):
 # Base class for vector objects
 class MapVectorObj(object):
 	snap = True		# snap this object's points to other objects
-	min_points = 0
-	unclosed = 1
+	min_points = 0	# FIXME: document
+	unclosed = 1	# FIXME: document
 
-	def __init__(self):
+	def __init__(self, properties):
 		self.editable = False
 		self.geometry = None
+		self.properties = {}
+		if properties is not None:
+			self.properties.update(properties)
 
 	def project(self, containing_map):
 		self.projected_points = containing_map.project_points(self.geometry.points)
 		self.update_phantoms()
 
-	# Should a click at the specified location (specified in both lat, lon space
-	#  and pixel space) be considered to have hit this object?
-	def obj_hit_detect(self, lat_lon, gdkevent):
+	# Override this
+	def draw(self, ctx):
 		pass
+
+	# Override this if you want the object to be clickable.
+	# Return True if hit.
+	# Test lat_lon (a Point) or gdkevent's x and y members.
+	def obj_hit_detect(self, lat_lon, gdkevent):
+		return False
 
 	# Did this click hit one of the object's points? If so, return its index.
 	# If a phantom point was hit, make it a real point first.
@@ -218,7 +227,7 @@ class MapVectorObj(object):
 			i += 1
 		return None
 
-	# Is this click close to one of the objects points? If so, return that point.
+	# Is this click close to one of the object's points? If so, return that point.
 	def snap_search(self, gdkevent):
 		for point in self.projected_points:
 			if points_close((gdkevent.x, gdkevent.y), point):
@@ -245,26 +254,46 @@ class MapVectorObj(object):
 
 	# Update the locations of the intermediate points which can be dragged to add points.
 	def update_phantoms(self):
-		i = 0
 		self.phantom_points = []
-		while i < (len(self.projected_points) - self.unclosed):
-			p1 = self.projected_points[i]	
-			p2 = self.projected_points[(i+1)%len(self.projected_points)]
-			self.phantom_points.append(( (p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2))
-			i += 1
+		if self.editable:
+			i = 0
+			while i < (len(self.projected_points) - self.unclosed):
+				p1 = self.projected_points[i]	
+				p2 = self.projected_points[(i+1)%len(self.projected_points)]
+				self.phantom_points.append(( (p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2))
+				i += 1
 
+# Adapter to make a point look like a one-point line. This way we
+# do not have to write a lot of exceptions for this object.
+class PointWrapper(object):
+	def __init__(self, *args):
+		self.points = [Point(*args)]
+		self.bbox = None
+	def get_bbox(self):
+		if self.bbox is None:
+			self.bbox = BoundingBox()
+			self.bbox.add_points(self.points)
+		return self.bbox
+	def as_geojson(self):
+		return self.points[0].as_geojson()
+
+# Draws a representation of a pykarta.geometry.Point with optional label.
+# Can construct a Point from point.
 class MapVectorMarker(MapVectorObj):
 	min_points = 1
-	def __init__(self, point, style={}):
-		MapVectorObj.__init__(self)
-		self.geometry = LineString((point,))
-		self.style = style
+	def __init__(self, point, properties=None, style=None):
+		MapVectorObj.__init__(self, properties)
+		self.geometry = PointWrapper(point)
+		self.style = {}
+		if style is not None:
+			self.style.update(style)
 		self.symbol = None
 		self.label = self.style.get("label")
 	def project(self, containing_map):
 		MapVectorObj.project(self, containing_map)
 		if self.symbol is None:
-			self.symbol = containing_map.symbols.get_symbol(self.style.get("symbol","Dot"),"Dot")
+			symbol_name = self.style.get("symbol", "Dot")
+			self.symbol = containing_map.symbols.get_symbol(symbol_name, "Dot")
 		self.symbol_renderer = self.symbol.get_renderer(containing_map)
 	def obj_hit_detect(self, lat_lon, gdkevent):
 		return points_close((gdkevent.x, gdkevent.y), self.projected_points[0])
@@ -274,15 +303,19 @@ class MapVectorMarker(MapVectorObj):
 		if self.label:
 			pykarta.draw.poi_label(ctx, x+self.symbol_renderer.label_offset, y, self.label)
 
+# Draws a representation of a pykarta.geometry.LineString.
+# Can construct a LineString from line_string.
 class MapVectorLineString(MapVectorObj):
 	min_points = 2
-	def __init__(self, line_string, style={}):
-		MapVectorObj.__init__(self)
+	def __init__(self, line_string, properties=None, style=None):
+		MapVectorObj.__init__(self, properties)
 		if isinstance(line_string, LineString):
 			self.geometry = line_string
 		else:
 			self.geometry = LineString(line_string)
-		self.style = style
+		self.style = {"line-width":1}
+		if style is not None:
+			self.style.update(style)
 	def obj_hit_detect(self, lat_lon, gdkevent):
 		testpt = (gdkevent.x, gdkevent.y)
 		points = self.projected_points
@@ -304,16 +337,21 @@ class MapVectorLineString(MapVectorObj):
 		elif False:		# FIXME: slow, not disablable
 			pykarta.draw.node_dots(ctx, self.projected_points, style={"diameter":2.0,"fill-color":(0.0,0.0,0.0,1.0)})
 
+# Draws a representation of a pykarta.geometry.Polygon.
+# Can construct a Polygon from polygon.
+# Holes are drawn, but editing of holes is not yet supported.
 class MapVectorPolygon(MapVectorObj):
 	min_points = 3
 	unclosed = 0
-	def __init__(self, polygon, style={}):
-		MapVectorObj.__init__(self)
+	def __init__(self, polygon, properties=None, style=None):
+		MapVectorObj.__init__(self, properties)
 		if isinstance(polygon, Polygon):
 			self.geometry = polygon
 		else:
 			self.geometry = Polygon(polygon)
-		self.style = style
+		self.style = { "line-width":1 }
+		if style is not None:
+			self.style.update(style)
 		self.label = self.style.get("label",None)
 		self.label_center = None
 		self.projected_label_center = None
@@ -334,11 +372,17 @@ class MapVectorPolygon(MapVectorObj):
 				self.projected_label_center = None
 	def project(self, containing_map):
 		MapVectorObj.project(self, containing_map)
+		self.holes_projected_points = []
+		for hole in self.geometry.holes:
+			self.holes_projected_points.append( containing_map.project_points(hole) )
 		self.project_label_center(containing_map)
 	def obj_hit_detect(self, lat_lon, gdkevent):
 		return self.geometry.contains_point(lat_lon)
 	def draw(self, ctx):
 		pykarta.draw.polygon(ctx, self.projected_points)
+		for hole_points in self.holes_projected_points:
+			pykarta.draw.polygon(ctx, hole_points)
+		ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
 		pykarta.draw.fill_with_style(ctx, self.style, preserve=True)
 		pykarta.draw.stroke_with_style(ctx, self.style)
 		if self.editable:
@@ -360,13 +404,14 @@ class MapVectorPolygon(MapVectorObj):
 		self.label_center = None
 		self.project_label_center(containing_map)
 
+# Draws a representation of a pykarta.geometry.BoundingBox.
 class MapVectorBoundingBox(MapVectorObj):
 	snap = False
 	min_points = 4
 	x_map = (3, 2, 1, 0)
 	y_map = (1, 0, 3, 2)
-	def __init__(self, bbox, style={}):				# FIXME: style is ignored
-		MapVectorObj.__init__(self)
+	def __init__(self, bbox, properties=None, style=None):
+		MapVectorObj.__init__(self, properties)
 		self.orig_bbox = bbox
 		self.geometry = Polygon((
 			Point(bbox.max_lat, bbox.min_lon),		# NW
@@ -374,6 +419,12 @@ class MapVectorBoundingBox(MapVectorObj):
 			Point(bbox.min_lat, bbox.max_lon),		# SE
 			Point(bbox.min_lat, bbox.min_lon),		# SW
 			))
+		self.style = {
+			"line-width":1,
+			"line-dash":(3,2)
+			}
+		if style is not None:
+			self.style.update(style)
 	def obj_hit_detect(self, lat_lon, gdkevent):
 		return self.geometry.get_bbox().contains_point(lat_lon)
 	def snap_search(self, gdkevent):
@@ -381,7 +432,7 @@ class MapVectorBoundingBox(MapVectorObj):
 		return None
 	def draw(self, ctx):
 		pykarta.draw.polygon(ctx, self.projected_points)
-		pykarta.draw.stroke_with_style(ctx, {"line-dash":(3,2)})
+		pykarta.draw.stroke_with_style(ctx, self.style)
 		if self.editable:
 			pykarta.draw.node_dots(ctx, self.projected_points)
 	def update_phantoms(self):
@@ -412,7 +463,7 @@ class MapVectorBoundingBox(MapVectorObj):
 class MapToolBase(object):
 	use_snapping = False
 	cursor = None
-	def __init__(self, style={}):
+	def __init__(self, style=None):
 		self.style = style
 		self.layer = None
 	def activate(self, layer):
@@ -497,12 +548,12 @@ class MapDrawLineString(MapDrawBase):
 	def draw(self, ctx):
 		if len(self.projected_points) > 1:
 			pykarta.draw.line_string(ctx, self.projected_points)
-			pykarta.draw.stroke_with_style(ctx, self.style)
+			pykarta.draw.stroke_with_style(ctx, {"line-width":1,"line-color":(0.0,0.0,1.0)})
 		if len(self.projected_points) > 0 and self.hover_point is not None:
 			pykarta.draw.node_dots(ctx, self.projected_points)
 			ctx.move_to(*(self.projected_points[-1]))
 			ctx.line_to(*(self.hover_point))
-			pykarta.draw.stroke_with_style(ctx, {"line-dash":(3,2)})
+			pykarta.draw.stroke_with_style(ctx, {"line-width":1,"line-dash":(3,2)})
 
 class MapDrawPolygon(MapDrawBase):
 	use_snapping = True
@@ -524,13 +575,13 @@ class MapDrawPolygon(MapDrawBase):
 	def draw(self, ctx):
 		if len(self.projected_points) > 1:
 			pykarta.draw.line_string(ctx, self.projected_points)
-			pykarta.draw.fill_with_style(ctx, self.style, preserve=True)
-			pykarta.draw.stroke_with_style(ctx, self.style)
+			pykarta.draw.fill_with_style(ctx, {"fill-color":(1.0,1.0,1.0,0.5)}, preserve=True)
+			pykarta.draw.stroke_with_style(ctx, {"line-width":1})
 		if len(self.projected_points) > 0 and self.hover_point is not None:
 			pykarta.draw.node_dots(ctx, self.projected_points)
 			ctx.move_to(*(self.projected_points[-1]))
 			ctx.line_to(*(self.hover_point))
-			pykarta.draw.stroke_with_style(ctx, {"line-dash":(3,2)})
+			pykarta.draw.stroke_with_style(ctx, {"line-width":1,"line-dash":(3,2)})
 
 class MapDrawBoundingBox(MapDrawBase):
 	cursor = gtk.gdk.SIZING
@@ -556,7 +607,7 @@ class MapDrawBoundingBox(MapDrawBase):
 			start_x, start_y = self.projected_points[0]
 			hover_x, hover_y = self.hover_point
 			ctx.rectangle(start_x, start_y, hover_x - start_x, hover_y - start_y)
-			pykarta.draw.stroke_with_style(ctx, {"line-dash":(3,2)})
+			pykarta.draw.stroke_with_style(ctx, {"line-width":1,"line-dash":(3,2)})
 
 def points_close(p1, p2, tolerance=10):
 	return abs(p1[0] - p2[0]) <= tolerance and abs(p1[1] - p2[1]) <= tolerance

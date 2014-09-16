@@ -1,6 +1,6 @@
 # format_geojson_writer.py
 # Copyright 2011, 2014, David Chappell
-# Last modified: 1 August 2014
+# Last modified: 3 September 2014
 
 import json
 
@@ -15,11 +15,11 @@ class GeojsonWriter:
 		f.close()
 
 	def save_js(self, filename, varname):
-		f = open(filename, 'w')
-		f.write("var %s = " % varname)
-		self.write(f)
-		f.write(";\n")
-		f.close()
+		fh = open(filename, 'w')
+		fh.write("var %s = " % varname)
+		self.write(fh)
+		fh.write(";\n")
+		fh.close()
 
 	def write(self, fh):
 		json.dump(
@@ -27,14 +27,14 @@ class GeojsonWriter:
 			'type': "FeatureCollection",
 			'properties': self.properties,
 			'features': self.features,
-			}, fh, indent=1, separators=(',',':'));
+			}, fh, indent=1, separators=(',',':'))
 
 	def __str__(self):
 		return json.dumps(
 			{
 			'type': "FeatureCollection",
 			'features': self.features,
-			}, separators=(',',':'));
+			}, separators=(',',':'))
 
 	def add_point(self, lat, lon, properties={}):
 		self.features.append(
@@ -45,7 +45,7 @@ class GeojsonWriter:
 				'coordinates': [lon, lat],
 				},
 			'properties': properties,
-			});
+			})
 
 	# Simple polygon
 	def add_polygon(self, vertexes, properties={}):
@@ -58,7 +58,7 @@ class GeojsonWriter:
 				'coordinates': [map(lambda i: [i[1], i[0]], vertexes)],
 				},
 			'properties': properties,
-			});
+			})
 
 	def add_linestring(self, vertexes, properties={}):
 		self.features.append(
@@ -69,5 +69,5 @@ class GeojsonWriter:
 				'coordinates': map(lambda i: [i[1], i[0]], vertexes),
 				},
 			'properties': properties,
-			});
+			})
 

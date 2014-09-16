@@ -1,23 +1,27 @@
 # pykarta/geometry/polygon.py
-# Last modified: 22 August 2014
-
-#=============================================================================
-# Simple (no holes) Polygons
-#
-# The first point should not be repeated. The polygon is assumed to be closed.
-#
-# All of the calculations assume a rectangular grid. In other words, they
-# ignore projection.
-#=============================================================================
+# Last modified: 4 September 2014
 
 from point import Point
 from line import LineString
 from util import plane_lineseg_distance, line_simplify
 
-# FIXME: bad things will happen if the Polygon has fewer than three points
-# and we try to choose a label center.
-
+#
+# Polygon
+#
+# List of points passed to the constructor should name each point only
+# once. The first point should _not_ be repeated as the last point.
+#
+# All of the calculations assume a rectangular grid. In other words,
+# they ignore projection.
+#
+# For now calculations ignore holes. All we do is store them.
+#
 class Polygon(LineString):
+	def __init__(self, points, holes=[]):
+		LineString.__init__(self, points)
+		self.holes = []
+		for hole in holes:
+			self.holes.append(list(hole))
 
 	# Methods area() and centroid() came from:
 	# http://local.wasp.uwa.edu.au/~pbourke/geometry/polyarea/
@@ -77,6 +81,7 @@ class Polygon(LineString):
 	# Try 81 possible label positions starting just inside the polygon's
 	# bounding box. Return the one which is farthest from the polygon's
 	# border.
+	# FIXME: bad things will happen if the Polygon has fewer than three points
 	def choose_label_center(self):
 		bbox = self.get_bbox()
 		lat_step = (bbox.max_lat - bbox.min_lat) / 10.0
@@ -113,25 +118,43 @@ class Polygon(LineString):
 		return shortest
 
 	def as_geojson(self):
-		points = self.points[:]
-		points.append(points[0])
-		return {"type":"Polygon", "coordinates": [map(lambda p: p.as_geojson_position(), points)]}
+		coordinates = []
+		for poly in [self.points] + self.holes:
+			points = self.points[:]
+			points.append(points[0])
+			coordinates.append(map(lambda p: p.as_geojson_position(), points))
+		return {
+			"type":"Polygon",
+			"coordinates": coordinates,
+			}
 
-	def simplify(self, tolerance, debug=False):
-		before_count = len(self.points)
-		new_points = line_simplify(self.points, tolerance)
-		after_count = len(new_points)
-		if debug:
-			print "Reduced %s points to %s" % (before_count, after_count)
-		if after_count >= 3:
-			self.points = new_points
+	#def simplify(self, tolerance, debug=False):
+	#	before_count = len(self.points)
+	#	new_points = line_simplify(self.points, tolerance)
+	#	after_count = len(new_points)
+	#	if debug:
+	#		print "Reduced %s points to %s" % (before_count, after_count)
+	#	if after_count >= 3:
+	#		self.points = new_points
 
 def PolygonFromGeoJSON(geometry):
 	assert geometry['type'] == 'Polygon', geometry['type']
-	assert len(geometry['coordinates']) == 1, len(geometry['coordinates'])
-	points = map(lambda p: Point(p[1], p[0]), geometry['coordinates'][0])
-	assert len(points) >= 4
-	redundant_point = points.pop(-1)
-	assert points[0] == redundant_point
-	return Polygon(points)
+	coordinates = []
+	for sub_poly in geometry['coordinates']:
+		points = map(lambda p: Point(p[1], p[0]), sub_poly)
+		assert len(points) >= 4, "not enough points for a polygon"
+		assert points[0] == points.pop(-1), "polygon is not closed"
+		coordinates.append(points)
+	return Polygon(coordinates[0], coordinates[1:])
+
+# Test
+if __name__ == "__main__":
+	p = PolygonFromGeoJSON({
+		'type': 'Polygon',
+		'coordinates': [
+			[[-71.0, 42.0], [-70.0, 42.0], [-71.0, 41.0], [-71.0, 42.0]],
+			[[-70.9, 41.9], [-70.1, 41.9], [-70.9, 41.1], [-70.9, 41.9]] 
+			]
+		})
+	print p.as_geojson()
 

@@ -1,7 +1,7 @@
 #! /usr/bin/python
-# geocoder_spreadsheet.py
-# Copyright 2013, Trinity College Computing Center
-# Last modified: 8 January 2013
+# pykarta/geocoder/spreadsheet.py
+# Copyright 2013, 2014, Trinity College Computing Center
+# Last modified: 9 September 2014
 
 import csv
 import re

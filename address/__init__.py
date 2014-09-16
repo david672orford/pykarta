@@ -1,6 +1,6 @@
-#! /usr/bin/python
-# address_processor.py
-# Last modified: 22 August 2014
+# pykarta/address/__init__.py
+# Copyright 2013, 2014, Trinity College
+# Last modified: 16 September 2014
 
 import string
 import re
@@ -491,5 +491,4 @@ if __name__ == "__main__":
 		print split_house_street_apt("19 Princeton St, Apt 1")
 	else:
 		raise Exception
-
 

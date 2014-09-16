@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/base.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 27 August 2014
+# Last modified: 12 September 2014
 
 import math
 import cairo
@@ -91,53 +91,63 @@ class MapLayer(object):
 class MapTileLayer(MapLayer):
 	def __init__(self):
 		MapLayer.__init__(self)
-		self.ram_cache = OrderedDict()
-		self.ram_cache_max = 1000
 		self.zoom_min = 0
 		self.zoom_max = 99
+		self.ram_cache_max = 1000
+		self.renderer = None
+		self.overzoom = False
+
+		self.ram_cache = OrderedDict()
 		self.tiles = []
 		self.tile_scale_factor = None
+		self.zoom = None
 		self.int_zoom = None
+		self.tile_size = None
 		self.tile_ranges = None			# used for precaching
-		self.renderer = None
 
-	def __del__(self):
-		print "Map: tile layer %s destroyed" % self.name
+	#def __del__(self):
+	#	print "Map: tile layer %s destroyed" % self.name
 
 	# Called whenever viewport changes
 	def do_viewport(self):
-		#print "New tiles viewport..."
-		lat, lon, zoom = self.containing_map.get_center_and_zoom()
-		half_width_in_pixels = self.containing_map.width / 2.0
-		half_height_in_pixels = self.containing_map.height / 2.0
+		#print "New %s tiles viewport..." % self.name
 
-		if type(zoom) == int:
-			self.int_zoom = zoom
-			self.tile_scale_factor = 1.0
-			self.tile_size = 256
-		else:
-			self.int_zoom = int(zoom + 0.5)
-			self.tile_scale_factor = math.pow(2, zoom) / (1 << self.int_zoom)
-			self.tile_size = 256.0 * self.tile_scale_factor
-		#print "zoom:", zoom
-		#print "int_zoom:", self.int_zoom
-		#print "tile_scale_factor:", self.tile_scale_factor
+		lat, lon, self.zoom = self.containing_map.get_center_and_zoom()
+		self.int_zoom = int(self.zoom + 0.5)		# round to int
+		self.tile_scale_factor = math.pow(2, self.zoom) / (1 << self.int_zoom)
+		#print "zoom:", self.zoom, self.int_zoom, self.tile_scale_factor
 
-		# In print mode when using raster tiles, try to double the resolution
-		# by using tiles for one zoom level higher and scaling them down.
-		# FIXME: This was broken by changes to how we scale.
-		#        Maybe we should just remove it.
-		#if self.renderer is None and self.containing_map.print_mode and self.int_zoom < self.zoom_max:
-		#	if self.tile_scale_factor is None:
-		#		self.tile_scale_factor = 1.0
-		#	self.int_zoom += 1
-		#	self.tile_scale_factor /= 2.0
+		# If there is no renderer (which means we are using raster tiles)
+		# and this map is in print mode (which means higher resolution is needed)
+		# and tiles are available at a higher zoom level, then use them instead
+		# and scale them down.
+		if self.renderer is None and self.containing_map.print_mode and self.int_zoom < self.zoom_max:
+			self.int_zoom += 1
+			self.tile_scale_factor /= 2.0
+
+		# If the map is zoomed in furthur than this layer goes (which can happen
+		# if it is not the first layer), then enlarge the tiles.
+		if self.overzoom:
+			while self.int_zoom > self.zoom_max:
+				self.int_zoom -= 1
+				self.tile_scale_factor *= 2.0
+
+		# How many units on the output device (pixels on a screen) will
+		# the tile be scaled to cover?
+		self.tile_size = 256.0 * self.tile_scale_factor
+
+		# remove gaps due to rounding errors
+		#self.tile_scale_factor *= 1.0025
+		self.tile_scale_factor *= 1.0027
 
 		# Make a list of the tiles to use used and their positions on the screen.
 		self.tiles = []
 		self.tile_ranges = None
 		if self.int_zoom >= self.zoom_min and self.int_zoom <= self.zoom_max:
 			center_tile_x, center_tile_y = project_to_tilespace(lat, lon, self.int_zoom)
+
+			half_width_in_pixels = self.containing_map.width / 2.0
+			half_height_in_pixels = self.containing_map.height / 2.0
 
 			# Find out how many tiles (and factions thereof) are required to reach the edges.
 			half_width_in_tiles = half_width_in_pixels / float(self.tile_size)
@@ -175,7 +185,7 @@ class MapTileLayer(MapLayer):
 
 	# Called whenever redrawing required
 	def do_draw(self, ctx):
-		#print "Draw tiles..."
+		#print "Draw %s tiles..." % self.name
 
 		progress = 1
 		tile_objs = []
@@ -192,7 +202,7 @@ class MapTileLayer(MapLayer):
 			tile = self.load_tile_cached(zoom, x, y, True)
 
 			if tile is not None:
-				tile.draw(ctx, self.tile_scale_factor, self.opacity)
+				tile.draw(ctx, self.tile_scale_factor)
 			else:		# search for lower zoom tile as temporary substitute
 				for lower_zoom in range(zoom-1, self.zoom_min-1, -1):
 					zoom_diff = zoom - lower_zoom
@@ -202,10 +212,10 @@ class MapTileLayer(MapLayer):
 						subtile_mask = subtile_scale_factor - 1
 						x_adj = -(self.tile_size * (x & subtile_mask))
 						y_adj = -(self.tile_size * (y & subtile_mask))
-						ctx.rectangle(0, 0, self.tile_size, self.tile_size)
+						ctx.rectangle(-1, -1, self.tile_size+2, self.tile_size+2)
 						ctx.clip()
 						ctx.translate(x_adj, y_adj)
-						bigger_tile.draw(ctx, self.tile_scale_factor * subtile_scale_factor, self.opacity)
+						bigger_tile.draw(ctx, self.tile_scale_factor * subtile_scale_factor)
 						break
 
 			ctx.restore()
@@ -263,10 +273,13 @@ class MapRasterTile(object):
 		else:
 			raise AssertionError
 
+		self.opacity = layer.tileset.opacity
+
 		# See http://www.pygtk.org/pygtk2reference/class-gdkpixbuf.html
 		transparent_color = layer.tileset.transparent_color
 		if transparent_color is not None:
 			pixbuf = pixbuf.add_alpha(True, *transparent_color)
+
 		saturation = layer.tileset.saturation
 		if saturation is not None:
 			pixbuf.saturate_and_pixelate(pixbuf, saturation, False)
@@ -274,19 +287,17 @@ class MapRasterTile(object):
 		self.tile_surface = surface_from_pixbuf(pixbuf)
 
 	# Draw a 265x265 unit tile at position (xpixoff, ypixoff).
-	def draw(self, ctx, scale, opacity):
-		#scale *= 1.01	# remove gaps due to rounding errors
+	def draw(self, ctx, scale):
 		ctx.scale(scale, scale)
 		ctx.set_source_surface(self.tile_surface, 0, 0)
-		ctx.paint_with_alpha(opacity)
+		ctx.paint_with_alpha(self.opacity)
 
 # Used for vector tiles
 class MapCustomTile(object):
 	def __init__(self, layer, filename, zoom, x, y):
 		self.renderer = layer.renderer(layer, filename, zoom, x, y)
-	def draw(self, ctx, scale, opacity):
-		self.renderer.draw(ctx, scale, opacity)
+	def draw(self, ctx, scale):
+		self.renderer.draw(ctx, scale)
 	def draw2(self, ctx, scale):
 		self.renderer.draw2(ctx, scale)
-
 

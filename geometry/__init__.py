@@ -1,11 +1,11 @@
 #! /usr/bin/python
 # encoding=utf-8
 # pykarta/geometry/__init__.py
-# Copyright 2013, Trinity College
-# Last modified: 3 August 2013
+# Copyright 2013, 2014, Trinity College
+# Last modified: 4 September 2014
 
 import math
-from point import Point, PointFromText, PointFromGeoJSON, Points, PointsFromGeoJSON
+from point import Point, Points, PointFromText, PointFromGeoJSON, Points
 from bbox import BoundingBox
 from util import line_simplify, plane_lineseg_distance, plane_points_distance, points_distance_pythagorian, points_bearing, radius_of_earth
 from line import LineString, Route

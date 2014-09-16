@@ -1,9 +1,6 @@
-#! /usr/bin/python
-# pykarta/map/tilegen.py
-# Copyright 2013, Trinity College
-# Last modified: 12 July 2013
-
-# This map takes map layers and renders them as tiles.
+# pykarta/maps/tilegen.py
+# Copyright 2013, 2014, Trinity College
+# Last modified: 14 September 2014
 
 import cairo
 import os
@@ -16,6 +13,9 @@ from pykarta.misc import tile_count
 import pyapp.i18n
 from pykarta.maps.projection import project_to_tilespace, unproject_from_tilespace
 
+# This is a Pykarta map object which produces map tiles as its output.
+# But rather than stitch them together on a Cairo surface, it saves
+# them to a tile store using an a tile store object which is pased to it.
 class MapTilegen(MapBase):
 	def __init__(self, writer, **kwargs):
 		kwargs['tile_source'] = None
@@ -23,6 +23,7 @@ class MapTilegen(MapBase):
 		self.writer = writer
 		self.re_blank_surface = re.compile('^\0+$')
 
+	# Render a single object and store it in the tile store.
 	def render_tile(self, x, y, zoom):
 		self.top_left_pixel = (x, y)
 		self.zoom = zoom
@@ -46,6 +47,8 @@ class MapTilegen(MapBase):
 			surface.write_to_png(sio)
 			return sio.getvalue()
 
+	# Render all of the tiles required to cover the sum of the bounding
+	# boxes of all of the layers.
 	def render_tiles(self, zoom_start, zoom_stop):
 		bbox = BoundingBox()
 		for layer in self.layers_ordered:
@@ -63,20 +66,22 @@ class MapTilegen(MapBase):
 				for y in range(y_start-1, y_stop+2):
 					#print "render_tile(%d, %d, %d)" % (x, y, zoom)
 					if (count % 73) == 0:	# 73 speeds things while letting all of the digits change
-						self.feedback.progress(count, total, _("Rending tile %d of %d") % (count, total))
+						self.feedback.progress(count, total, _("Rending tile {count} of {total}").format(count=count, total=total))
 					tile_data = self.render_tile(x, y, zoom)
 					if tile_data is not None:
-						self.writer.save_tile(zoom, x, y, tile_data)
+						self.writer.add_tile(zoom, x, y, tile_data)
 					#else:
 					#	print " blank tile"
 					count += 1
-	
+
+# Test
 if __name__ == "__main__":
 	from pykarta.maps.layers.marker import MapMarkerLayer
-	from pykarta.maps.tilewriters import MapTiledirWriter, MapMbtilesWriter
+	from pykarta.formats.tiledir import MapTiledirWriter
+	from pykarta.formats.mbtiles import MapMbtilesWriter
 	#writer = MapTiledirWriter("map_tilegen_test")
 	writer = MapMbtilesWriter(
-		"map_tilegen_test.mbtiles",
+		"tilegen_test.mbtiles",
 		{
 		'name':'test',
 		'description':'test tileset',
@@ -85,11 +90,11 @@ if __name__ == "__main__":
 		'format':'png',
 		})
 	generator = MapTilegen(writer)
-	generator.symbols.add_symbol("../../gpx_syms/garmin_compatible/Residence.svg")
+	generator.symbols.add_symbol("layers/symbols/Dot.svg")
 	layer = MapMarkerLayer()
 	generator.add_layer("markers", layer)
-	layer.add_marker(42.12, -72.75, "Residence")
-	layer.add_marker(42.13, -72.752, "Residence")
+	layer.add_marker(42.12, -72.75, "First POI")
+	layer.add_marker(42.13, -72.752, "Second POI")
 	generator.render_tiles(12, 16)
 	writer.close()
 

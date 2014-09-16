@@ -1,6 +1,6 @@
 # encoding=utf-8
 # pykarta/geometry/point.py
-# Last modified: 14 July 2014
+# Last modified: 4 September 2014
 
 import re
 
@@ -37,6 +37,9 @@ class Point(object):
 	def __eq__(self, other):
 		return self.lat == other.lat and self.lon == other.lon
 
+	def __len__(self):
+		return 2
+
 	# Convert to string in degress with decimal point
 	def as_str_decimal(self):
 		return str(self)
@@ -71,10 +74,21 @@ class Point(object):
 		return (hemisphere, degrees, minutes)
 
 	def as_geojson_position(self):
-		return (self.lon, self.lat)
+		return [self.lon, self.lat]
 
 	def as_geojson(self):
 		return {"type":"Point","coordinates":(self.lon, self.lat)}
+
+# Convert an array of points (presumably expressed as (lat, lon)) to Point objects.
+def Points(points):
+	return map(Point, points)
+
+# Extract the "coordinates" member from a decoded GeoJSON Point object
+def PointFromGeoJSON(geojson):
+	if geojson['type'] != 'Point':
+		raise ValueError("Not a GeoJSON point")
+	coordinates = geojson['coordinates']
+	return Point(coordinates[1], coordinates[0])
 
 # Create a Point() from a text string describing a latitude and longitude
 #
@@ -147,30 +161,4 @@ def _parse_degrees(degrees_string, directions):
 		return degrees * sign
 
 	raise Exception("Failed to parse coordinate: %s" % degrees_string)
-
-def PointFromGeoJSON(geojson):
-	if geojson['type'] != 'Point':
-		raise ValueError("Not a GeoJSON point")
-	coordinates = geojson['coordinates']
-	return Point(coordinates[1], coordinates[0])
-
-# Convert an array of points (presumably expressed as (lat, lon)) to Point objects.
-def Points(points):
-	return map(Point, points)
-
-# Extract the "coordinates" member from a decoded GeoJSON object
-def PointsFromGeoJSON(geojson):
-	points = geojson['coordinates']
-	if geojson['type'] == "LineString":
-		pass
-	elif geojson['type'] == "Polygon":
-		if len(points) != 0:
-			raise ValueError("Only simple polygons are supported")
-		points = points[0]				# take outer polygon
-		if len(points) < 1 or points[0] != points[-1]:
-			raise ValueError("Points do not form a LinearRing")
-		points.pop(-1)					# discard last vertex
-	else:
-		raise ValueError("GeoJSON type %s not supported" % geojson['type'])
-	return map(lambda p: Point(p[1], p[0]), points)
 

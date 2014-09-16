@@ -1,18 +1,20 @@
 # pykarta/geocoder/bing.py
-# Copyright 2013, Trinity College Computing Center
-# Last modified: 6 June 2013
+# Copyright 2013, 2014, Trinity College Computing Center
+# Last modified: 16 September 2014
 
 import json
+import pykarta
 from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 from pykarta.address import split_house_street_apt
 
 # See http://msdn.microsoft.com/en-us/library/ff701714.aspx
 class GeocoderBing(GeocoderBase):
-	def __init__(self):
+	def __init__(self, **kwargs):
+		GeocoderBase.__init__(self, **kwargs)
 		self.url_server = "dev.virtualearth.net"
 		self.url_path = "/REST/v1/Locations"
 		self.delay = 1.0	# one request per second
-		self.api_key = 'AiMQM9AWZQuAHQ0UotcHHaWVvp3M1OPTGPtxLXNnXAe74Q4tL1PnF4R_vEIrQ_Ue'
+		self.api_key = pykarta.api_keys['bing']
 
 	location_types = {
 		'Parcel':'LOT',
@@ -35,13 +37,14 @@ class GeocoderBing(GeocoderBase):
 		query['key'] = self.api_key
 
 		response = json.loads(self.get(self.url_path, query=query))
-		#self.debug(json.dumps(response, indent=4, separators=(',', ': ')))
+		#self.debug_indented(json.dumps(response, indent=4, separators=(',', ': ')))
 
 		# FIXME: can there be more than one "resource"?
 		try:
 			response = response['resourceSets'][0]['resources'][0]
 		except:
 			response = None
+		self.debug_indented(json.dumps(response, indent=4, separators=(',', ': ')))
 
 		if response and response['confidence'] == 'High' and response['matchCodes'] == ['Good']:
 			address1 = split_house_street_apt(response['address']['addressLine'])

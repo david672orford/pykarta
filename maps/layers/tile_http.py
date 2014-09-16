@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tile_http.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 26 August 2014
+# Last modified: 14 September 2014
 
 import os
 import errno
@@ -11,6 +11,7 @@ import threading
 import time
 import socket
 import gobject
+import weakref
 
 from pykarta.misc.http import http_date
 from pykarta.maps.layers.base import MapTileLayer, MapRasterTile, MapCustomTile
@@ -52,10 +53,11 @@ class MapTileLayerHTTP(MapTileLayer):
 		if not self.containing_map.offline and not self.tileset_online_init_called:
 			self.tileset.online_init()
 			self.tileset_online_init_called = True
+
 		# Copy metadata from the tileset to the layer.
 		self.zoom_min = self.tileset.zoom_min
 		self.zoom_max = self.tileset.zoom_max
-		self.opacity = self.tileset.opacity
+		self.overzoom = self.tileset.overzoom
 		self.attribution = self.tileset.attribution
 
 		# If we are offline, create an object which can only find tiles in the cache.
@@ -64,13 +66,13 @@ class MapTileLayerHTTP(MapTileLayer):
 			self.downloader = MapTileCacheLoader(
 				self.tileset,
 				self.containing_map.tile_cache_basedir,
-				feedback=self.containing_map.feedback,
+				feedback=weakref.proxy(self.containing_map.feedback),
 				)
 		else:
 			self.downloader = MapTileDownloader(
 				self.tileset,
 				self.containing_map.tile_cache_basedir,
-				feedback=self.containing_map.feedback,
+				feedback=weakref.proxy(self.containing_map.feedback),
 				done_callback=BoundMethodProxy(self.tile_loaded_cb) if self.containing_map.lazy_tiles else None,
 				)
 
@@ -175,7 +177,9 @@ class MapTileLayerHTTP(MapTileLayer):
 					for x in range(x_start, x_end+1):
 						for y in range(y_start, y_end+1):
 							count += 1
-							progress.progress(count, total, _("Downloading %s tile %d of %d, zoom level is %d") % (self.name, count, total, z))
+							progress.progress(count, total,
+								_("Downloading {layer} tile {count} of {total}, zoom level is {zoom}").format(layer=self.name, count=count, total=total, zoom=z)
+								)
 							if downloader.load_tile(z, x, y, True) is None:		# failed
 								for seconds in range(10, 0, -1):
 									progress.countdown(_("Retry in %d seconds...") % seconds)
@@ -264,7 +268,7 @@ class MapTileDownloader(object):
 		# This is used when using scaled up tiles from a lower zoom level
 		# to temporarily replace missing tiles.
 		if not may_download:
-			self.feedback.debug(2, " Caller does not want to download")
+			self.feedback.debug(2, " Caller does not want to download this tile")
 			return (result, False)
 
 		remote_filename = self.tileset.get_path(zoom, x, y)
@@ -364,7 +368,8 @@ class MapTileDownloaderThread(threading.Thread):
 			# Read response
 			response = self.conn.getresponse()
 
-		except socket.gaierror:
+		except socket.gaierror, msg:
+			self.feedback.debug(1, "  %s/%d/%d/%d: Address lookup error: %s" % (debug_args + (msg,)))
 			raise NoInet
 		except socket.error, msg:
 			self.feedback.debug(1, "  %s/%d/%d/%d: Socket error: %s" % (debug_args + (msg,)))

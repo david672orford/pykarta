@@ -1,7 +1,7 @@
 #! /usr/bin/python
-# format_tomtom_ov2.py
-# Copyright 2012, Trinity College Computing Center
-# Last modified: 26 February 2012
+# pykarta/formats/tomtom_ov2.py
+# Copyright 2013, 2014, Trinity College Computing Center
+# Last modified: 1 September 2014
 
 import struct
 
@@ -27,14 +27,14 @@ class Ov2POI:
 			))
 
 class Ov2Reader:
-	def __init__(self, filename):
-		self.file = open(filename, "rb")
+	def __init__(self, readable_object):
+		self.fh = readable_object
 		self.pois = []
 		self.parse()
-		self.file.close()
+		self.fh.close()
 
 	def read_or_die(self, bytecount):
-		data = self.file.read(bytecount)
+		data = self.fh.read(bytecount)
 		if len(data) != bytecount:
 			raise Ov2Error("truncated file")
 		return data
@@ -50,8 +50,8 @@ class Ov2Reader:
 
 	def parse(self):
 		while True:
-			record_offset = self.file.tell()
-			record_type = self.file.read(1)
+			record_offset = self.fh.tell()
+			record_type = self.fh.read(1)
 			if record_type == "":
 				break
 			record_type = struct.unpack("B", record_type)[0]
@@ -84,7 +84,7 @@ class Ov2Reader:
 			# Unrecognized record type	
 			else:
 				print "   Skipping %d bytes." % record_length
-				self.file.seek(record_length, 1)
+				self.fh.seek(record_length, 1)
 
 class Ov2Splitter:
 	def __init__(self, pois, minlat, minlon, maxlat, maxlon):
@@ -142,7 +142,8 @@ class Ov2Splitter:
 			self.child2.write(fh)
 
 class Ov2Writer:
-	def __init__(self):
+	def __init__(self, writable_object):
+		self.fh = writable_object
 		self.pois = []
 		self.minlat = 90.0
 		self.minlon = 180.0
@@ -156,18 +157,18 @@ class Ov2Writer:
 		self.maxlat = max(self.maxlat, poi.lat)
 		self.maxlon = max(self.maxlon, poi.lon)
 
-	def write(self, fh):
+	def save(self):
 
 		if self.minlat > self.maxlat or self.minlon > self.maxlon:
 			raise Ov2Error("Incorrect usage: No POIs")
 
 		# Simplistic implementation (without indexing)
 		#for poi in self.pois:
-		#	poi.write(self.file)
+		#	poi.write(self.fh)
 
 		# Sort, split, and generate index (skipper) records
 		split = Ov2Splitter(self.pois, self.minlat, self.minlon, self.maxlat, self.maxlon)	
-		split.write(fh)
+		split.write(self.fh)
 
 if __name__ == "__main__":
 	import sys
@@ -178,13 +179,12 @@ if __name__ == "__main__":
 	(in_ov2, out_ov2) = sys.argv[1:]
 
 	try:
-		reader = Ov2Reader(in_ov2)
+		reader = Ov2Reader(open(in_ov2,"rb"))
 	
-		writer = Ov2Writer()
+		writer = Ov2Writer(fopen(out_ov2, "wb"))
 		for poi in reader.pois:
 			writer.add_poi(poi)
-		fh = open(out_ov2, "wb")
-		writer.write(fh)
+		writer.save()
 	except Ov2Error as (message):
 		sys.stderr.write("Ov2Error: %s\n" % message)
 

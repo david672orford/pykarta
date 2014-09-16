@@ -1,7 +1,7 @@
 #=============================================================================
 # pykarta/maps/widget.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 28 August 2014
+# Last modified: 2 September 2014
 #=============================================================================
 
 import gtk
@@ -9,6 +9,7 @@ import math
 import cairo
 import copy
 import time
+import sys
 
 import pyapp.i18n
 from pykarta.maps import MapBase, MapCairo, MapFeedback
@@ -21,8 +22,7 @@ from pykarta.misc import BoundMethodProxy
 #=============================================================================
 
 class MapWidget(gtk.DrawingArea, MapBase):
-
-	lazy_tiles = True
+	lazy_tiles = True		# load tiles asyncronously so partial map is drawn
 
 	def __init__(self, static_resize=False, background_color=(1.0, 1.0, 1.0), **kwargs):
 		gtk.DrawingArea.__init__(self)
@@ -50,7 +50,24 @@ class MapWidget(gtk.DrawingArea, MapBase):
 	# See http://www.pygtk.org/articles/cairo-pygtk-widgets/cairo-pygtk-widgets.htm
 	def expose_event(self, widget, event):
 		#print "expose_event()"
+
+		# Create a Cairo context for drawing on the window part of which was exposed.
 		ctx = self.window.cairo_create()
+
+		# Set font antialiasing
+		fo = cairo.FontOptions()
+		#fo.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
+		fo.set_hint_metrics(cairo.HINT_METRICS_OFF)
+		fo.set_hint_style(cairo.HINT_STYLE_NONE)
+		ctx.set_font_options(fo)
+
+		# Set antialiasing for drawing commands
+		#ctx.set_antialias(cairo.ANTIALIAS_DEFAULT)
+		#ctx.set_antialias(cairo.ANTIALIAS_NONE)		# awful for lettering
+		#ctx.set_antialias(cairo.ANTIALIAS_GRAY)
+		#ctx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
+
+		# Clip our drawing operations to the area just exposed.
 		ctx.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
 		ctx.clip()
 
@@ -263,14 +280,14 @@ class MapWidget(gtk.DrawingArea, MapBase):
 		progress = MapPrintProgress(main_window, title=_("Tile Download Progress"))
 		for layer in self.layers_ordered:
 			if isinstance(layer, MapTileLayerHTTP):
-				print layer.tileset.key
+				print " Layer:", layer.tileset.key
 				layer.precache_tiles(progress, max_zoom)
 		#progress.done()
 
 	def reload_tiles(self):
 		for layer in self.layers_ordered:
 			if isinstance(layer, MapTileLayerHTTP):
-				print layer.tileset.key
+				print " Layer:", layer.tileset.key
 				layer.reload_tiles()
 		self.queue_draw()
 
@@ -310,14 +327,11 @@ class MapPrint(MapCairo):
 		# Same base layers as MapWidget.
 		for layer in map_widget.layers_ordered:
 			print " %s" % layer.name
-			if layer.name == "osm-default":
-				layer_obj = MapLayerBuilder("osm-default-svg")
-			else:
-				layer_obj = copy.copy(layer)
+			#if layer.name == "osm-default":
+			#	layer_obj = MapLayerBuilder("osm-default-svg")
+			#else:
+			layer_obj = copy.copy(layer)
 			self.add_layer(layer.name, layer_obj)
-		# FIXME: do we have to preserve groups?
-		#self.base_layer_keys = map_widget.base_layer_keys
-
 		# Same OSD layers as MapWidget
 		for layer in map_widget.layers_osd:
 			layer = copy.copy(layer)
@@ -359,8 +373,6 @@ class MapPrint(MapCairo):
 
 		print_op.set_n_pages(1)
 		result = print_op.run(gtk.PRINT_OPERATION_ACTION_PRINT_DIALOG, self.main_window)
-
-		#self.feedback.done()
 
 		print "Printing result:", result
 		if self.map_failure:

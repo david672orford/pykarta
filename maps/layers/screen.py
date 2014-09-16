@@ -5,7 +5,7 @@
 
 from pykarta.maps.layers.base import MapLayer
 
-class MapScreenLayer(MapLayer):
+class MapLayerScreen(MapLayer):
 	def __init__(self, opacity):
 		MapLayer.__init__(self)
 		self.opacity = opacity

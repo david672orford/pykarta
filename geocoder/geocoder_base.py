@@ -1,6 +1,6 @@
 # pykarta/geocoder/geocoder_base.py
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 22 August 2014
+# Last modified: 10 September 2014
 
 import httplib
 import socket
@@ -20,8 +20,12 @@ class GeocoderBase:
 	f_state = 4
 	f_postal_code = 5
 
-	conn = None
-	debug_enabled = True
+	conn = None					# HTTP connexion to server
+	debug_enabled = False
+
+	def __init__(self, progress_cb=None):
+		self.progress_cb = progress_cb
+		self.name = self.__class__.__name__
 
 	def debug(self, *args):
 		if self.debug_enabled:
@@ -35,6 +39,24 @@ class GeocoderBase:
 		if self.debug_enabled:
 			for line in text.split('\n'):
 				sys.stderr.write("    %s\n" % line)
+
+	def get_with_retry(self, path, **kwargs):
+		retry = 0
+		while True:
+			try:
+				return self.get(path, **kwargs)
+			except GeocoderError as e:
+				print "Geocoder error:", e
+				self.conn = None		# close connexion
+				retry += 1
+				if retry <= 5:
+					countdown = 10
+					while countdown > 0:
+						time.sleep(1)
+						if self.progress_cb:
+							self.progress_cb(None, None, "%s failed, retry %d in %d seconds." % (retry, countdown))
+				else:
+					raise e
 
 	# Send an HTTP query to the geocoder server
 	# Set self.url_server and self.delay before calling
@@ -69,9 +91,12 @@ class GeocoderBase:
 
 			resp_text = http_resp.read()
 			if resp_text == "":
-				raise GeocoderError("Empty HTTP response")
+				raise GeocoderError("Empty HTTP response body")
 
 			return resp_text
+
+		except httplib.BadStatusLine:
+			raise GeocoderError("HTTP server sent empty response")
 
 		except socket.gaierror:		# address-related error
 			raise NoInet

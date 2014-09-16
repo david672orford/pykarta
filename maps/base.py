@@ -2,7 +2,7 @@
 #=============================================================================
 # pykarta/maps/base.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 25 August 2014
+# Last modified: 4 September 2014
 #=============================================================================
 
 import os
@@ -23,8 +23,8 @@ cache_cleaner_thread = None
 # Common code for both the map widget and the map printer
 #=============================================================================
 class MapBase(object):
-	lazy_tiles = False
-	print_mode = False
+	lazy_tiles = False			# Load tiles asyncronously?
+	print_mode = False			# Need higher resolution?
 
 	def __init__(self, tile_source="osm-default", tile_cache_basedir=None, feedback=None, debug_level=0, offline=False):
 		if tile_cache_basedir is not None:
@@ -38,6 +38,7 @@ class MapBase(object):
 			self.feedback = feedback
 		else:
 			self.feedback = MapFeedback(debug_level=debug_level)
+		self.feedback.debug(1, "__init__")
 
 		self.offline = offline
 
@@ -64,7 +65,8 @@ class MapBase(object):
 		self.updated_viewport = True
 		self.top_left_pixel = None
 
-		if tile_source:
+		if tile_source is not None:
+			self.feedback.debug(1, "Initial tile source: %s" % repr(tile_source))
 			self.set_tile_source(tile_source)
 
 		global cache_cleaner_thread
@@ -75,16 +77,22 @@ class MapBase(object):
 
 	def __del__(self):
 		self.feedback.debug(1, "deallocated")
-		#print "feedback refcount:", sys.getrefcount(self.feedback)
+
+		## FIXME: what does this accomplish?
+		#for layer in self.layers_ordered:
+		#	layer.containing_map = None
+		#for layer in self.layers_osd:
+		#	layer.containing_map = None
+
 		for layer in self.layers_ordered:
-			layer.containing_map = None
-		for layer in self.layers_osd:
-			layer.containing_map = None
+			print "Map: layer %s has %d extra references" % (layer.name, sys.getrefcount(layer)-4)
+
+		print "Map: self.feedback has %d extra references" % (sys.getrefcount(self.feedback)-2)
 
 	# This must be called whenever the center point, the zoom level,
 	# or the window size changes.
 	def _viewport_changed(self):
-		if self.width != None:	# if not too soon,
+		if self.width is not None:	# if not too soon,
 
 			# Find the location of the top-left pixel in tilespace. We will use
 			# this to convert other coordinates from tilespace to drawing
@@ -355,7 +363,7 @@ class MapBase(object):
 	def add_layer(self, layer_name, layer_obj, group=3):
 		""" add a layer object to the map """
 		self.feedback.debug(1, "add_layer(\"%s\", ...)" % layer_name)
-		assert(layer_name not in self.layers_byname, "layer already added")
+		assert not layer_name in self.layers_byname, "layer already added"
 
 		layer_obj.name = layer_name
 
@@ -375,7 +383,7 @@ class MapBase(object):
 
 		# If this is the first layer in group 1, let it determine
 		# the min and max zoom levels.
-		if len(self.layers_ordered) == 1:
+		if group == 1 and self.layers_group_1[0] == layer_name:
 			self._inspect_base_layer(layer_obj)
 
 		# This layer has not yet been drawn
@@ -443,23 +451,35 @@ class MapBase(object):
 	def set_tile_source(self, tile_source):
 		self.feedback.debug(1, "set_tile_source(%s)" % str(tile_source))
 
-		# Accept either a string or a list of strings
+		# Accept this shortcut for a default set of OSM vector layers
+		if tile_source == "osm-vector":
+			tile_source = [
+				"osm-vector-landuse",
+				"osm-vector-water",
+				"osm-vector-roads",
+				"osm-vector-road-labels",
+				"osm-vector-buildings",
+				"osm-vector-pois",
+				]
+
+		# Accept either a string or a list of strings.
 		if isinstance(tile_source, basestring):
 			tile_source = [tile_source]
 
 		# If this is a different tile source...
 		if self.layers_group_1 != tile_source:
-			# Remove the existing base layers
+			# Remove the existing base layers.
 			for layer_name in self.layers_group_1[:]:
 				self.remove_layer(layer_name)
 
-			# Create and add the new layers
+			# Create and add the new layers.
 			for layer_name in tile_source:
 				layer_obj = MapLayerBuilder(layer_name)
 				self.add_layer(layer_name, layer_obj, group=1)
 			self.base_layer_names = tile_source
 
-			self.set_zoom(self.zoom)		# bring zoom within limits
+			# Bring zoom within limits defined by bottom layer.
+			self.set_zoom(self.zoom)
 
 	# Change the offline mode of the map.
 	# The layers must be informed.

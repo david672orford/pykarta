@@ -1,8 +1,10 @@
 #! /usr/bin/python
-# format_kml_writer.py
-# Copyright 2011, Trinity College Computing Center
-# Written by David Chappell
-# Last modified: 24 September 2011
+# pykarta/formats/kml_writer.py
+# Copyright 2013, 2014, Trinity College
+# Last modified: 2 September 2014
+
+# References:
+# * https://developers.google.com/kml/
 
 import string
 
@@ -47,6 +49,14 @@ class KmlWriter:
 				self.fh.write(" <%s>%s</%s>\n" % (i, self.encode(args[i]), i))
 		self.fh.write(" <Point><coordinates>%s,%s</coordinates></Point>\n" % (repr(lon), repr(lat)))
 		self.fh.write("</Placemark>\n")
+
+	def write_linestring(self, points, **args):
+		self.fh.write("<LineString>\n")
+		self.fh.write("    <coordinates>")
+		for point in points:
+			self.fh.write(" %s,%s\n" % (repr(point[1]), repr(point[0])))
+		self.fh.write("    </coordinates>\n")
+		self.fh.write("</LineString>\n")
 
 	def write_polygon(self, points, **args):
 		self.fh.write("<Placemark>\n")

@@ -1,6 +1,6 @@
 #! /usr/bin/python
-# Copyright 2012, Trinity College Computing Center
-# Last modified: 25 January 2012
+# Copyright 2013, 2014, Trinity College Computing Center
+# Last modified: 1 September 2014
 
 # Reference:
 # * http://www.topografix.com/gpx.asp
@@ -57,10 +57,11 @@ class GpxWriter:
 				self.fh.write(" <%s>%s</%s>\n" % (i, self.encode(args[i]), i))
 		for point in points:
 			self.fh.write(" <rtept lat='%s' lon='%s'>\n" % (repr(point[0]), repr(point[1])))
-			ptargs = point[2]
-			for i in ("name", "desc", "cmt", "sym", "type"):
-				if ptargs.has_key(i):
-					self.fh.write("  <%s>%s</%s>\n" % (i, self.encode(ptargs[i]), i))
+			if len(point) >= 3:			# if attributes supplied as third argument,
+				ptargs = point[2]
+				for i in ("name", "desc", "cmt", "sym", "type"):
+					if ptargs.has_key(i):
+						self.fh.write("  <%s>%s</%s>\n" % (i, self.encode(ptargs[i]), i))
 			self.fh.write(" </rtept>\n")
 		self.fh.write("</rte>\n")
 

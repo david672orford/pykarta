@@ -1,4 +1,5 @@
 # pykarta/maps/projection.py
+# Last modified: 4 September 2014
 
 import math
 
@@ -19,6 +20,9 @@ def unproject_from_tilespace(xtile, ytile, zoom):
 	lat = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * ytile / n))))
 	return (lat, lon)
 
+# Convert latitude and longitude to a pixel position within the
+# coordinate space of a particular tile. Note that the pixel
+# position itself could well be outside the tile.
 def project_to_tilespace_pixel(lat, lon, zoom, xtile, ytile):
 	xtile2, ytile2 = project_to_tilespace(lat, lon, zoom)
 	return ((xtile2 - xtile) * 256.0, (ytile2 - ytile) * 256.0)

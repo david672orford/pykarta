@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/multi.py
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 29 August 2014
+# Last modified: 16 September 2014
 
 import os
 from pykarta.misc import file_age_in_days, get_cachedir
@@ -10,27 +10,30 @@ from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 # Import the geocoders
 from spreadsheet import GeocoderSpreadsheet
 from nominatim import GeocoderNominatim
+from parcel import GeocoderParcel
 from google import GeocoderGoogle
-from dst import GeocoderDST
 from bing import GeocoderBing
 from massgis import GeocoderMassGIS
+from datasciencetoolkit import GeocoderDataScienceToolKit
 
 #=============================================================================
 # This geocoder is a wrapper for a list of actual geocoders. It calls them
 # in sequence until one of them finds the requested information.
-# It also implements caching of results.
+# It also caches the result.
 #=============================================================================
 class GeocoderMulti(GeocoderBase):
 
-	def __init__(self):
+	def __init__(self, **kwargs):
+		GeocoderBase.__init__(self, **kwargs)
 		self.cache = GeocoderCache()
 		self.geocoders = [
-			(GeocoderSpreadsheet(), True),
-			(GeocoderNominatim(), False),
-			(GeocoderBing(), False),
-			(GeocoderGoogle(), False),
-			(GeocoderMassGIS(), True),
-			#(GeocoderDST(), True),
+			(GeocoderSpreadsheet(**kwargs), True),
+			(GeocoderNominatim(**kwargs), False),
+			(GeocoderParcel(**kwargs), False),
+			(GeocoderBing(**kwargs), False),
+			(GeocoderGoogle(**kwargs), False),
+			(GeocoderMassGIS(**kwargs), True),
+			(GeocoderDataScienceToolKit(**kwargs), True),
 			]
 
 	# Query the geocoders and cache the answers
@@ -48,8 +51,11 @@ class GeocoderMulti(GeocoderBase):
 		# Run each geocoder in turn until we find a good-quality match.
 		# If all we can get is an interpolated match, take the first one.
 		best = None
+		i = 0
 		for geocoder, stop_on_interpolated in self.geocoders:
-			self.debug("Trying:", geocoder.__class__.__name__)
+			self.debug("Trying:", geocoder.name)
+			if self.progress_cb is not None:
+				self.progress_cb(i, len(self.geocoders), "Trying %s" % geocoder.name)
 			iresult = geocoder.FindAddr(address, countrycode=countrycode)
 			if iresult.coordinates is not None:
 				best = (geocoder, iresult)
@@ -58,10 +64,11 @@ class GeocoderMulti(GeocoderBase):
 			else:
 				result.alternative_addresses.extend(iresult.alternative_addresses)
 			self.debug("")
+			i += 1
 
 		if best is not None:
 			geocoder, iresult = best
-			self.debug("Best result given by %s" % geocoder.__class__.__name__)
+			self.debug("Best result given by %s" % geocoder.name)
 			result.postal_code = iresult.postal_code
 			result.coordinates = iresult.coordinates
 			result.precision = iresult.precision
@@ -79,7 +86,7 @@ class GeocoderMulti(GeocoderBase):
 		results = []
 		for geocoder in self.geocoders:
 			self.debug("====================================================")
-			self.debug("Trying:", geocoder.__class__.__name__)
+			self.debug("Trying:", geocoder.name)
 			result = geocoder.FindAddr(address, countrycode=countrycode)
 			if result.coordinates is not None:
 				results.append(result)

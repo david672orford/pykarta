@@ -1,6 +1,6 @@
 # pykarta/geocoder/google.py
-# Copyright 2013, Trinity College Computing Center
-# Last modified: 13 June 2013
+# Copyright 2013, 2014, Trinity College Computing Center
+# Last modified: 9 September 2014
 
 import string
 import xml.etree.cElementTree as ET
@@ -9,7 +9,8 @@ from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 
 # See http://code.google.com/apis/maps/documentation/geocoding/index.html
 class GeocoderGoogle(GeocoderBase):
-	def __init__(self):
+	def __init__(self, **kwargs):
+		GeocoderBase.__init__(self, **kwargs)
 		self.url_server = "maps.google.com"
 		self.url_path = "/maps/api/geocode/xml"
 		self.delay = 0.2		# 5 requests per second

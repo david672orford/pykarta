@@ -1,22 +1,8 @@
-# pykarta/maps/tilewriters.py
+# pykarta/formats/mbtiles.py
+# Copyright 2013, 2014, Trinity College
 # Last modified: 24 January 2013
 
-import os
 import sqlite3
-
-class MapTiledirWriter(object):
-	def __init__(self, output_dir):
-		self.output_dir = output_dir
-	def save_tile(self, x, y, zoom, tile_data):
-		dirname = "%s/%d/%d" % (self.output_dir, zoom, x)
-		filename = "%s/%d.png" % (dirname, y)
-		if not os.path.exists(dirname):
-			os.makedirs(dirname)
-		f = open(filename, "wb")
-		f.write(tile_data)
-		f.close()
-	def close(self):
-		pass
 
 class MapMbtilesWriter(object):
 	def __init__(self, mbtiles, metadata):
@@ -33,7 +19,7 @@ class MapMbtilesWriter(object):
 
 		self.count = 0
 
-	def save_tile(self, zoom, x, y, tile_data):
+	def add_tile(self, zoom, x, y, tile_data):
 		flipped_y = (2**zoom-1) - y
 		self.cursor.execute(
 			"INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data) values (?, ?, ?, ?)",

@@ -1,10 +1,12 @@
-# pykarta/maps/tileset_objs.py
-# Copyright 2013, Trinity College
-# Last modified: 24 August 2013
+# encoding=utf-8
+# pykarta/maps/layers/tilesets_base.py
+# Copyright 2013, 2014, Trinity College
+# Last modified: 16 September 2014
 
 import time
 import urllib
 
+import pykarta
 from pykarta.misc.http import simple_url_split
 from pykarta.maps.projection import *
 
@@ -14,10 +16,9 @@ class MapTilesets(object):
 	def __init__(self):
 		self.tilesets_list = []
 		self.tilesets_dict = {}
-		self.api_keys = {}
 
 	def append(self, tileset):
-		tileset.api_keys = self.api_keys
+		tileset.api_keys = pykarta.api_keys
 		self.tilesets_list.append(tileset)
 		self.tilesets_dict[tileset.key] = tileset
 
@@ -34,14 +35,10 @@ class MapTilesets(object):
 class MapTileset(object):
 	def __init__(self, key,
 			url_template=None,			# whence to get tiles
-			renderer=None,				# class to use to render data, None for raster tiles
 			zoom_min=0, zoom_max=18,	# zoom range covered
+			overzoom=True,				# enlarge tiles if lower layer allows more zoom
 			attribution=None,			# string or Cairo surface with logo or credit statement
 			max_age_in_days=30,			# how long to use files from cache
-			layer_cache_enabled=False,	# cache rendered layer in a Cairo surface?
-			opacity=1.0,				# used to fade out raster tiles
-			transparent_color=None,		# color of raster tiles to convert to transparent
-			saturation=None				# <1.0=desaturate, >1.0=increase saturation
 			):
 		self.key = key
 		if url_template:
@@ -51,13 +48,12 @@ class MapTileset(object):
 			self.path_template = None
 		self.zoom_min = zoom_min
 		self.zoom_max = zoom_max
+		self.overzoom = overzoom
 		self.attribution = attribution
-		self.opacity = opacity
 		self.max_age_in_days = max_age_in_days
-		self.renderer = renderer
-		self.layer_cache_enabled = layer_cache_enabled
-		self.transparent_color = transparent_color
-		self.saturation = saturation
+
+		self.renderer = None
+		self.layer_cache_enabled = False
 
 		self.extra_headers = {
 			"User-Agent":"PyKarta 0.1"
@@ -117,8 +113,28 @@ class MapTileset(object):
 
 		return path
 
-class MapTilesetWMS(MapTileset):
-	def __init__(self, key, layers="", styles="", transparent=False, image_format="image/jpeg", **kwargs):
+# Describes a set of raster tiles
+class MapTilesetRaster(MapTileset):
+	def __init__(self, key, 
+			opacity=1.0,				# used to fade out raster tiles
+			transparent_color=None,		# color to convert to transparent
+			saturation=None,			# <1.0=desaturate, >1.0=increase saturation
+			**kwargs
+			):
+		MapTileset.__init__(self, key, **kwargs)
+		self.opacity = opacity
+		self.transparent_color = transparent_color
+		self.saturation = saturation
+
+# Describes a set of WMS raster tiles
+class MapTilesetWMS(MapTilesetRaster):
+	def __init__(self, key,
+			layers="",					# pass to WMS server
+			styles="",					# pass to WMS server
+			image_format="image/jpeg",	# pass to WMS server
+			transparent=False,			# pass to WMS server
+			**kwargs
+			):
 		MapTileset.__init__(self, key, **kwargs)
 		self.wms_params = {
 			'service':'WMS',
@@ -127,9 +143,9 @@ class MapTilesetWMS(MapTileset):
 			'width':256,
 			'height':256,
 			'srs':'EPSG:4326',
-			'format':image_format,
 			'layers':layers,
 			'styles':styles,
+			'format':image_format,
 			'transparent':'true' if transparent else 'false',
 			}
 	def get_path(self, zoom, x, y):
@@ -137,5 +153,18 @@ class MapTilesetWMS(MapTileset):
 		se_lat, se_lon = unproject_from_tilespace(x+1, y+1, zoom)
 		query_params = {'bbox':",".join(map(str,(nw_lon, se_lat, se_lon, nw_lat)))}
 		query_params.update(self.wms_params)
-		return "%s?%s" % (self.path_template, urllib.urlencode(query_params))
+		path = "%s?%s" % (self.path_template, urllib.urlencode(query_params))
+		print path
+		return path
+
+# Describes a set of vector tiles
+class MapTilesetVector(MapTileset):
+	def __init__(self, key, renderer=None, **kwargs):
+		MapTileset.__init__(self, key, **kwargs)
+		self.extra_headers["Accept-Encoding"] = "gzip,deflate"
+		self.renderer = renderer
+		self.layer_cache_enabled = True
+		self.symbols = None
+
+tilesets = MapTilesets()
 

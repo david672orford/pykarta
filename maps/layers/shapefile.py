@@ -1,14 +1,14 @@
 # pykarta/maps/layers/shapefile.py
 # Display ESRI shapefiles
 # Copyright 2013, 2014, Trinity College
-# Last modified: 9 May 2014
+# Last modified: 4 September 2014
 
 from pykarta.formats.shapefile import Reader
 from pykarta.maps.layers import MapLayer
 import pykarta.draw
 from pykarta.geometry import Point, BoundingBox
 
-class MapShapefileLayer(MapLayer):
+class MapLayerShapefile(MapLayer):
 	def __init__(self, shapefile):
 		MapLayer.__init__(self)
 		self.sf = Reader(shapefile)
