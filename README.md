@@ -1,3 +1,6 @@
+Pykarta
+=======
+
 Pykarta is a Python library for displaying maps using Cairo. It includes
 a Gtk+ widget. It was inspired by OsmGpsMap and Leaflet.
 
