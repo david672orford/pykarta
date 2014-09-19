@@ -2,7 +2,7 @@
 #=============================================================================
 # pykarta/maps/base.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 4 September 2014
+# Last modified: 17 September 2014
 #=============================================================================
 
 import os
@@ -78,12 +78,6 @@ class MapBase(object):
 	def __del__(self):
 		self.feedback.debug(1, "deallocated")
 
-		## FIXME: what does this accomplish?
-		#for layer in self.layers_ordered:
-		#	layer.containing_map = None
-		#for layer in self.layers_osd:
-		#	layer.containing_map = None
-
 		for layer in self.layers_ordered:
 			print "Map: layer %s has %d extra references" % (layer.name, sys.getrefcount(layer)-4)
 
@@ -107,6 +101,10 @@ class MapBase(object):
 			self.queue_draw()
 
 		self.updated_viewport = True
+
+	#------------------------------------------------------------------------
+	# Public methods: widget
+	#------------------------------------------------------------------------
 
 	# Noop here, but overridden in Gtk widget
 	def queue_draw(self):
@@ -172,11 +170,16 @@ class MapBase(object):
 		bbox.add_point(p2)
 		return bbox
 
-	# Specify a function to be called each time the zoom level changes. This can
-	# be used to display the zoom level somewhere in the user interface.
-	def set_zoom_cb(self, function):
-		self.zoom_cb = function
-		self.zoom_cb(self.zoom)
+	# Unconditionally zoom to a specified level.
+	def set_zoom(self, zoom):
+		self.feedback.debug(1, "set_zoom(%f)" % zoom)
+		zoom = min(max(zoom, self.zoom_min), self.zoom_max)
+		if zoom != self.zoom:	# if changed,
+			self.zoom = zoom
+			if self.zoom_cb:
+				self.zoom_cb(zoom)
+			self._viewport_changed()
+		return zoom
 
 	# Get current zoom level of map.
 	# The levels start at 0 (furthest out) and go to 16 or 18.
@@ -193,16 +196,11 @@ class MapBase(object):
 	def _set_zoom_rounded(self, zoom):
 		return self.set_zoom(int((zoom + 0.001) / self.zoom_step) * self.zoom_step)
 
-	# Unconditionally zoom to a specified level.
-	def set_zoom(self, zoom):
-		self.feedback.debug(1, "set_zoom(%f)" % zoom)
-		zoom = min(max(zoom, self.zoom_min), self.zoom_max)
-		if zoom != self.zoom:	# if changed,
-			self.zoom = zoom
-			if self.zoom_cb:
-				self.zoom_cb(zoom)
-			self._viewport_changed()
-		return zoom
+	# Supply a function to be called each time the zoom level changes. This can
+	# be used to display the zoom level somewhere in the user interface.
+	def set_zoom_cb(self, function):
+		self.zoom_cb = function
+		self.zoom_cb(self.zoom)
 
 	# Scroll (but do not zoom) the map so that the indicated point is in the center.
 	def set_center(self, lat, lon):
@@ -222,7 +220,7 @@ class MapBase(object):
 			self.lon = lon
 			self._viewport_changed()
 
-	# Move the map only if the differnce will be more than the indicated
+	# Move the map only if the difference will be more than the indicated
 	# number of pixels. This can be used to move the map to the position
 	# of a GPS fix without quickly running down the battery on portable
 	# devices due to position jitter.

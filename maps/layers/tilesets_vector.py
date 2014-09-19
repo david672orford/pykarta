@@ -2,7 +2,7 @@
 # pykarta/maps/layers/tilesets_vector.py
 # Vector tile sets and renders for them
 # Copyright 2013, 2014, Trinity College
-# Last modified: 14 September 2014
+# Last modified: 18 September 2014
 
 try:
 	import simplejson as json
@@ -26,6 +26,7 @@ from pykarta.maps.symbols import MapSymbolSet
 class RenderGeoJSON(object):
 	clip = None
 	sort_features = False
+	draw_passes = 1
 	def __init__(self, layer, filename, zoom, x, y):
 		self.timing = False
 		self.elapsed_start("Parsing %s %d %d %d..." % (layer.tileset.key, zoom, x, y))
@@ -118,39 +119,40 @@ class RenderGeoJSON(object):
 	def scale_points(points, scale):
 		return map(lambda point: (point[0]*scale,point[1]*scale), points)
 
-	# Pass 1, draw features with clipping.
-	def draw(self, ctx, scale):
-		self.elapsed_start("Drawing features %s %d %d %d..." % (self.layer.tileset.key, self.zoom, self.x, self.y))
-		start_time = time.time()
-		if self.clip is not None:
-			pad = self.clip
-			ctx.new_path()
-			start = 0 - pad						# slightly up and to the left
-			size = 256.0 * scale + pad * 2		# width and hight of clipping rectangle
-			ctx.rectangle(start, start, size, size)
-			ctx.clip()
-		self.draw_features(ctx, scale)
-		self.elapsed()
-
-	# Pass 2, draw labels without clipping.
-	def draw2(self, ctx, scale):
-		self.draw_labels(ctx, scale)
-
 	# Override these to return something other than None for those objects
 	# which you wish to render. It will be stored with the object so that
 	# you can use it during the drawing stage.
 	def choose_point_style(self, properties):
-		raise AssertionError, "renderer %s does not expect points" % str(type(self))
+		print "Warning: renderer %s did not expect points in tile %d %d %d" % (str(type(self), self.zoom, self.x, self.y))
+		return None
 
 	def choose_line_style(self, properties):
-		raise AssertionError, "renderer %s does not expect lines" % str(type(self))
+		print "Warning: renderer %s did not expect lines in tile %d %d %d" % (str(type(self), self.zoom, self.x, self.y))
+		return None
 
 	def choose_polygon_style(self, properties):
-		raise AssertionError, "renderer %s does not expect polygons" % str(type(self))
+		print "Warning: renderer %s did not expect polygons in tile %d %d %d" % (str(type(self), self.zoom, self.x, self.y))
+		return None
+
+	# Draw and redraw
+	def draw(self, ctx, scale, draw_pass):
+		self.elapsed_start("Drawing %s %d %d %d, pass %d..." % (self.layer.tileset.key, self.zoom, self.x, self.y, draw_pass))
+		start_time = time.time()
+		getattr(self,"draw%d" % (draw_pass+1))(ctx, scale)
+		self.elapsed()
+
+	def start_clipping(self, ctx, scale):
+		if self.clip is not None:
+			pad = self.clip
+			ctx.new_path()
+			start = 0 - pad						# slightly up and to the left
+			size = 256.0 * scale + pad * 2		# width and height of clipping rectangle
+			ctx.rectangle(start, start, size, size)
+			ctx.clip()
 
 	# Override to draw the bottom layer.
-	def draw_features(self, ctx, scale):
-		#ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+	def draw1(self, ctx, scale):
+		self.start_clipping(ctx, scale)
 		for polygon, properties, style in self.polygons:
 			pykarta.draw.polygon(ctx, self.scale_points(polygon, scale))
 			pykarta.draw.fill_with_style(ctx, style, preserve=True)
@@ -162,12 +164,8 @@ class RenderGeoJSON(object):
 		for point, properties, style in self.points:
 			pykarta.draw.node_dots(ctx, [point], style=style)
 
-	# Override to draw the top (label) layer.
-	def draw_labels(self, ctx, scale):
-		pass
-
 #=============================================================================
-# Openstreetmap.us
+# Tile.Openstreetmap.us
 # Renders OSM map from the vector tiles provided at:
 # http://openstreetmap.us/~migurski/vector-datasource/
 # Though it is not advertised, this provider can also make topojson.
@@ -185,6 +183,7 @@ class RenderOsmusLanduse(RenderGeoJSON):
 		'conservation': { 'fill-color': (0.8, 1.0, 0.8) },		# dark green
 		'farm': { 'fill-color': (0.9, 0.9, 0.6) },				# redish brown
 		}
+	draw_passes = 1	# set to 2 to enable labels
 	def __init__(self, layer, filename, zoom, x, y):
 		RenderGeoJSON.__init__(self, layer, filename, zoom, x, y)
 		self.labels = []
@@ -201,17 +200,16 @@ class RenderOsmusLanduse(RenderGeoJSON):
 				if not label_text in dedup:
 					self.labels.append((center, label_text))
 					dedup.add(label_text)
-	def draw_labels(self, ctx, scale):
-		#for center, text in self.labels:
-		#	center = self.scale_point(center, scale)
-		#	pykarta.draw.centered_label(ctx, center[0], center[1], text, fontsize=8, shield=False)
-		pass
 	def choose_polygon_style(self, properties):
 		kind = properties.get("kind", "?")
 		style = self.styles.get(kind)
 		if style is None:
 			style = { 'fill-color': (0.90, 0.90, 0.90) }
 		return style
+	def draw2(self, ctx, scale):
+		for center, text in self.labels:
+			center = self.scale_point(center, scale)
+			pykarta.draw.centered_label(ctx, center[0], center[1], text, fontsize=8)
 
 tilesets.append(MapTilesetVector('osm-vector-landuse',
 	url_template="http://tile.openstreetmap.us/vectiles-land-usages/{z}/{x}/{y}.json", 
@@ -243,33 +241,65 @@ tilesets.append(MapTilesetVector('osm-vector-buildings',
 class RenderOsmusRoads(RenderGeoJSON):
 	clip = 15
 	sort_features = True
+	draw_passes = 2
+	line_cap = {
+		'butt':cairo.LINE_CAP_BUTT,				# default
+		'square':cairo.LINE_CAP_SQUARE,
+		'round':cairo.LINE_CAP_ROUND,
+		}
+	line_join = {
+		'miter':cairo.LINE_JOIN_MITER,			# default
+		'bevel':cairo.LINE_JOIN_BEVEL,
+		'round':cairo.LINE_JOIN_ROUND,
+		}
 	styles = {
 		'highway':{
-			'line-color':(0.0, 0.0, 0.5),		# dark blue
-			'line-width':(10,2.0, 14,10.0)
+			'line-color':(0.2, 0.3, 0.9),		# blue
+			'line-width':(10,2.0, 14,10.0),
+			'line-cap':'round',
 			},
 		'major_road':{
-			'line-color':(0.7, 0.2, 0.2),		# dark red
+			'line-color':(0.8, 0.2, 0.2),		# dark red
 			'line-width':(10,1.0, 14,6.0),
+			'line-cap':'round',
 			},
 		'minor_road':{
 			'line-color':(0.0, 0.0, 0.0),		# black
 			'line-width':(12,0.25, 14,1.0),
+			'line-cap':'round',
 			},
 		}
 	styles_z14 = {
+		'highway':{
+			'line-color':(0.0, 0.0, 0.0),		# black casing
+			'line-width':(14,11.0, 18,20.0),
+			'line-cap':'round',
+			'overline-color':(0.2, 0.3, 0.9),	# blue
+			'overline-width':(14,10.0, 18,18.0),
+			'overline-cap':'round',
+			},
+		'major_road':{
+			'line-color':(0.0, 0.0, 0.0),		# black casing
+			'line-width':(14,7.0, 18,13.0),
+			'line-cap':'round',
+			'overline-color':(0.8, 0.2, 0.2),	# dark red
+			'overline-width':(14,6.0, 18,11.0),
+			'overline-cap':'round',
+			},
 		'minor_road':{
-			'underline-color':(0.0, 0.0, 0.0),	# black casing
-			'line-color':(1.0, 1.0, 1.0),		# white
-			'line-width':(14,3.0, 18,10.0),
-			'underline-width':(14,4.0, 18,12.0),
+			'line-color':(0.0, 0.0, 0.0),		# black casing
+			'line-width':(14,4.0, 18,12.0),
+			'line-cap':'round',
+			'overline-color':(1.0, 1.0, 1.0),	# white fill
+			'overline-width':(14,3.0, 18,10.0),
+			'overline-cap':'round',
 			},
 		'rail':{
-			'line-color':      (0.0, 0.0, 0.0),
-			'underline-color': (0.0, 0.0, 0.0),
-			'line-width':      (14,1.0, 18,3.0),
-			'underline-width': (14,3.0, 18,8.0),
-			'underline-dash':  (1, 12)
+			'line-width': (14,3.0, 18,8.0),
+			'line-color': (0.0, 0.0, 0.0),
+			'line-dasharray': (1, 12),
+			'overline-width': (14,1.0, 18,3.0),
+			'overline-color': (0.0, 0.0, 0.0),
 			},
 		'path':{
 			'line-color': (0.5, 0.3, 0.3),
@@ -286,45 +316,42 @@ class RenderOsmusRoads(RenderGeoJSON):
 		if style is None:
 			style = {'line-width':10, 'line-color':(0.0, 1.0, 0.0)}
 		style = style.copy()
-		for i in ("underline-width", "line-width", "overline-width"):
+		for i in ("line-width", "overline-width"):
 			if i in style:
+				# Scale widths to zoom level
 				start_zoom, start_width, end_zoom, end_width = style[i]
 				position = float(self.zoom - start_zoom) / float(end_zoom - start_zoom)
 				width = start_width + position * (end_width - start_width)
-				#if start_zoom == 14 and i == "line-width":
-				#	print "style:", style[i]
-				#	print "zoom:", self.zoom
-				#	print "position:", position
-				#	print "width:", width
-				#	print
+				# make subsidiary highways smaller
 				if properties['is_link'] == 'yes' or properties['highway'] == 'service':
 					width /= 2
+				# Accept modified style
 				style[i] = width
+		# Show bridges if the zoom level is high enough that the roads have casings.
+		if properties['is_bridge'] == 'yes' and 'overline-width' in style:
+			style['line-width'] *= 1.30
 		return style
-	def draw_features(self, ctx, scale):
-		ctx.set_line_cap(cairo.LINE_CAP_BUTT)
-		for line, name, style in self.lines:
-			if 'underline-width' in style:
-				pykarta.draw.line_string(ctx, self.scale_points(line, scale))
-				ctx.set_line_width(style['underline-width'])
-				ctx.set_source_rgba(*style['underline-color'])
-				ctx.set_dash(style.get('underline-dash', ()))
-				ctx.stroke()
-		ctx.set_line_cap(cairo.LINE_CAP_SQUARE)
+	def draw1(self, ctx, scale):
+		self.start_clipping(ctx, scale)
 		for line, name, style in self.lines:
 			if 'line-width' in style:
 				pykarta.draw.line_string(ctx, self.scale_points(line, scale))
-				ctx.set_line_width(style.get('line-width'))
-				ctx.set_source_rgba(*style.get('line-color'))
-				ctx.set_dash(style.get('line-dash', ()))
+				ctx.set_line_width(style['line-width'])
+				ctx.set_source_rgba(*style['line-color'])
+				ctx.set_dash(style.get('line-dasharray', ()))
+				ctx.set_line_join(self.line_join[style.get('line-join', 'miter')])
+				ctx.set_line_cap(self.line_cap[style.get('line-cap', 'butt')])
 				ctx.stroke()
-		ctx.set_line_cap(cairo.LINE_CAP_BUTT)
+	def draw2(self, ctx, scale):
+		self.start_clipping(ctx, scale)
 		for line, name, style in self.lines:
 			if 'overline-width' in style:
 				pykarta.draw.line_string(ctx, self.scale_points(line, scale))
-				ctx.set_line_width(style['overline-width'])
-				ctx.set_source_rgba(*style['overline-color'])
-				ctx.set_dash(style.get('overline-dash', ()))
+				ctx.set_line_width(style.get('overline-width'))
+				ctx.set_source_rgba(*style.get('overline-color'))
+				ctx.set_dash(style.get('overline-dasharray', ()))
+				ctx.set_line_join(self.line_join[style.get('overline-join', 'miter')])
+				ctx.set_line_cap(self.line_cap[style.get('overline-cap', 'butt')])
 				ctx.stroke()
 
 tilesets.append(MapTilesetVector('osm-vector-roads',
@@ -334,16 +361,23 @@ tilesets.append(MapTilesetVector('osm-vector-roads',
 	))
 
 class RenderOsmusRoadLabels(RenderGeoJSON):
-	def draw_features(self, ctx, scale):
-		pass
-	def draw_labels(self, ctx, scale):
-		for line, properties, style in self.lines:
-			label_text = properties['name']
-			pykarta.draw.label_line(ctx, self.scale_points(line, scale), label_text, fontsize=10, tilesize=(256.0*scale))
+	def __init__(self, layer, filename, zoom, x, y):
+		RenderGeoJSON.__init__(self, layer, filename, zoom, x, y)
+		self.labels = None
 	def choose_line_style(self, properties):
 		if properties.get('name',"") != "":
 			return {}
 		return None
+	def draw1(self, ctx, scale):
+		if self.labels is None:
+			self.labels = []
+			for line, properties, style in self.lines:
+				label_text = properties['name']
+				placement = pykarta.draw.place_line_label(ctx, line, label_text, fontsize=10, tilesize=256)
+				if placement is not None:
+					self.labels.append(placement)
+		for placement in self.labels:
+			pykarta.draw.draw_line_label(ctx, placement, scale)
 
 tilesets.append(MapTilesetVector('osm-vector-road-labels',
 	url_template="http://tile.openstreetmap.us/vectiles-skeletron/{z}/{x}/{y}.json", 
@@ -360,16 +394,6 @@ class RenderOsmusPois(RenderGeoJSON):
 			for symbol in glob.glob("%s/*.svg" % path):
 				layer.tileset.symbols.add_symbol(symbol)
 		RenderGeoJSON.__init__(self, layer, filename, zoom, x, y)
-	def draw_features(self, ctx, scale):
-		pass
-	def draw_labels(self, ctx, scale):
-		for point, properties, style in self.points:
-			x, y = self.scale_point(point, scale)
-			renderer, label_text = style
-			if renderer is not None:
-				renderer.blit(ctx, x, y)
-			else:
-				pykarta.draw.poi_label(ctx, x+2, y-2, label_text, fontsize=10)
 	def choose_point_style(self, properties):
 		kind = properties.get("kind")
 		name = properties.get("name")
@@ -379,6 +403,14 @@ class RenderOsmusPois(RenderGeoJSON):
 			return (renderer, None)
 		else:
 			return (None, "%s:%s" % (kind, name))
+	def draw1(self, ctx, scale):
+		for point, properties, style in self.points:
+			x, y = self.scale_point(point, scale)
+			renderer, label_text = style
+			if renderer is not None:
+				renderer.blit(ctx, x, y)
+			else:
+				pykarta.draw.poi_label(ctx, x+2, y-2, label_text, fontsize=10)
 
 tilesets.append(MapTilesetVector('osm-vector-pois',
 	url_template="http://tile.openstreetmap.us/vectiles-pois/{z}/{x}/{y}.json", 
@@ -388,9 +420,10 @@ tilesets.append(MapTilesetVector('osm-vector-pois',
 	))
 
 #=============================================================================
-# Mapzen
+# Vector.Mapzen.com
 # https://github.com/mapzen/vector-datasource/wiki/Mapzen-Vector-Tile-Service
 # https://github.com/mapzen/vector-datasource
+# https://github.com/mapzen/vector-datasource/blob/master/tilestache.cfg
 #=============================================================================
 
 class RenderMapzenPlaces(RenderOsmusPois):
@@ -402,24 +435,28 @@ tilesets.append(MapTilesetVector("osm-vector-places",
 	))
 
 #=============================================================================
-# DSC
+# Tiles.osm.trincoll.edu
 #=============================================================================
 class RenderTowns(RenderGeoJSON):
 	clip = 2
+	draw_passes = 1
 	def choose_polygon_style(self, properties):
 		return {
 			"underline-width": 1,
 			"underline-color": (1.0, 1.0, 1.0),
 			"line-width": 1.0,
 			"line-color": (0.5, 0.5, 0.5),
-			"line-dash": (12, 4, 4, 4),
+			"line-dasharray": (12, 4, 4, 4),
 			}
-	#def draw_labels(self, ctx, scale):
-	#	for center, label in self.labels:
-	#		center = self.scale_point(center, scale)
-	#		pykarta.draw.centered_label(ctx, center[0], center[1], label, fontsize=8, shield=False)
+	def draw2(self, ctx, scale):
+		if self.zoom >= 12:
+			for line, properties, style in self.polygons:
+				label_text = properties['TOWN']
+				#print " %s" % label_text
+				# FIXME: function is gone, didn't label right side anyway
+				pykarta.draw.label_line(ctx, self.scale_points(line, scale), label_text, fontsize=10, tilesize=(256.0*scale))
 
-tilesets.append(MapTilesetVector('dsc-towns',
+tilesets.append(MapTilesetVector('tc-towns',
 	url_template="http://tiles.osm.trincoll.edu/towns/{z}/{x}/{y}.geojson",
 	renderer=RenderTowns,
 	zoom_max=16,
@@ -427,6 +464,7 @@ tilesets.append(MapTilesetVector('dsc-towns',
 
 class RenderParcels(RenderGeoJSON):
 	clip = 2
+	draw_passes = 2
 	def __init__(self, layer, filename, zoom, x, y):
 		RenderGeoJSON.__init__(self, layer, filename, zoom, x, y)
 		self.labels = []
@@ -440,7 +478,7 @@ class RenderParcels(RenderGeoJSON):
 					self.labels.append((center, properties.get("house_number","?"), properties.get("street","?")))
 	def choose_polygon_style(self, properties):
 		return { "line-color": (0.0, 0.0, 0.0), "line-width": 0.25 }
-	def draw_labels(self, ctx, scale):
+	def draw2(self, ctx, scale):
 		show_street = self.layer.zoom >= 17.9
 		for center, house_number, street in self.labels:
 			center = self.scale_point(center, scale)
@@ -448,12 +486,39 @@ class RenderParcels(RenderGeoJSON):
 				text = "%s %s" % (house_number, street)
 			else:
 				text = house_number
-			pykarta.draw.centered_label(ctx, center[0], center[1], text, fontsize=8, shield=False)
+			pykarta.draw.centered_label(ctx, center[0], center[1], text, fontsize=8)
 
-tilesets.append(MapTilesetVector('dsc-parcels',
+tilesets.append(MapTilesetVector('tc-parcels',
 	url_template="http://tiles.osm.trincoll.edu/parcels/{z}/{x}/{y}.geojson",
 	renderer=RenderParcels,
 	zoom_min=16,
 	zoom_max=16,
 	))
+
+class RenderRoadRefs(RenderGeoJSON):
+	def __init__(self, layer, filename, zoom, x, y):
+		RenderGeoJSON.__init__(self, layer, filename, zoom, x, y)
+		self.shields = []
+		dedup = set()
+		for line, properties, style in self.lines:
+			shield_text = properties['ref'].split(";")[0]
+			if not shield_text in dedup:
+				shield_pos = pykarta.draw.place_line_shield(line)
+				if shield_pos is not None:
+					self.shields.append((shield_pos, shield_text))
+				dedup.add(shield_text)
+	def choose_line_style(self, properties):
+		return True		# dummy value
+	def draw1(self, ctx, scale):
+		for center, shield_text in self.shields:
+			center = self.scale_point(center, scale)
+			pykarta.draw.generic_shield(ctx, center[0], center[1], shield_text, fontsize=8)
+
+tilesets.append(MapTilesetVector('osm-road-refs',
+	url_template="http://localhost:8080/road-refs/{z}/{x}/{y}.json",
+	renderer=RenderRoadRefs,
+	zoom_min=10,
+	zoom_max=14,
+	))
+
 

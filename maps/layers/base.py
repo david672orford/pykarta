@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/base.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 12 September 2014
+# Last modified: 18 September 2014
 
 import math
 import cairo
@@ -64,6 +64,8 @@ class MapLayer(object):
 			if self.cache_surface is None:
 				self.cache_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.containing_map.width, self.containing_map.height)
 				cache_ctx = cairo.Context(self.cache_surface)
+				cache_ctx.set_line_join(ctx.get_line_join())
+				cache_ctx.set_line_cap(ctx.get_line_cap())
 				self.do_draw(cache_ctx)
 			else:
 				#print "cached"
@@ -96,6 +98,7 @@ class MapTileLayer(MapLayer):
 		self.ram_cache_max = 1000
 		self.renderer = None
 		self.overzoom = False
+		self.draw_passes = 1
 
 		self.ram_cache = OrderedDict()
 		self.tiles = []
@@ -187,23 +190,25 @@ class MapTileLayer(MapLayer):
 	def do_draw(self, ctx):
 		#print "Draw %s tiles..." % self.name
 
+		# Load tiles
 		progress = 1
 		tile_objs = []
 		for zoom, x, y, xpixoff, ypixoff in self.tiles:
-			#print zoom, x, y, xpixoff, ypixoff
-			ctx.save()
-			ctx.translate(xpixoff, ypixoff)
 
-			# If this map blocks until all of the tiles are load, display progress.
+			# If this map blocks until all of the tiles are loaded, display progress.
 			if not self.containing_map.lazy_tiles:
 				numtiles = len(self.tiles)
 				self.containing_map.feedback.progress(progress, numtiles, _("Downloading {layername} tile {progress} of {numtiles}").format(layername=self.name, progress=progress, numtiles=numtiles))
 
-			tile = self.load_tile_cached(zoom, x, y, True)
+			# Load the tile if it is already cached.
+			# Request that it be loaded in the background.
+			tile_obj = (
+				self.load_tile_cached(zoom, x, y, True),
+				None, None, None, None
+				)
 
-			if tile is not None:
-				tile.draw(ctx, self.tile_scale_factor)
-			else:		# search for lower zoom tile as temporary substitute
+			# Tile not loaded? Search for a lower zoom tile which will do.
+			if tile_obj[0] is None:
 				for lower_zoom in range(zoom-1, self.zoom_min-1, -1):
 					zoom_diff = zoom - lower_zoom
 					bigger_tile = self.load_tile_cached(lower_zoom, x >> zoom_diff, y >> zoom_diff, False)
@@ -212,24 +217,33 @@ class MapTileLayer(MapLayer):
 						subtile_mask = subtile_scale_factor - 1
 						x_adj = -(self.tile_size * (x & subtile_mask))
 						y_adj = -(self.tile_size * (y & subtile_mask))
-						ctx.rectangle(-1, -1, self.tile_size+2, self.tile_size+2)
-						ctx.clip()
-						ctx.translate(x_adj, y_adj)
-						bigger_tile.draw(ctx, self.tile_scale_factor * subtile_scale_factor)
+						tile_obj = (None, bigger_tile, subtile_scale_factor, x_adj, y_adj)
 						break
 
-			ctx.restore()
-			tile_objs.append(tile)
+			tile_objs.append(tile_obj)
 			progress += 1
 
-		if self.renderer is not None:
+		# Draw tiles
+		for draw_pass in range(self.draw_passes):
+			i = 0
 			for zoom, x, y, xpixoff, ypixoff in self.tiles:
-				tile = tile_objs.pop(0)
+				#print zoom, x, y, xpixoff, ypixoff
+				ctx.save()
+				ctx.translate(xpixoff, ypixoff)
+	
+				tile, bigger_tile, subtile_scale_factor, x_adj, y_adj = tile_objs[i]
+	
 				if tile is not None:
-					ctx.save()
-					ctx.translate(xpixoff, ypixoff)
-					tile.draw2(ctx, self.tile_scale_factor)
-					ctx.restore()
+					tile.draw(ctx, self.tile_scale_factor, draw_pass)
+				elif bigger_tile is not None:
+					ctx.rectangle(-1, -1, self.tile_size+2, self.tile_size+2)
+					ctx.clip()
+					ctx.translate(x_adj, y_adj)
+					bigger_tile.draw(ctx, self.tile_scale_factor * subtile_scale_factor, draw_pass)
+	
+				ctx.restore()
+				tile_objs.append(tile)
+				i += 1
 
 	# This wraps load_tile() and caches the most recently used tiles in RAM.
 	def load_tile_cached(self, zoom, x, y, may_download):
@@ -287,7 +301,7 @@ class MapRasterTile(object):
 		self.tile_surface = surface_from_pixbuf(pixbuf)
 
 	# Draw a 265x265 unit tile at position (xpixoff, ypixoff).
-	def draw(self, ctx, scale):
+	def draw(self, ctx, scale, draw_pass):
 		ctx.scale(scale, scale)
 		ctx.set_source_surface(self.tile_surface, 0, 0)
 		ctx.paint_with_alpha(self.opacity)
@@ -296,8 +310,6 @@ class MapRasterTile(object):
 class MapCustomTile(object):
 	def __init__(self, layer, filename, zoom, x, y):
 		self.renderer = layer.renderer(layer, filename, zoom, x, y)
-	def draw(self, ctx, scale):
-		self.renderer.draw(ctx, scale)
-	def draw2(self, ctx, scale):
-		self.renderer.draw2(ctx, scale)
+	def draw(self, ctx, scale, draw_pass):
+		self.renderer.draw(ctx, scale, draw_pass)
 

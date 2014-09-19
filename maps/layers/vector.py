@@ -1,7 +1,7 @@
 # pykarta/maps/layers/vector.py
 # An editable vector layer
 # Copyright 2013, 2014, Trinity College
-# Last modified: 14 September 2014
+# Last modified: 18 September 2014
 
 import gtk
 import cairo
@@ -394,7 +394,7 @@ class MapVectorPolygon(MapVectorObj):
 				pykarta.draw.node_dots(ctx, self.projected_points, style=node_dots_style)
 		if self.projected_label_center:
 			x, y = self.projected_label_center
-			pykarta.draw.centered_label(ctx, x, y, self.label, fontsize=self.label_fontsize, shield=False)
+			pykarta.draw.centered_label(ctx, x, y, self.label, fontsize=self.label_fontsize, shield=None)
 	def drop(self, i, containing_map):
 		MapVectorObj.drop(self, i, containing_map)
 		self.label_center = None

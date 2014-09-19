@@ -56,7 +56,7 @@ class MapTileset(object):
 		self.layer_cache_enabled = False
 
 		self.extra_headers = {
-			"User-Agent":"PyKarta 0.1"
+			"User-Agent":"PyKarta %s" % pykarta.version
 			}
 
 		# Many tile servers have four hostnames. With which will we start?
@@ -159,8 +159,8 @@ class MapTilesetWMS(MapTilesetRaster):
 
 # Describes a set of vector tiles
 class MapTilesetVector(MapTileset):
-	def __init__(self, key, renderer=None, **kwargs):
-		MapTileset.__init__(self, key, **kwargs)
+	def __init__(self, key, zoom_max=20, renderer=None, **kwargs):
+		MapTileset.__init__(self, key, zoom_max=zoom_max, **kwargs)
 		self.extra_headers["Accept-Encoding"] = "gzip,deflate"
 		self.renderer = renderer
 		self.layer_cache_enabled = True

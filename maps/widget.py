@@ -1,7 +1,7 @@
 #=============================================================================
 # pykarta/maps/widget.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 2 September 2014
+# Last modified: 17 September 2014
 #=============================================================================
 
 import gtk
@@ -85,7 +85,7 @@ class MapWidget(gtk.DrawingArea, MapBase):
 				self.elapsed(layer.name, start_time)
 				layer.stale = False
 			for layer in self.layers_osd:
-				self.feedback.debug(2, " %s" % layer.name)
+				self.feedback.debug(2, " %s" % layer.__class__.__name__)
 				start_time = time.time()
 				layer.do_viewport()
 				self.elapsed(layer.name, start_time)
@@ -119,7 +119,7 @@ class MapWidget(gtk.DrawingArea, MapBase):
 		ctx.restore()
 
 		for layer in self.layers_osd:
-			self.feedback.debug(2, " %s" % layer.name)
+			self.feedback.debug(2, " %s" % layer.__class__.__name__)
 			if layer.stale and self.map_drag_start is None:
 				layer.do_viewport()
 				layer.stale = False

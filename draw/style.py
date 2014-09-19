@@ -1,6 +1,10 @@
 # pykarta/draw/style.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 30 August 2014
+# Last modified: 18 September 2014
+#
+# This module has functions to stroke lines and fill polygons using style
+# attributes borrowed from Cascadenik. See:
+# https://github.com/mapnik/Cascadenik/wiki/Dictionary
 
 import cairo
 
@@ -23,7 +27,7 @@ def stroke_with_style(ctx, style, preserve=False):
 			ctx.set_source_rgba(*color)
 		else:
 			ctx.set_source_rgb(*color)
-		ctx.set_dash(style.get('underline-dash', ()))
+		ctx.set_dash(style.get('underline-dasharray', ()))
 		ctx.stroke_preserve()
 
 	# This is the main stroke.
@@ -34,7 +38,7 @@ def stroke_with_style(ctx, style, preserve=False):
 			ctx.set_source_rgba(*color)
 		else:
 			ctx.set_source_rgb(*color)
-		ctx.set_dash(style.get('line-dash', ()))
+		ctx.set_dash(style.get('line-dasharray', ()))
 		ctx.stroke_preserve()
 
 	# This stroke goes over the main stroke. We can use it to run a solid
@@ -46,7 +50,7 @@ def stroke_with_style(ctx, style, preserve=False):
 			ctx.set_source_rgba(*color)
 		else:
 			ctx.set_source_rgb(*color)
-		ctx.set_dash(style.get('overline-dash', ()))
+		ctx.set_dash(style.get('overline-dasharray', ()))
 		ctx.stroke_preserve()
 
 	# This whole function is pitched as a substitute for stroke(), so

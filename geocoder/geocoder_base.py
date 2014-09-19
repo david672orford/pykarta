@@ -1,6 +1,6 @@
 # pykarta/geocoder/geocoder_base.py
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 10 September 2014
+# Last modified: 16 September 2014
 
 import httplib
 import socket
@@ -8,6 +8,7 @@ import urllib
 import time
 import sys
 import string
+import pykarta
 from pykarta.misc import NoInet
 
 class GeocoderBase:
@@ -75,7 +76,7 @@ class GeocoderBase:
 
 			# FIXME: can't we just use self.conn.request()?
 			self.conn.putrequest(method, path)
-			self.conn.putheader("User-Agent", "PyKarta 0.1") 
+			self.conn.putheader("User-Agent", "PyKarta %s" % pykarta.version)
 			if method == "POST":
 				self.conn.putheader("Content-Length", len(message_body))
 			if content_type is not None:

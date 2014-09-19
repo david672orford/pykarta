@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tile_http.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 14 September 2014
+# Last modified: 17 September 2014
 
 import os
 import errno
@@ -27,9 +27,12 @@ class MapTileLayerHTTP(MapTileLayer):
 		self.cache_enabled = self.tileset.layer_cache_enabled
 		self.tileset_online_init_called = False
 
+		# For vector tiles
 		self.renderer = tileset.renderer
 		if "renderer" in options:
 			self.renderer = tileset.renderers[options["renderer"]]
+		if self.renderer:
+			self.draw_passes = self.renderer.draw_passes
 
 		# How long (in milliseconds) to wait after receiving a tile
 		# for the next one to arrive before redrawing
