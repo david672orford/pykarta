@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/osm_svg.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 11 May 2014
+# Last modified: 15 October 2014
 
 import os
 import math
@@ -91,7 +91,7 @@ class MapLayerSVG(MapLayer):
 
 		# Download the SVG file if we do not have it already in the cache.
 		if cachefile_age is None or cachefile_age > 30:
-			self.containing_map.feedback.progress(0, 2, _("Requesting SVG file"))
+			self.feedback.progress(0, 2, _("Requesting SVG file"))
 
 			# FIXME: gzip compression not supported
 			# See: http://love-python.blogspot.com/2008/07/accept-encoding-gzip-to-make-your.html?m=1

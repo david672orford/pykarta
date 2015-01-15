@@ -1,6 +1,5 @@
-#! /usr/bin/python
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 1 September 2014
+# Last modified: 10 October 2014
 
 # Reference:
 # * http://www.topografix.com/gpx.asp
@@ -20,16 +19,24 @@ class GpxWriter:
 
 	def __init__(self, writable_object, creator):
 		self.fh = writable_object
+		self.saved = False
+		self.state = 0
+
 		self.fh.write('<?xml version="1.0"?>\n')
 		self.fh.write('<gpx version="1.1"\n')
 		self.fh.write(' creator="%s"\n' % creator)
 		self.fh.write(' xmlns="http://www.topografix.com/GPX/1/1"\n')
 		self.fh.write(' >\n')
 
-		self.state = 0
-
 	def __del__(self):
+		if not self.saved:
+			self.save()
+
+	# FIXME: starts writing before save() is called
+	def save(self):
+		self.saved = True
 		self.fh.write("</gpx>\n")
+		self.fh.close()
 
 	def encode(self, text):
 		text = string.replace(text, '&', '&amp;')

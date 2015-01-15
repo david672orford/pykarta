@@ -1,6 +1,6 @@
 # pykarta/address/__init__.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 16 September 2014
+# Copyright 2013, 2014, 2015, Trinity College
+# Last modified: 13 January 2015
 
 import string
 import re
@@ -60,6 +60,7 @@ def split_address(address):
 
 	return components
 
+# Split a person's name into its component parts.
 def split_name(name):
 	components = {}
 	name = re.sub('^((Mr\.?)|(Mrs\.)|(Ms\.)) ', '', name, re.IGNORECASE)
@@ -73,19 +74,20 @@ def split_name(name):
 		components['First Name'] = ' '.join(name_words[0:-1])
 	return components
 
-re_address1 = re.compile("^(\d+\S*) (.+)$")
-re_apartment1 = re.compile("^(.*) #([^#]+)$")	# "1 Main St #C"
-re_apartment2 = re.compile("^(.*), Apt (.+)$")	# "1 Main St, Apt C"
+
 def split_house_street_apt(text):
-	m = re_address1.search(text)
+	# "123A Main St"
+	m = re.search(r"^(\d+\S*) (.+)$", text)
 	if m:
 		components = {}
 		components['House Number'] = m.group(1)
 		components['Street'] = m.group(2)
 		while True:
-			m = re_apartment1.search(components['Street'])
+			# "1 Main St #C"
+			m = re.search(r"^(.*) #([^#]+)$", components['Street'])
 			if not m:
-				m = re_apartment2.search(components['Street'])
+				# "1 Main St, Apt C"
+				m = re.search(r"^(.*),? Apt (.+)$", components['Street'])
 			if not m:
 				break
 			components['Street'] = m.group(1)
@@ -96,7 +98,11 @@ def split_house_street_apt(text):
 		return None
 
 def split_town_state_zip(text):
-	match = re.match('^([^,]+)(?:, *(\w+)(?: (\d\d\d\d\d(?:-\d\d\d\d)?))?)?', text)
+	# "Hartford"
+	# "Hartford, CT"
+	# "Hartford, CT  06106"
+	# "Hartford, CT  06106-0000"
+	match = re.match(r'^([^,]+)(?:, *(\w+)(?: (\d\d\d\d\d(?:-\d\d\d\d)?))?)?', text)
 	if match:
 		components = {}
 		town = match.group(1)
@@ -111,20 +117,27 @@ def split_town_state_zip(text):
 
 def split_schema_person(item):
 	components = {}
-
-	temp = split_name(item['name'])
-	if temp is not None:
-		components.update(temp)
-
-	temp = split_house_street_apt(item['streetAddress'])
-	if temp is not None:
-		components.update(temp)
-
-	components['Town'] = disabbreviate_town(item['addressLocality'])
-	components['State'] = item['addressRegion']
-	components['ZIP']  = item['postalCode']
-	components['Phone Number'] = item['telephone']
-
+	if 'name' in item:
+		components.update(split_name(item['name']))
+	if 'familyName' in item:
+		components['Last Name'] = item['familyName']
+	if 'givenName' in item:
+		if 'additionalName' in item:
+			components['First Name'] = "%s %s" % (item['givenName'], item['additionalName'])
+		else:
+			components['First Name'] = item['givenName']
+	if 'streetAddress' in item:
+		temp = split_house_street_apt(item['streetAddress'])
+		if temp is not None:
+			components.update(temp)
+	if 'addressLocality' in item:
+		components['Town'] = disabbreviate_town(item['addressLocality'])
+	if 'addressRegion' in item:
+		components['State'] = item['addressRegion']
+	if 'postalCode' in item:
+		components['ZIP']  = item['postalCode']
+	if 'telephone' in item:
+		components['Phone Number'] = item['telephone']
 	return components
 
 #=============================================================================

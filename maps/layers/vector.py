@@ -1,7 +1,7 @@
 # pykarta/maps/layers/vector.py
 # An editable vector layer
 # Copyright 2013, 2014, Trinity College
-# Last modified: 18 September 2014
+# Last modified: 18 December 2014
 
 import gtk
 import cairo
@@ -46,10 +46,11 @@ class MapLayerVector(MapLayer):
 		self.layer_objs = []
 		self.set_stale()
 
+	# Set the current drawing tool. Use None to deactivate.
 	def set_tool(self, tool):
 		#print "set_tool(%s)" % str(tool)
 		self.drawing_tool = tool
-		if tool:
+		if tool is not None:
 			tool.activate(weakref.proxy(self))
 			self.containing_map.set_cursor(tool.cursor)
 		else:
@@ -67,7 +68,11 @@ class MapLayerVector(MapLayer):
 			obj.editable = False
 		self.redraw()
 
-	# The drawing tools call this when they complete an operation.
+	# The drawing tools call this function when they complete an operation.
+	# tool--the tool which performed the operation
+	# obj--the object which it selected, deleted, or created
+	# If the user supplied a callback function, it is called.
+	# Default actions are also provided.
 	def drawing_tool_done(self, tool, obj):
 		# If there is no callback function or it returns False, do default action.
 		if self.tool_done_cb is None or not self.tool_done_cb(tool, obj):
@@ -77,10 +82,11 @@ class MapLayerVector(MapLayer):
 				self.redraw()
 			elif type(tool) is MapToolDelete:
 				self.remove_obj(obj)
-			else:
+			else:		# new object created
 				self.add_obj(obj)
 
 	# Viewport has changed
+	# Figure out which objects are now visible.
 	def do_viewport(self):
 		map_bbox = self.containing_map.get_bbox()
 		self.visible_objs = []
@@ -88,27 +94,28 @@ class MapLayerVector(MapLayer):
 			if obj.geometry.get_bbox().overlaps(map_bbox):
 				obj.project(self.containing_map)
 				self.visible_objs.append(obj)
-		if self.drawing_tool:
+		if self.drawing_tool is not None:
 			self.drawing_tool.project(self.containing_map)
 
-	# Draw the objects selected by by do_viewport()
+	# Draw the objects selected by do_viewport().
 	def do_draw(self, ctx):
 		for obj in self.visible_objs:
 			obj.draw(ctx)
-		if self.drawing_tool:
+		if self.drawing_tool is not None:
 			self.drawing_tool.draw(ctx)
 
 	# Mouse button pressed down while pointer is over map.
-	# If we do anything with it, we return True so that it
-	# will not be interpreted as the start of a map drag.
+	# If this function takes any action in response, it returns True
+	# so that the button press will not be interpreted as the start
+	# of an attempt to drag the map.
 	def on_button_press(self, gdkevent):
 		if gdkevent.button == 1:	# left-hand button
 
 			# If hit is near a vertex of an object with editing enabled, start dragging it.
-			point = Point(gdkevent.x, gdkevent.y)
+			#point = Point(gdkevent.x, gdkevent.y)		# unused?
 			for obj in reversed(self.visible_objs):
 				if obj.editable:
-					i = obj.get_dragable_point(gdkevent)
+					i = obj.get_draggable_point(gdkevent)
 					if i is not None:
 						self.dragger = MapDragger(obj, i)
 						self.containing_map.set_cursor(gtk.gdk.FLEUR)
@@ -118,7 +125,7 @@ class MapLayerVector(MapLayer):
 						return True
 
 			# If a drawing tool is active, send it the new point (after snapping).
-			if self.drawing_tool:
+			if self.drawing_tool is not None:
 				x, y = self.snap_search(gdkevent, None, self.drawing_tool.use_snapping)
 				return self.drawing_tool.on_button_press(x, y, gdkevent)
 
@@ -133,7 +140,7 @@ class MapLayerVector(MapLayer):
 		if self.dragger:
 			snapped_x, snapped_y = self.snap_search(gdkevent, self.dragger.obj, self.dragger.obj.snap)
 			self.dragger.obj.move(self.dragger.i, snapped_x, snapped_y, gdkevent)
-			self.dragger.count += 1
+			self.dragger.moved = True
 			self.redraw()
 			stop_propagation = True
 		return stop_propagation
@@ -144,9 +151,9 @@ class MapLayerVector(MapLayer):
 			if self.drawing_tool:
 				self.drawing_tool.on_button_release(gdkevent)
 			if self.dragger:	# if mouse was down on a point,
-				if self.dragger.count > 0:
+				if self.dragger.moved:
 					self.dragger.obj.drop(self.dragger.i, self.containing_map)
-				else:
+				else:			# clicked but not dragged
 					self.dragger.obj.delete(self.dragger.i, self.containing_map)
 				if self.obj_modified_cb:
 					self.obj_modified_cb(self.dragger.obj)
@@ -155,12 +162,13 @@ class MapLayerVector(MapLayer):
 				self.redraw()
 		return False
 
-	# If an object has a point near the given event position, return that point.
-	# Otherwise, return the event position.
-	# If enable is False, this always returns the event position.
-	# The paremeter source_obj refers to the object whose point may be snapped
-	# to the points of surounding objects. We use it to skip that object during
-	# the search.
+	# Look for a point (belonging to a vector object) which is near
+	# the location of gdkevent. Exclude points belonging to source_obj
+	# since we do not want to snap it to itself.
+	# If such a point is found, return its coordinates. Otherwise
+	# return the coordinates of the event.
+	# If enabled is False, this function does not snapping, it just
+	# returns the coordinates of the event.
 	def snap_search(self, gdkevent, source_obj, enable):
 		if enable:
 			for obj in self.visible_objs:
@@ -171,22 +179,26 @@ class MapLayerVector(MapLayer):
 						return snap
 		return (gdkevent.x, gdkevent.y)
 
+# This class describes an object and its point on which the user has
+# bought the left mouse button down. If he moves the mouse before
+# letting it up, the action will be considered a drag. If not, 
+# we will delete the point.
 class MapDragger(object):
 	def __init__(self, obj, i):
-		self.obj = obj
-		self.i = i
-		self.count = 0
+		self.obj = obj			# object to which point belongs
+		self.i = i				# index of its point which is dragged
+		self.moved = False		# mouse motion while left button down?
 
 #============================================================================
-# The objects
+# The Vector Objects
 # This follow GeoJSON
 #============================================================================
 
 # Base class for vector objects
 class MapVectorObj(object):
 	snap = True		# snap this object's points to other objects
-	min_points = 0	# FIXME: document
-	unclosed = 1	# FIXME: document
+	min_points = 0	# when to stop allowing point deletion
+	unclosed = 1	# 1 for open figures, 0 for closed figures
 
 	def __init__(self, properties):
 		self.editable = False
@@ -195,11 +207,12 @@ class MapVectorObj(object):
 		if properties is not None:
 			self.properties.update(properties)
 
+	# Project this vector object's points to pixel space
 	def project(self, containing_map):
 		self.projected_points = containing_map.project_points(self.geometry.points)
 		self.update_phantoms()
 
-	# Override this
+	# Override this to draw the object from self.projected_points.
 	def draw(self, ctx):
 		pass
 
@@ -211,14 +224,16 @@ class MapVectorObj(object):
 
 	# Did this click hit one of the object's points? If so, return its index.
 	# If a phantom point was hit, make it a real point first.
-	def get_dragable_point(self, gdkevent):
+	def get_draggable_point(self, gdkevent):
 		evpoint = (gdkevent.x, gdkevent.y)
+		# Real points
 		i = 0
 		for point in self.projected_points:
 			if points_close(evpoint, point):
 				return i
 			i += 1
 		i = 0
+		# Phantom points
 		for point in self.phantom_points:
 			if points_close(evpoint, point):
 				self.projected_points.insert(i+1, self.phantom_points[i])
@@ -394,7 +409,7 @@ class MapVectorPolygon(MapVectorObj):
 				pykarta.draw.node_dots(ctx, self.projected_points, style=node_dots_style)
 		if self.projected_label_center:
 			x, y = self.projected_label_center
-			pykarta.draw.centered_label(ctx, x, y, self.label, fontsize=self.label_fontsize, shield=None)
+			pykarta.draw.centered_label(ctx, x, y, self.label, style={'font-size':self.label_fontsize})
 	def drop(self, i, containing_map):
 		MapVectorObj.drop(self, i, containing_map)
 		self.label_center = None
@@ -421,7 +436,7 @@ class MapVectorBoundingBox(MapVectorObj):
 			))
 		self.style = {
 			"line-width":1,
-			"line-dash":(3,2)
+			"line-dasharray":(3,2)
 			}
 		if style is not None:
 			self.style.update(style)
@@ -553,7 +568,7 @@ class MapDrawLineString(MapDrawBase):
 			pykarta.draw.node_dots(ctx, self.projected_points)
 			ctx.move_to(*(self.projected_points[-1]))
 			ctx.line_to(*(self.hover_point))
-			pykarta.draw.stroke_with_style(ctx, {"line-width":1,"line-dash":(3,2)})
+			pykarta.draw.stroke_with_style(ctx, {"line-width":1,"line-dasharray":(3,2)})
 
 class MapDrawPolygon(MapDrawBase):
 	use_snapping = True
@@ -581,7 +596,7 @@ class MapDrawPolygon(MapDrawBase):
 			pykarta.draw.node_dots(ctx, self.projected_points)
 			ctx.move_to(*(self.projected_points[-1]))
 			ctx.line_to(*(self.hover_point))
-			pykarta.draw.stroke_with_style(ctx, {"line-width":1,"line-dash":(3,2)})
+			pykarta.draw.stroke_with_style(ctx, {"line-width":1,"line-dasharray":(3,2)})
 
 class MapDrawBoundingBox(MapDrawBase):
 	cursor = gtk.gdk.SIZING
@@ -607,7 +622,7 @@ class MapDrawBoundingBox(MapDrawBase):
 			start_x, start_y = self.projected_points[0]
 			hover_x, hover_y = self.hover_point
 			ctx.rectangle(start_x, start_y, hover_x - start_x, hover_y - start_y)
-			pykarta.draw.stroke_with_style(ctx, {"line-width":1,"line-dash":(3,2)})
+			pykarta.draw.stroke_with_style(ctx, {"line-width":1,"line-dasharray":(3,2)})
 
 def points_close(p1, p2, tolerance=10):
 	return abs(p1[0] - p2[0]) <= tolerance and abs(p1[1] - p2[1]) <= tolerance

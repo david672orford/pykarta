@@ -1,10 +1,11 @@
 # encoding=utf-8
 # pykarta/maps/layers/base.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 18 September 2014
+# Last modified: 15 October 2014
 
 import math
 import cairo
+import weakref
 
 try:
 	from collections import OrderedDict
@@ -21,16 +22,19 @@ class MapLayer(object):
 	def __init__(self):
 		self.name = None
 		self.containing_map = None
+		self.feedback = None
 		self.stale = False
 		self.attribution = None
 		self.cache_enabled = False
 		self.cache_surface = None
+		self.zoom_substitutions = None
 
 	# Called automatically when the layer is added to the container.
 	# It is called again if offline mode is entered or left so that the layer
 	# can make any necessary adjustments.
 	def set_map(self, containing_map):
 		self.containing_map = containing_map
+		self.feedback = containing_map.feedback		# usable even after map is destroyed
 
 	# Mark layer so that at next redraw its do_viewport() will be called.
 	# If the layer has already been added to a map, request a redraw.
@@ -107,6 +111,7 @@ class MapTileLayer(MapLayer):
 		self.int_zoom = None
 		self.tile_size = None
 		self.tile_ranges = None			# used for precaching
+		self.dedup = set()
 
 	#def __del__(self):
 	#	print "Map: tile layer %s destroyed" % self.name
@@ -120,20 +125,34 @@ class MapTileLayer(MapLayer):
 		self.tile_scale_factor = math.pow(2, self.zoom) / (1 << self.int_zoom)
 		#print "zoom:", self.zoom, self.int_zoom, self.tile_scale_factor
 
+		# We may have a good reason to use tiles from a different zoom level
+		# than that requested. But let's start with what was requested.
+		use_zoom = self.int_zoom
+
 		# If there is no renderer (which means we are using raster tiles)
 		# and this map is in print mode (which means higher resolution is needed)
-		# and tiles are available at a higher zoom level, then use them instead
-		# and scale them down.
+		# and tiles are available at a higher zoom level so we can scale them
+		# down and double the resolution.
 		if self.renderer is None and self.containing_map.print_mode and self.int_zoom < self.zoom_max:
+			use_zoom += 1
+
+		# If the map is zoomed in furthur than this layer goes (which can happen if it
+		# is not the first layer), then use the highest zoom level tiles available.
+		if self.overzoom:
+			use_zoom = min(self.int_zoom, self.zoom_max)
+
+		# If the tileset definition includes a mapping, use it.
+		if self.zoom_substitutions is not None:
+			use_zoom = self.zoom_substitutions.get(use_zoom, use_zoom)
+
+		# If the requested zoom level and the zoom level which we have decided
+		# to use are different, make adjustments.
+		while use_zoom > self.int_zoom:
 			self.int_zoom += 1
 			self.tile_scale_factor /= 2.0
-
-		# If the map is zoomed in furthur than this layer goes (which can happen
-		# if it is not the first layer), then enlarge the tiles.
-		if self.overzoom:
-			while self.int_zoom > self.zoom_max:
-				self.int_zoom -= 1
-				self.tile_scale_factor *= 2.0
+		while use_zoom < self.int_zoom:
+			self.int_zoom -= 1
+			self.tile_scale_factor *= 2.0
 
 		# How many units on the output device (pixels on a screen) will
 		# the tile be scaled to cover?
@@ -198,7 +217,7 @@ class MapTileLayer(MapLayer):
 			# If this map blocks until all of the tiles are loaded, display progress.
 			if not self.containing_map.lazy_tiles:
 				numtiles = len(self.tiles)
-				self.containing_map.feedback.progress(progress, numtiles, _("Downloading {layername} tile {progress} of {numtiles}").format(layername=self.name, progress=progress, numtiles=numtiles))
+				self.feedback.progress(progress, numtiles, _("Downloading {layername} tile {progress} of {numtiles}").format(layername=self.name, progress=progress, numtiles=numtiles))
 
 			# Load the tile if it is already cached.
 			# Request that it be loaded in the background.
@@ -224,6 +243,7 @@ class MapTileLayer(MapLayer):
 			progress += 1
 
 		# Draw tiles
+		self.dedup.clear()
 		for draw_pass in range(self.draw_passes):
 			i = 0
 			for zoom, x, y, xpixoff, ypixoff in self.tiles:

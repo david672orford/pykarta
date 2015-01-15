@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/nominatim.py
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 16 September 2014
+# Last modified: 10 October 2014
 
 import xml.etree.cElementTree as ET
 import json
@@ -230,10 +230,6 @@ class GeocoderNominatim(GeocoderBase):
 		else:
 			self.debug("  Not found")
 			return None
-
-	# It is worth caching the results of this geocoder?
-	def should_cache(self):
-		return True
 
 	@staticmethod
 	def place_bbox(place):

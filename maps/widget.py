@@ -1,7 +1,7 @@
 #=============================================================================
 # pykarta/maps/widget.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 17 September 2014
+# Last modified: 15 October 2014
 #=============================================================================
 
 import gtk
@@ -76,7 +76,7 @@ class MapWidget(gtk.DrawingArea, MapBase):
 
 		if self.updated_viewport:
 			self.drag_offset = [0, 0]
-			self.feedback.debug(1, "Projecting layers:")
+			self.feedback.debug(2, "Projecting layers:")
 			for layer in self.layers_ordered:
 				self.feedback.debug(2, " %s" % layer.name)
 				start_time = time.time()
@@ -97,11 +97,11 @@ class MapWidget(gtk.DrawingArea, MapBase):
 			ctx.translate(-self.width, 0)	
 
 		# Translate coordinate space to compensate for dragging
-		# which may be in progress and paint the layers.			
+		# which may be in progress and then paint the layers.			
 		ctx.save()
 		ctx.translate(self.drag_offset[0], self.drag_offset[1])
 
-		self.feedback.debug(1, "Drawing layers: map_drag_start=%s" % str(self.map_drag_start))
+		self.feedback.debug(2, "Drawing layers: map_drag_start=%s" % str(self.map_drag_start))
 		for layer in self.layers_ordered:
 			self.feedback.debug(2, " %s: stale=%s" % (layer.name, layer.stale))
 			if layer.stale and self.map_drag_start is None:		# if layer is dirty and we are not dragging right now,
@@ -132,11 +132,11 @@ class MapWidget(gtk.DrawingArea, MapBase):
 	def elapsed(self, opname, start_time):
 		stop_time = time.time()
 		elapsed_time = int((stop_time - start_time) * 1000 + 0.5)
-		self.feedback.debug(1, " %s: %d ms" % (opname, elapsed_time))
+		self.feedback.debug(3, " %s: %d ms" % (opname, elapsed_time))
 
 	def key_press_event(self, widget, event):
 		keyname = gtk.gdk.keyval_name(event.keyval)
-		self.feedback.debug(1, "key %s (%d) was pressed" % (keyname, event.keyval))
+		self.feedback.debug(2, "key %s (%d) was pressed" % (keyname, event.keyval))
 		if keyname == "Up":
 			self.scroll(0, -5)
 		elif keyname == "Down":
@@ -182,7 +182,7 @@ class MapWidget(gtk.DrawingArea, MapBase):
 
 	# Mouse down event on map
 	def button_press_event(self, widget, gdkevent):
-		self.feedback.debug(1, "button %d down (%s) at (%d, %d)" % (gdkevent.button, str(gdkevent.type), gdkevent.x, gdkevent.y))
+		self.feedback.debug(2, "button %d down (%s) at (%d, %d)" % (gdkevent.button, str(gdkevent.type), gdkevent.x, gdkevent.y))
 
 		# Click on map gives it focus so that user can scroll it and zoom using the keyboard.
 		self.grab_focus()
@@ -201,7 +201,7 @@ class MapWidget(gtk.DrawingArea, MapBase):
 
 	# Mouse button released over map
 	def button_release_event(self, widget, gdkevent):
-		self.feedback.debug(1, "button %d up at (%d, %d)" % (gdkevent.button, gdkevent.x, gdkevent.y))
+		self.feedback.debug(2, "button %d up at (%d, %d)" % (gdkevent.button, gdkevent.x, gdkevent.y))
 
 		# Dragging done?
 		if self.map_drag_start is not None:
@@ -236,7 +236,7 @@ class MapWidget(gtk.DrawingArea, MapBase):
 
 	# Move pointer has left the map.
 	def leave_notify_event(self, widget, gdkevent):
-		self.feedback.debug(1, "mouse pointer left")
+		self.feedback.debug(2, "mouse pointer left map")
 		if self.coordinates_cb:
 			self.coordinates_cb(None)
 
@@ -450,12 +450,12 @@ class MapPrintProgress(MapFeedback):
 		print "*** cancel pressed ***"
 		self.canceled = True
 
-	def progress(self, x, y, message):
+	def progress(self, finished, total, message):
 		if self.canceled:
 			self.dialog.hide()
 			raise KeyboardInterrupt
-		if x is not None:
-			fraction = float(x) / float(y)
+		if finished is not None:
+			fraction = (self.step / float(self.steps)) + float(finished) / float(total) / float(self.steps)
 			self.bar.set_fraction(fraction)
 			self.bar.set_text("%d%%" % int(fraction * 100.0 + 0.5))
 		if message is not None:

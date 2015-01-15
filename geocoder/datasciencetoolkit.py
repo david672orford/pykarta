@@ -1,6 +1,6 @@
 # pykarta/geocoder/datasciencetoolkit.py
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 16 September 2014
+# Last modified: 9 October 2014
 
 import json
 import urllib
@@ -10,11 +10,9 @@ from pykarta.address import disabbreviate_street
 
 # See http://www.datasciencetoolkit.org/developerdocs
 class GeocoderDataScienceToolKit(GeocoderBase):
-	def __init__(self, **kwargs):
-		GeocoderBase.__init__(self, **kwargs)
-		self.url_server = "www.datasciencetoolkit.org"
-		self.url_path = "/street2coordinates"
-		self.delay = 1.0	# one request per second
+	url_server = "www.datasciencetoolkit.org"
+	url_path = "/street2coordinates"
+	delay = 1.0		# no more than one request per second
 
 	# Given a street address, try to find the latitude and longitude.
 	def FindAddr(self, address, countrycode=None):
@@ -25,11 +23,7 @@ class GeocoderDataScienceToolKit(GeocoderBase):
 				  address[self.f_town], address[self.f_state], address[self.f_postal_code])
 		get_path = "%s/%s" % (self.url_path, urllib.quote_plus(query))
 
-		# Run the query and close the connexion. If we don't close the connexion,
-		# we get BadStatusLine next time. Presumably the server does not handle
-		# persistent connexions correctly.
 		response_text = self.get(get_path)
-		self.conn = None
 
 		response = json.loads(response_text)
 		response = response[query]	# keyed by sought address
@@ -52,8 +46,4 @@ class GeocoderDataScienceToolKit(GeocoderBase):
 		if result.coordinates is None:
 			self.debug("  No match")
 		return result
-
-	# It is worth caching the results of this geocoder?
-	def should_cache(self):
-		return True
 

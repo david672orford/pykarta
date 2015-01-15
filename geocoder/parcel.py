@@ -1,6 +1,6 @@
 # pykarta/geocoder/parcel.py
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 16 September 2014
+# Last modified: 20 October 2014
 
 import json
 import urllib
@@ -8,11 +8,9 @@ import urllib
 from geocoder_base import GeocoderBase, GeocoderResult
 
 class GeocoderParcel(GeocoderBase):
-	def __init__(self, **kwargs):
-		GeocoderBase.__init__(self, **kwargs)
-		self.url_server = "geocoders.osm.trincoll.edu"
-		self.url_path = "/parcel1"
-		self.delay = 0.1	# ten requests per second
+	url_server = "geocoders.osm.trincoll.edu"
+	url_path = "/parcel1"
+	delay = 0.1		# ten requests per second
 
 	# Given a street address, try to find the latitude and longitude.
 	def FindAddr(self, address, countrycode=None):
@@ -26,7 +24,8 @@ class GeocoderParcel(GeocoderBase):
 			address[self.f_postal_code]
 			])
 
-		feature = json.loads(self.get("%s?%s" % (self.url_path, urllib.quote_plus(query))))
+		response_text = self.get("%s?%s" % (self.url_path, urllib.quote_plus(query)))
+		feature = json.loads(response_text)
 		self.debug_indented(json.dumps(feature, indent=4, separators=(',', ': ')))
 
 		if feature is not None and feature['type'] == 'Feature':
@@ -45,9 +44,16 @@ class GeocoderParcel(GeocoderBase):
 		return True
 
 if __name__ == "__main__":
+	import time
 	gc = GeocoderParcel()
 	gc.debug_enabled = True
 	print gc.FindAddr(["61","Steiger Drive","","Westfield","MA","01085"])
+	print gc.FindAddr(["61","Steiger Drive","","Westfield","MA","01085"])
+	print gc.FindAddr(["61","Steiger Drive","","Westfield","MA","01085"])
+	print gc.FindAddr(["61","Steiger Drive","","Westfield","MA","01085"])
+	print gc.FindAddr(["61","Steiger Drive","","Westfield","MA","01085"])
+	#time.sleep(4.9)
 	#print gc.FindAddr(["63","Steiger Drive","","Westfield","MA","01085"])
+	#print gc.FindAddr(["65","Steiger Drive","","Westfield","MA","01085"])
 
 

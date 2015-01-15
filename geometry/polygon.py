@@ -1,12 +1,14 @@
 # pykarta/geometry/polygon.py
-# Last modified: 4 September 2014
+# Last modified: 8 October 2014
 
+import math
 from point import Point
 from line import LineString
-from util import plane_lineseg_distance, line_simplify
+from util import plane_lineseg_distance
+from projection import project_points_sinusoidal
 
 #
-# Polygon
+# Polygon object
 #
 # List of points passed to the constructor should name each point only
 # once. The first point should _not_ be repeated as the last point.
@@ -26,17 +28,21 @@ class Polygon(LineString):
 	# Methods area() and centroid() came from:
 	# http://local.wasp.uwa.edu.au/~pbourke/geometry/polyarea/
 	# We have shortened them up.
-	def area(self):
+	def area(self, project=False):
+		if project:		# project to meters first?
+			points = project_points_sinusoidal(self.points)
+		else:
+			points = self.points
 		area=0
-		j=len(self.points)-1
-		for i in range(len(self.points)):
-			p1=self.points[i]
-			p2=self.points[j]
-			area+= (p1[0]*p2[1])
-			area-=p1[1]*p2[0]
+		j=len(points)-1
+		for i in range(len(points)):
+			p1=points[i]
+			p2=points[j]
+			area += (p1[0]*p2[1])
+			area -= p1[1]*p2[0]
 			j=i
-		area/=2;
-		return area;
+		area /= 2;
+		return math.fabs(area)	# is often negative
 
 	def centroid(self):
 		#print self.points
@@ -127,15 +133,6 @@ class Polygon(LineString):
 			"type":"Polygon",
 			"coordinates": coordinates,
 			}
-
-	#def simplify(self, tolerance, debug=False):
-	#	before_count = len(self.points)
-	#	new_points = line_simplify(self.points, tolerance)
-	#	after_count = len(new_points)
-	#	if debug:
-	#		print "Reduced %s points to %s" % (before_count, after_count)
-	#	if after_count >= 3:
-	#		self.points = new_points
 
 def PolygonFromGeoJSON(geometry):
 	assert geometry['type'] == 'Polygon', geometry['type']

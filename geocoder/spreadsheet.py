@@ -64,3 +64,7 @@ class GeocoderSpreadsheet(GeocoderBase):
 			self.debug("  No match")
 		return result
 
+	def should_cache(self):
+		return False
+
+

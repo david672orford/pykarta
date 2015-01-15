@@ -1,6 +1,6 @@
 # pykarta/maps/layers/builder.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 15 September 2014
+# Last modified: 1 October 2014
 
 from tilesets_base import tilesets
 import tilesets_osm
@@ -43,4 +43,4 @@ def MapLayerBuilder(layer_name):
 			options[name] = value
 		layer_obj = MapTileLayerHTTP(tileset, options)
 	return layer_obj
-	
+

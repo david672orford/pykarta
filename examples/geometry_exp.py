@@ -1,6 +1,13 @@
+#! /usr/bin/python
+
+# This file contains experimental alternative implementions of line_simplify().
+
+import math
+
 # Version from:
 # https://gist.github.com/humanfromearth/1051247
-# This ought to be faster than line_simplify(), but isn't.
+# This ought to be faster than line_simplify(), but is actually takes
+# about 75% longer.
 def line_simplify_opt1(pts, tolerance):
 	stack   = []
 	keep    = set()
@@ -59,6 +66,7 @@ def line_simplify_opt1(pts, tolerance):
 	return [pts[i] for i in keep]
 
 # Optimized version of above
+# Takes about 20% less time than line_simplify()
 def line_simplify_opt2(pts, tolerance):
 	sqrt = math.sqrt	# about 5% speedup
 
@@ -123,15 +131,18 @@ def line_simplify_opt2(pts, tolerance):
 
 if __name__ == "__main__":
 	import cProfile, pstats, io
+	from pykarta.geometry.util import line_simplify
+	line = ( (0,0), (1,0), (2,0), (3,0), (4,0), (5,0), (6,0), (6,1), (6,2), (6,3), (6,4), (6,5), (6,6), (5,6), (4,6), (3,6), (2,6), (1,6), (0,6), (0,5), (0,4), (0,3), (0,2), (0,1), (0,0) )
 	print "line:", line
 	print "Simplified:", line_simplify(line, 1.0)
 	pr = cProfile.Profile()
 	pr.enable()
 	for i in range(1000):
-		#line_simplify(line, 1.0)
-		#line_simplify_opt1(line, 1.0)
-		line_simplify_opt2(line, 1.0)
+		#simplified = line_simplify(line, 1.0)
+		simplified = line_simplify_opt1(line, 1.0)
+		#simplified = line_simplify_opt2(line, 1.0)
 	pr.disable()
 	pr.print_stats()
+	assert simplified == [(0, 0), (6, 0), (6, 6), (0, 6), (0, 0)]
 	print
 

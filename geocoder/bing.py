@@ -1,6 +1,6 @@
 # pykarta/geocoder/bing.py
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 16 September 2014
+# Last modified: 20 October 2014
 
 import json
 import pykarta
@@ -9,11 +9,12 @@ from pykarta.address import split_house_street_apt
 
 # See http://msdn.microsoft.com/en-us/library/ff701714.aspx
 class GeocoderBing(GeocoderBase):
+	url_server = "dev.virtualearth.net"
+	url_path = "/REST/v1/Locations"
+	delay = 1.0			# no more than one request per second
+
 	def __init__(self, **kwargs):
 		GeocoderBase.__init__(self, **kwargs)
-		self.url_server = "dev.virtualearth.net"
-		self.url_path = "/REST/v1/Locations"
-		self.delay = 1.0	# one request per second
 		self.api_key = pykarta.api_keys['bing']
 
 	location_types = {
@@ -66,8 +67,4 @@ class GeocoderBing(GeocoderBase):
 		if result.coordinates is None:
 			self.debug("  No match")
 		return result
-
-	# It is worth caching the results of this geocoder?
-	def should_cache(self):
-		return True
 

@@ -1,6 +1,6 @@
 # pykarta/geocoder/google.py
-# Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 9 September 2014
+# Copyright 2013, 2014, 2015, Trinity College Computing Center
+# Last modified: 9 January 2015
 
 import string
 import xml.etree.cElementTree as ET
@@ -9,18 +9,18 @@ from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 
 # See http://code.google.com/apis/maps/documentation/geocoding/index.html
 class GeocoderGoogle(GeocoderBase):
-	def __init__(self, **kwargs):
-		GeocoderBase.__init__(self, **kwargs)
-		self.url_server = "maps.google.com"
-		self.url_path = "/maps/api/geocode/xml"
-		self.delay = 0.2		# 5 requests per second
+	url_server = "maps.google.com"
+	url_path = "/maps/api/geocode/xml"
+	delay = 0.2		# no more than 5 requests per second
 
 	# Send the query to the Google geocoder while taking care of
 	# pacing the request rate.
 	def query_google(self, query_hash):
 		# HTTP query with retry
+		retry_count = 0
 		while True:
-			resp_text = self.get(self.url_path, query=query_hash)
+			#resp_text = self.get(self.url_path, query=query_hash)
+			resp_text = self.get_blocking(self.url_path, query=query_hash)
 			#print resp_text
 			try:
 				tree = ET.XML(resp_text)
@@ -29,13 +29,15 @@ class GeocoderGoogle(GeocoderBase):
 	
 			status = tree.find("status").text
 			if status == "OVER_QUERY_LIMIT":		# too fast
-				self.delay += 0.2					# slow down
-				if self.delay > 10.0:
+				print "    error_message: %s" % tree.find("error_message").text
+				retry_count += 1
+				self.delay += (retry_count * 0.2)	# slow down
+				if self.delay > 5.0:
 					raise GeocoderError("Google's daily query limit exceeded.")
 			elif status == "ZERO_RESULTS":
 				return None
 			elif status != 'OK':
-				raise GeocoderError("Geocoder failed: %s" % status)
+				raise GeocoderError("Status code %s" % status)
 			else:									# result received
 				return tree
 
@@ -83,25 +85,25 @@ class GeocoderGoogle(GeocoderBase):
 				for component in item.findall("address_component"):
 					comp_type = component.find("type")
 					if comp_type is None:	# ZIP+4?
-						self.debug("    ZIP+4?")
+						self.debug("      ZIP+4?")
 						continue
 					comp_type = comp_type.text
 					comp_type = self.xlate.get(comp_type, comp_type)
 					comp_name = component.find("short_name" if comp_type == "state" else "long_name").text
-					self.debug("    %s: %s" % (comp_type, comp_name))
+					self.debug("      %s: %s" % (comp_type, comp_name))
 
 					found_addr_dict[comp_type] = comp_name
 					found_addr_list.append([comp_type, comp_name])
 				location_type = item.find("geometry/location_type").text
-				self.debug("    location_type: %s" % location_type)
+				self.debug("      location_type: %s" % location_type)
 	
 				if not self.result_truly_matches(address, found_addr_list):
-					self.debug("  Partial match.")
+					self.debug("    Partial match.")
 					result.add_alternative_address(found_addr_dict)
 					continue		# try next item
 		
 				if not location_type in self.location_types:
-					self.debug("  Coordinate precision too low.")
+					self.debug("    Coordinate precision too low.")
 					continue		# try next item
 
 				# The answer has run the gauntlet! Use it.
@@ -126,14 +128,14 @@ class GeocoderGoogle(GeocoderBase):
 			'address': "%s, %s" % (town, state)
 			}
 		components = []
-		if countrycode != None:
+		if countrycode is not None:
 			components.append("country:%s" % countrycode)
 		if len(components) > 0:
 			query_hash['components'] = "|".join(components)
 
 		tree = self.query_google(query_hash)
 
-		if tree == None:
+		if tree is None:
 			self.debug("  No match")
 			return None
 
@@ -144,13 +146,13 @@ class GeocoderGoogle(GeocoderBase):
 
 			# Reject partial matches
 			partial = result.find("partial_match")
-			if partial != None and partial.text == "true":
-				self.debug("  Partial match")
+			if partial is not None and partial.text == "true":
+				self.debug("    Partial match")
 				continue
 
 			for component in result.findall("address_component"):
 				comp_type = component.find("type")
-				if comp_type != None:		# why None? We don't know.
+				if comp_type is not None:		# why None? We don't know.
 					comp_type = comp_type.text
 				comp_name = component.find("long_name").text
 				self.debug("  %s: %s" % (comp_type, comp_name))
@@ -159,14 +161,13 @@ class GeocoderGoogle(GeocoderBase):
 					if county.split(" ")[-1] != "County":
 						county = "%s County" % county
 
-		return {
-			'lat': float(result.find("geometry/location/lat").text),
-			'lon': float(result.find("geometry/location/lng").text),
-			'county': county
-			}
+			return {
+				'lat': float(result.find("geometry/location/lat").text),
+				'lon': float(result.find("geometry/location/lng").text),
+				'county': county
+				}
 
-	def should_cache(self):
-		return True
+		return None
 
 if __name__ == "__main__":
 	gc = GeocoderGoogle()

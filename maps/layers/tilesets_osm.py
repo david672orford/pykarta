@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tilesets_osm.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 5 September 2014
+# Last modified: 29 October 2014
 #
 # Openstreetmap.org raster tile sets
 # This is imported by builder.py.
@@ -22,6 +22,7 @@ tilesets.append(MapTilesetRaster('osm-default',
 	attribution=u"Map Data: © OpenStreetMap contributors",
 	zoom_max=19,
 	transparent_color=(241,238,232),
+	saturation=1.2,
 	))
 tilesets.append(MapTilesetRaster('osm-cycle',
 	url_template='http://tile.opencyclemap.org/cycle/{z}/{x}/{y}.png',
@@ -94,8 +95,11 @@ tilesets.append(MapTilesetRaster('toolserver-shadows',
 # adminb--administrative borders
 for i in ("roads", "roadsg", "adminb", "hybrid"):
 	tilesets.append(MapTilesetRaster('openmapsurfer-%s' % i,
-		url_template='http://openmapsurfer.uni-hd.de/tiles/%s/x={x}&y={y}&z={z}' % i,
+		#url_template='http://openmapsurfer.uni-hd.de/tiles/%s/x={x}&y={y}&z={z}' % i,
+		url_template='http://129.206.74.245/tiles/%s/x={x}&y={y}&z={z}' % i,
 		attribution=u"Map Data: © OpenStreetMap contributors, Rendering: GIScience Heidelberg",
+		# This is the background color of openmapsurfer-roads at zoom level 13 and above.
+		#transparent_color=(246,242,240),
 		))
 
 # See: http://lists.openstreetmap.org/pipermail/talk/2011-June/058892.html

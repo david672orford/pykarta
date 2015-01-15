@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tile_http.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 17 September 2014
+# Last modified: 15 October 2014
 
 import os
 import errno
@@ -11,7 +11,7 @@ import threading
 import time
 import socket
 import gobject
-import weakref
+#import weakref
 
 from pykarta.misc.http import http_date
 from pykarta.maps.layers.base import MapTileLayer, MapRasterTile, MapCustomTile
@@ -24,10 +24,11 @@ class MapTileLayerHTTP(MapTileLayer):
 	def __init__(self, tileset, options={}):
 		MapTileLayer.__init__(self)
 		self.tileset = tileset
-		self.cache_enabled = self.tileset.layer_cache_enabled
+		self.cache_enabled = tileset.layer_cache_enabled
+		self.zoom_substitutions = tileset.zoom_substitutions
 		self.tileset_online_init_called = False
 
-		# For vector tiles
+		# For vector tiles, set up renderer.
 		self.renderer = tileset.renderer
 		if "renderer" in options:
 			self.renderer = tileset.renderers[options["renderer"]]
@@ -69,18 +70,19 @@ class MapTileLayerHTTP(MapTileLayer):
 			self.downloader = MapTileCacheLoader(
 				self.tileset,
 				self.containing_map.tile_cache_basedir,
-				feedback=weakref.proxy(self.containing_map.feedback),
+				#feedback=weakref.proxy(self.feedback),
+				feedback=self.feedback,
 				)
 		else:
 			self.downloader = MapTileDownloader(
 				self.tileset,
 				self.containing_map.tile_cache_basedir,
-				feedback=weakref.proxy(self.containing_map.feedback),
+				#feedback=weakref.proxy(self.feedback),
+				feedback=self.feedback,
 				done_callback=BoundMethodProxy(self.tile_loaded_cb) if self.containing_map.lazy_tiles else None,
 				)
 
 		# The RAM cache may reflect absence of tiles. Dump it.
-		#self.ram_cache = OrderedDict()
 		self.ram_cache.clear()
 
 	# Return the indicated tile as a Cairo surface or None
@@ -96,18 +98,18 @@ class MapTileLayerHTTP(MapTileLayer):
 				try:
 					return MapRasterTile(self, filename=filename)
 				except:
-					self.containing_map.feedback.debug(1, " defective tile file: %s" % filename)
+					self.feedback.debug(1, " defective tile file: %s" % filename)
 		return None
 
 	# The tile downloader calls this when the tile has been received
 	# and is waiting in the disk cache. Note that it is called from
-	# the downloader thread, so we have to wrap schedual the work
+	# the downloader thread, so we have to schedual the work
 	# in the gobject event loop. We set the priority high so that
 	# these messages will be delivered before redraw requests.
 	def tile_loaded_cb(self, *args):
 		gobject.idle_add(lambda: self.tile_loaded_cb_idle(*args), priority=gobject.PRIORITY_HIGH)
 	def tile_loaded_cb_idle(self, zoom, x, y, modified):
-		self.containing_map.feedback.debug(2, "Tile received: %d %d,%d %s" % (zoom, x, y, str(modified)))
+		self.feedback.debug(2, "Tile received: %d %d,%d %s" % (zoom, x, y, str(modified)))
 
 		# If the tile was modified, dump it from the RAM cache whether
 		# it is still needed or not.
@@ -116,7 +118,7 @@ class MapTileLayerHTTP(MapTileLayer):
 
 		# If this tile is still needed.
 		if self.tile_in_view(zoom, x, y):
-			self.containing_map.feedback.debug(5, " Still needed")
+			self.feedback.debug(5, " Still needed")
 
 			if modified:
 				self.redraw_needed = True
@@ -124,11 +126,11 @@ class MapTileLayerHTTP(MapTileLayer):
 			# If this is the last tile we were waiting for,
 			self.missing_tiles[zoom] -= 1
 			if self.missing_tiles[zoom] == 0:
-				self.containing_map.feedback.debug(5, " All tiles in, immediate redraw")
+				self.feedback.debug(5, " All tiles in, immediate redraw")
 
 				# If last tile arrived before timer expired,
 				if self.timer is not None:
-					self.containing_map.feedback.debug(5, " Canceling timer")
+					self.feedback.debug(5, " Canceling timer")
 					gobject.source_remove(self.timer)
 					self.timer = None
 
@@ -139,7 +141,7 @@ class MapTileLayerHTTP(MapTileLayer):
 
 			# If some tiles still out, set a timer at the limit of or patience.
 			else:
-				self.containing_map.feedback.debug(5, " %d tiles to go" % self.missing_tiles[zoom])
+				self.feedback.debug(5, " %d tiles to go" % self.missing_tiles[zoom])
 				if self.timer == None:
 					self.timer = gobject.timeout_add(self.tile_wait, self.timer_expired)
 
@@ -155,7 +157,7 @@ class MapTileLayerHTTP(MapTileLayer):
 	# of until either they have all arrived or a timer expires. This
 	# is called when it expires.
 	def timer_expired(self):
-		self.containing_map.feedback.debug(5, " Redraw timer expired.")
+		self.feedback.debug(5, " Redraw timer expired.")
 		self.redraw()
 		self.timer = None
 		return False
@@ -203,7 +205,8 @@ class MapTileLayerHTTP(MapTileLayer):
 					try:
 						os.unlink(local_filename)
 					except OSError:
-						pass	
+						pass
+		self.cache_surface = None
 
 #=============================================================================
 # Download tiles using HTTP
@@ -288,14 +291,14 @@ class MapTileDownloader(object):
 			else:
 				return (None, False)
 
-	# Add an item to the word queue for the background threads
+	# Add an item to the work queue for the background threads
 	def enqueue(self, item, clear=False):
 		self.syncer.acquire()
 		if clear:
 			while len(self.queue):
 				self.queue.pop(0)
 		self.queue.insert(0, item)
-		if item is None:
+		if item is None:			# None is stop signal
 			self.syncer.notifyAll()
 		else:
 			self.syncer.notify()
@@ -348,7 +351,7 @@ class MapTileDownloaderThread(threading.Thread):
 				time.sleep(10)
 		if self.conn is not None:
 			self.conn.close()
-		self.feedback.debug(1, " Thread %s exiting..." % self.name)
+		self.feedback.debug(2, " Thread %s exiting..." % self.name)
 
 	def download_tile_worker(self, zoom, x, y, local_filename, remote_filename, statbuf):
 		debug_args = (self.tileset.key, zoom, x, y)
@@ -372,20 +375,18 @@ class MapTileDownloaderThread(threading.Thread):
 			response = self.conn.getresponse()
 
 		except socket.gaierror, msg:
-			self.feedback.debug(1, "  %s/%d/%d/%d: Address lookup error: %s" % (debug_args + (msg,)))
+			self.feedback.error(_("Tile %s/%d/%d/%d: Address lookup error: %s") % (debug_args + (msg,)))
 			raise NoInet
 		except socket.error, msg:
-			self.feedback.debug(1, "  %s/%d/%d/%d: Socket error: %s" % (debug_args + (msg,)))
-			self.feedback.error(_("Socket error: %s") % msg)
+			self.feedback.error(_("Tile %s/%d/%d/%d: socket error: %s") % (debug_args + (msg,)))
 			self.conn = None		# close
 			return False
 		except httplib.BadStatusLine:
-			self.feedback.debug(1, "  %s/%d/%d/%d: httplib.BadStatusLine" % debug_args)
-			self.feedback.error(_("Invalid HTTP status line received from server"))
+			self.feedback.error(_("Tile %s/%d/%d/%d: BadStatusLine") % debug_args)
 			self.conn = None		# close
 			return False
 		except httplib.ResponseNotReady:
-			self.feedback.error(_("No response received from server"))
+			self.feedback.error(_("Tile %s/%d/%d/%d: no response") % debug_args)
 			self.conn = None		# close
 			return False
 

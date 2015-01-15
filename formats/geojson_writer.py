@@ -1,21 +1,29 @@
-# format_geojson_writer.py
+# pykarta/format/geojson_writer.py
 # Copyright 2011, 2014, David Chappell
-# Last modified: 3 September 2014
+# Last modified: 10 October 2014
 
 import json
 
 class GeojsonWriter:
-	def __init__(self):
+	def __init__(self, writable_object):
+		self.writable_object = writable_object
 		self.features = []
 		self.properties = {}
+		self.saved = False
 
-	def save(self, filename):
-		f = open(filename, 'w')
-		self.write(f)
-		f.close()
+	def __del__(self):
+		if not self.saved:
+			self.save()
 
-	def save_js(self, filename, varname):
-		fh = open(filename, 'w')
+	def save(self):
+		self.saved = True
+		fh = self.writable_object
+		self.write(fh)
+		fh.close()
+
+	def save_js(self, varname):
+		self.saved = True
+		fh = self.writable_object
 		fh.write("var %s = " % varname)
 		self.write(fh)
 		fh.write(";\n")

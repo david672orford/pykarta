@@ -1,13 +1,15 @@
 #! /usr/bin/python
 # pykarta/gps/live.py
 # GPS receiver support
-# Copyright 2013, Trinity College Computing Center
-# Last modified: 26 March 2013
+# Copyright 2013, 2014, 2015, Trinity College Computing Center
+# Last modified: 15 January 2015
 
 import os
 import sys
 import re
 import gobject
+import subprocess
+import thread
 
 class BadConfig(Exception):
 	pass
@@ -124,9 +126,6 @@ class GPSlistenerGpsbabel(GPSlistenerBase):
 		self.gpsbabel = None
 		self.terminating = False
 
-		import subprocess
-		import thread
-
 		interface = kwargs['interface'].split(',')
 		if len(interface) != 3:
 			raise BadConfigParams
@@ -141,8 +140,13 @@ class GPSlistenerGpsbabel(GPSlistenerBase):
 		self.debug(1, "Launching Gpsbabel: %s" % command)
 		self.gpsbabel = subprocess.Popen(command, stdout=subprocess.PIPE)
 
+		# We have considered using the threading module here rather than thread,
+		# but in this application it seems only to obscure what we are doing.
 		thread.start_new_thread(self.read_thread, ())
 
+	# This function is executed in a thread. It reads GPS fixes from the
+	# pipe connected to Gpsbabel's stdout until the other end of the pipe
+	# is closed. It use idle_add() to send the fixes to the GUI thread.
 	def read_thread(self):
 		while True:
 			data = self.gpsbabel.stdout.readline().strip()

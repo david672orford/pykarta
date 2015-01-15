@@ -1,15 +1,32 @@
 # pykarta/geocoder/geocoder_base.py
-# Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 16 September 2014
+# Copyright 2013, 2014, 2015, Trinity College Computing Center
+# Last modified: 4 January 2015
 
+import threading
 import httplib
 import socket
+import errno
 import urllib
 import time
 import sys
-import string
 import pykarta
 from pykarta.misc import NoInet
+
+# Thread in which the HTTP GET runs
+class GetThread(threading.Thread):
+	def __init__(self, geocoder, path, kwargs):
+		threading.Thread.__init__(self)
+		self.geocoder = geocoder
+		self.path = path
+		self.kwargs = kwargs
+		self.result = None
+		self.exception = None
+		self.daemon = True
+	def run(self):
+		try:
+			self.result = self.geocoder.get_blocking(self.path, **(self.kwargs))
+		except Exception as e:
+			self.exception = e
 
 class GeocoderBase:
 
@@ -21,19 +38,27 @@ class GeocoderBase:
 	f_state = 4
 	f_postal_code = 5
 
-	conn = None					# HTTP connexion to server
 	debug_enabled = False
+	url_server = None
+	url_path = None
+	conn = None					# HTTP connexion to server
+	delay = 1.0					# minimum time between requests
+	retry_limit = 5				# how many times to retry failed request
+	retry_delay = 10			# delay in seconds between retries
+	timeout = 30
 
-	def __init__(self, progress_cb=None):
-		self.progress_cb = progress_cb
+	def __init__(self, progress_dialog=None):
+		self.progress_dialog = progress_dialog
 		self.name = self.__class__.__name__
+		self.last_request_time = 0
+		self.last_progress_part = 0
 
 	def debug(self, *args):
 		if self.debug_enabled:
 			string_list = []
 			for i in args:
 				string_list.append(i)
-			sys.stderr.write(string.join(string_list, " "))
+			sys.stderr.write(" ".join(string_list))
 			sys.stderr.write("\n")
 
 	def debug_indented(self, text):
@@ -41,30 +66,48 @@ class GeocoderBase:
 			for line in text.split('\n'):
 				sys.stderr.write("    %s\n" % line)
 
-	def get_with_retry(self, path, **kwargs):
+	def progress(self, part, whole, message):
+		if self.progress_dialog:
+			self.progress_dialog.sub_progress(part, whole, message)
+		self.last_progress_part = part
+
+	def progress_bump(self, bump):
+		if self.progress_dialog:
+			self.progress_dialog.bump(bump)
+
+	# Send an HTTP query to the geocoder server.
+	# Calls get_blocking() which is defined below.
+	# Runs it in a thread so as to keep the GUI refreshed while waiting.
+	# Handles retries.
+	def get(self, path, **kwargs):
+		assert self.url_server is not None
 		retry = 0
 		while True:
 			try:
-				return self.get(path, **kwargs)
+				thread = GetThread(self, path, kwargs)
+				thread.start()
+				bump = 0.0
+				while thread.isAlive():
+					self.progress_bump(bump)
+					thread.join(0.2)
+					bump += 0.1
+				if thread.exception is not None:
+					raise thread.exception
+				return thread.result
 			except GeocoderError as e:
-				print "Geocoder error:", e
 				self.conn = None		# close connexion
 				retry += 1
-				if retry <= 5:
-					countdown = 10
+				if retry <= self.retry_limit:
+					countdown = self.retry_delay
 					while countdown > 0:
 						time.sleep(1)
-						if self.progress_cb:
-							self.progress_cb(None, None, "%s failed, retry %d in %d seconds." % (retry, countdown))
+						self.progress(None, None, "%s failed, retry %d in %d seconds." % (self.name, retry, countdown))
+						countdown -= 1
 				else:
 					raise e
 
-	# Send an HTTP query to the geocoder server
-	# Set self.url_server and self.delay before calling
-	def get(self, path, query=None, method="GET", content_type=None):
-		if self.conn is None:
-			self.debug("  Opening HTTP connexion to %s..." % self.url_server)
-			self.conn = httplib.HTTPConnection(self.url_server)
+	# This is the function which actually sends the HTTP query.
+	def get_blocking(self, path, query=None, method="GET", content_type=None):
 		try:
 			message_body = None
 			if query is not None:
@@ -74,33 +117,65 @@ class GeocoderBase:
 					message_body = query
 			self.debug("  %s %s" % (method, path))
 
-			# FIXME: can't we just use self.conn.request()?
-			self.conn.putrequest(method, path)
-			self.conn.putheader("User-Agent", "PyKarta %s" % pykarta.version)
-			if method == "POST":
-				self.conn.putheader("Content-Length", len(message_body))
-			if content_type is not None:
-				self.conn.putheader("Content-Type", content_type)
-			self.conn.endheaders(message_body=message_body)
+			remaining_delay = self.last_request_time + self.delay - time.time()
+			self.debug("    remaining_delay: %f" % remaining_delay)
+			if remaining_delay > 0:
+				time.sleep(remaining_delay)
+			self.last_request_time = time.time()
 
-			time.sleep(self.delay)
+			for attempt in (1, 2):
+				if self.conn is None:
+					self.debug("  Opening HTTP connexion to %s..." % self.url_server)
+					self.conn = httplib.HTTPConnection(self.url_server, timeout=self.timeout)
 
-			http_resp = self.conn.getresponse()
-			self.debug("    %s %s" % (http_resp.status, http_resp.reason))
-			if http_resp.status != 200:
-				raise GeocoderError("HTTP %s failed" % method)
+				# Send the HTTP request
+				# We could use self.conn.request() here, but then we would have to
+				# build the headers hash, and that would take about the same amount
+				# of code.
+				self.conn.putrequest(method, path)
+				self.conn.putheader("User-Agent", "PyKarta %s" % pykarta.version)
+				if method == "POST":
+					self.conn.putheader("Content-Length", len(message_body))
+				if content_type is not None:
+					self.conn.putheader("Content-Type", content_type)
+				self.conn.endheaders(message_body=message_body)
 
-			resp_text = http_resp.read()
-			if resp_text == "":
-				raise GeocoderError("Empty HTTP response body")
+				# Read the HTTP status line
+				try:
+					http_resp = self.conn.getresponse()
+				except httplib.BadStatusLine as e:
+					if attempt == 1:
+						self.debug("  Server disconnected.")
+						self.conn = None
+						continue
+					else:
+						line = e.args[0].strip()
+						raise GeocoderError("HTTP server sent bad response: %s" % line)
+
+				# Does the server think it suceeded?
+				self.debug("    %s %s" % (http_resp.status, http_resp.reason))
+				if http_resp.status != 200:
+					raise GeocoderError("HTTP %s failed: %d %s" % (method, http_resp.status, http_resp.reason))
+
+				# Read the HTTP response body
+				resp_text = http_resp.read()
+				if resp_text == "":
+					raise GeocoderError("Empty HTTP response body")
+
+				# It worked.
+				break
 
 			return resp_text
 
-		except httplib.BadStatusLine:
-			raise GeocoderError("HTTP server sent empty response")
-
 		except socket.gaierror:		# address-related error
+			print "Lookup of %s failed." % self.url_server
 			raise NoInet
+
+		except socket.error as e:	# likely errno 104, connection reset by peer
+			if e.errno == errno.ECONNRESET:
+				raise GeocoderError("ECONNRESET")
+			else:
+				raise
 
 	def result_truly_matches(self, address, reply_address_components):
 		to_find = (
@@ -144,9 +219,8 @@ class GeocoderBase:
 	def Reverse(self, lat, lon, countrycode=None):
 		raise GeocoderUnimplemented
 
-	# Override to return True in slow geocoders.
 	def should_cache(self):
-		return False
+		return True
 
 # What a geocoder returns
 class GeocoderResult(object):
@@ -173,5 +247,4 @@ class GeocoderError(Exception):
 # For methods which a particular geocoder does not implement.
 class GeocoderUnimplemented(GeocoderError):
 	pass
-
 

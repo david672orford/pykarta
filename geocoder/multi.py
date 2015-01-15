@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/multi.py
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 16 September 2014
+# Last modified: 19 October 2014
 
 import os
 from pykarta.misc import file_age_in_days, get_cachedir
@@ -33,7 +33,7 @@ class GeocoderMulti(GeocoderBase):
 			(GeocoderBing(**kwargs), False),
 			(GeocoderGoogle(**kwargs), False),
 			(GeocoderMassGIS(**kwargs), True),
-			(GeocoderDataScienceToolKit(**kwargs), True),
+			#(GeocoderDataScienceToolKit(**kwargs), True),
 			]
 
 	# Query the geocoders and cache the answers
@@ -54,8 +54,7 @@ class GeocoderMulti(GeocoderBase):
 		i = 0
 		for geocoder, stop_on_interpolated in self.geocoders:
 			self.debug("Trying:", geocoder.name)
-			if self.progress_cb is not None:
-				self.progress_cb(i, len(self.geocoders), "Trying %s" % geocoder.name)
+			self.progress(i, len(self.geocoders), _("Trying %s...") % geocoder.name)
 			iresult = geocoder.FindAddr(address, countrycode=countrycode)
 			if iresult.coordinates is not None:
 				best = (geocoder, iresult)
@@ -161,3 +160,4 @@ if __name__ == "__main__":
 				name="%s %s (%s)" % (address[0], address[1], result.source),
 				sym="Pin, Red",
 				)
+

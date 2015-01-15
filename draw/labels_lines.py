@@ -1,11 +1,11 @@
 # pykarta/draw/labels_lines.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 12 September 2014
+# Last modified: 8 October 2014
 
 import cairo
 import math
 
-from pykarta.geometry import line_simplify
+from pykarta.geometry.simplify import line_simplify
 
 font = "Ubuntu"
 
@@ -62,24 +62,16 @@ def place_line_label(ctx, line, label_text, fontsize=8, tilesize=None):
 	else:
 		angle = -math.pi / 2
 
-	#if label_text == "Trimmer Lane":
-	#	print " line:", line
-	#	print " center:", i
-	#	print " dx:", dx
-	#	print " dy:", dy
-	#	print " middle:", middle
-	#	print " angle:", math.degrees(angle)
-
 	return (label_text, fontsize, width, middle, angle)
 
-def draw_line_label(ctx, placement, scale):
+def draw_line_label(ctx, placement, scale, offset):
 	label_text, fontsize, width, middle, angle = placement
 	ctx.select_font_face(font)
 	ctx.set_font_size(fontsize)
 	ctx.save()
 	ctx.translate(middle[0]*scale, middle[1]*scale)
 	ctx.rotate(angle)
-	ctx.move_to(0 - width / 2, -5*scale)
+	ctx.move_to(0 - width / 2, -offset)
 	ctx.text_path(label_text)
 	ctx.set_line_width(fontsize / 5.0)
 	ctx.set_source_rgb(1.0, 1.0, 1.0)
@@ -88,10 +80,10 @@ def draw_line_label(ctx, placement, scale):
 		ctx.stroke_preserve()
 		ctx.set_source_rgb(0.0, 0.0, 0.0)
 		ctx.fill()
-	else:
+	else:	# may give us hinting
 		ctx.stroke()
 		ctx.set_source_rgb(0.0, 0.0, 0.0)
-		ctx.move_to(0 - width / 2, -5)
+		ctx.move_to(0 - width / 2, -offset)
 		ctx.show_text(label_text)
 	ctx.restore()
 

@@ -1,38 +1,8 @@
 # encoding=utf-8
 # pykarta/geometry/util.py
-# Last modified: 2 August 2013
+# Last modified: 8 October 2014
 
 import math
-
-#=============================================================================
-# Line simplification
-#=============================================================================
-def line_simplify(points, tolerance):
-	stack = []
-	keep = set()
-
-	stack.append((0, len(points)-1))
-	while stack:
-		anchor, floater = stack.pop()
-		max_dist = 0.0
-		farthest = anchor + 1	# why necessary?
-		#print anchor, floater
-		for i in range(anchor + 1, floater):
-			dist_to_seg = plane_lineseg_distance(points[i], points[anchor], points[floater])
-			#print " i:", i, dist_to_seg
-			if dist_to_seg > max_dist:
-				max_dist = dist_to_seg
-				farthest = i
-		if max_dist <= tolerance:
-			keep.add(anchor)
-			keep.add(floater)
-		else:
-			stack.append((anchor, farthest))
-			stack.append((farthest, floater))
-
-	keep = list(keep)
-	keep.sort()
-	return [points[i] for i in keep]
 
 #=============================================================================
 # Distance on a plane
@@ -71,8 +41,8 @@ def plane_points_distance(p1, p2):
 # Distance and Bearing on the Globe
 #=============================================================================
 
-# Mean radius of earth in meters
-radius_of_earth = 6371000
+# Mean radius of earth in meters used in the Spherical Mercartor projection
+radius_of_earth = 6378137.0
 
 # Compute distance (approximate) in meters from p1 to p2
 # See: http://www.movable-type.co.uk/scripts/latlong.html
@@ -98,5 +68,4 @@ def points_bearing(p1, p2):
 	y = math.sin(dLon) * math.cos(lat2)
 	bearing = math.atan2(y, x)
 	return (math.degrees(bearing) + 360) % 360
-
 

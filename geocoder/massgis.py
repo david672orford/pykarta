@@ -1,6 +1,6 @@
 # pykarta/geocoder/massgis.py
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 9 September 2014
+# Last modified: 20 October 2014
 
 import lxml.etree as ET
 from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
@@ -9,11 +9,9 @@ import pykarta.address
 # https://wiki.state.ma.us/confluence/pages/viewpage.action?pageId=451772508
 
 class GeocoderMassGIS(GeocoderBase):
-	def __init__(self, **kwargs):
-		GeocoderBase.__init__(self, **kwargs)
-		self.url_server = "gisprpxy.itd.state.ma.us"
-		self.url_path = "/MassGISCustomGeocodeLatLongApplication/MassGISCustomGeocodeService.asmx"
-		self.delay = 1.0	# one request per second
+	url_server = "gisprpxy.itd.state.ma.us"
+	url_path = "/MassGISCustomGeocodeLatLongApplication/MassGISCustomGeocodeService.asmx"
+	delay = 1.0		# no more than one request per second
 
 	def FindAddr(self, address, countrycode=None):
 		result = GeocoderResult(address, "MassGIS")
@@ -25,6 +23,7 @@ class GeocoderMassGIS(GeocoderBase):
 
 	def FindAddr2(self, address, result):
 		query = ET.Element("{http://schemas.xmlsoap.org/soap/envelope/}Envelope",
+			# This is an LXML feature
 			nsmap={
 				"soap":"http://schemas.xmlsoap.org/soap/envelope/",
 				"xsi":"http://www.w3.org/2001/XMLSchema-instance",
@@ -56,10 +55,11 @@ class GeocoderMassGIS(GeocoderBase):
 			query_term.text = address[self.f_postal_code]
 			query_address.append(query_term)
 
+		# xml_declaration and pretty_print require LXML
 		query_text = ET.tostring(ET.ElementTree(element=query), encoding="utf-8", xml_declaration=True, pretty_print=True)
 		#print query_text
 
-		resp_text = self.get_with_retry(self.url_path, query=query_text, method="POST", content_type="text/xml")
+		resp_text = self.get(self.url_path, query=query_text, method="POST", content_type="text/xml")
 		#print resp_text
 		try:
 			tree = ET.XML(resp_text)

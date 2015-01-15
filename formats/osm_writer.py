@@ -2,7 +2,7 @@
 # Copyright 2013, 2014, Trinity College Computing Center
 # Reader and writer for OSM XML files
 # Written by David Chappell
-# Last modified: 7 August 2014
+# Last modified: 10 October 2014
 
 from osm_objs import OsmNode, OsmWay
 
@@ -42,6 +42,7 @@ class OsmWriter:
 		for relation in self.relations:
 			self.fh.write(str(relation))
 		self.fh.write('</osm>\n')
+		self.fh.close()
 
 	def append_node(self, node):
 		self._id_assigner(node)

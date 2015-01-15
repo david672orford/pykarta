@@ -42,13 +42,3 @@ for i in (
 		transparent=transparent,
 		))
 
-# MassGIS (hosted at Trinity College
-tilesets.append(MapTilesetRaster('massgis-orthos-2009_tc',
-	url_template='http://tiles.osm.trincoll.edu/cgi-bin/mapserv?' \
-		+ 'mode=tile&' \
-		+ 'tilemode=gmap&' \
-		+ 'layers=MassGIS_2009_Orthos&' \
-		+ 'tile={x}+{y}+{z}',
-	attribution=u"Ortho photos courtesy of MassGIS",
-	max_age_in_days=3650,
-	))

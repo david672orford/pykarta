@@ -1,7 +1,6 @@
-#! /usr/bin/python
 # pykarta/formats/kml_writer.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 2 September 2014
+# Last modified: 10 October 2014
 
 # References:
 # * https://developers.google.com/kml/
@@ -12,6 +11,8 @@ class KmlWriter:
 
 	def __init__(self, writable_object, creator):
 		self.fh = writable_object
+		self.saved = False
+
 		self.fh.write("""<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://earth.google.com/kml/2.2">
 <Document>
@@ -33,6 +34,12 @@ class KmlWriter:
 """)
 
 	def __del__(self):
+		if not self.saved:
+			self.save()
+
+	# FIXME: starts writing before save() is called
+	def save(self):
+		self.saved = True
 		self.fh.write('</Document>\n')
 		self.fh.write("</kml>\n")
 

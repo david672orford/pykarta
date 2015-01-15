@@ -2,7 +2,7 @@
 #=============================================================================
 # pykarta/maps/base.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 17 September 2014
+# Last modified: 27 December 2014
 #=============================================================================
 
 import os
@@ -14,7 +14,7 @@ import weakref
 from pykarta.geometry import Point, BoundingBox
 from pykarta.maps.projection import *
 import pykarta.maps.symbols
-from pykarta.maps.layers import MapLayerBuilder, MapCacheCleaner
+from pykarta.maps.layers import MapLayerBuilder, map_layer_sets, MapCacheCleaner
 import pykarta.misc
 
 cache_cleaner_thread = None
@@ -75,13 +75,22 @@ class MapBase(object):
 			cache_cleaner_thread = MapCacheCleaner(self.tile_cache_basedir)
 			cache_cleaner_thread.start()
 
+	# When the map goes out of scope, check the layers to see whether
+	# they will go out of scope too. Warn if they won't.
 	def __del__(self):
 		self.feedback.debug(1, "deallocated")
 
+		# Our reference, plus the reference created by the test, plus the two
+		# that we clear in the next step should be the only ones.
 		for layer in self.layers_ordered:
-			print "Map: layer %s has %d extra references" % (layer.name, sys.getrefcount(layer)-4)
+			self.feedback.debug(1, "layer %s has %d extra reference(s)" % (layer.name, sys.getrefcount(layer)-4))
 
-		print "Map: self.feedback has %d extra references" % (sys.getrefcount(self.feedback)-2)
+		# Layers will have references to feedback, so drop them before testing.
+		self.layers_byname = {}
+		self.layers_ordered = []
+
+		# Our reference, plus the reference created by the test should be the only ones.
+		self.feedback.debug(1, "self.feedback has %d extra reference(s)" % (sys.getrefcount(self.feedback)-2))
 
 	# This must be called whenever the center point, the zoom level,
 	# or the window size changes.
@@ -126,7 +135,7 @@ class MapBase(object):
 
 	# Take a list of points which have already been passed through
 	# project_to_tilespace() return a new list with them converted
-	# to coordinates accroding to the current viewport.
+	# to coordinates according to the current viewport.
 	def scale_points(self, projected_points):
 		n = 2 ** self.zoom
 		return map(lambda p: (int((p[0] * n - self.top_left_pixel[0]) * 256), int((p[1] * n - self.top_left_pixel[1]) * 256)), projected_points)
@@ -426,7 +435,7 @@ class MapBase(object):
 		i = self.layers_ordered.index(layer_obj)
 		if i != (len(self.layers_ordered)-1):		# if not already on top
 
-			# Tell the layer currently on top that we have taken to tool away from it.
+			# Tell the layer currently on top that we are taking its active tool away.
 			self.layers_ordered[len(self.layers_ordered)-1].set_tool(None)
 
 			# Remove the layer and put it back at the end.
@@ -444,25 +453,23 @@ class MapBase(object):
 		return layer_obj
 
 	# Convenience function
-	# Replace the base layer with a tile layer having the indicated source.
-	# If tile_source is a list of strings, multiple layers will be added.
+	# Replace the base layer or layers with the layers named in
+	# tile_source (which may be either a list or a string).
 	def set_tile_source(self, tile_source):
 		self.feedback.debug(1, "set_tile_source(%s)" % str(tile_source))
-
-		# Accept this shortcut for a default set of OSM vector layers
-		if tile_source == "osm-vector":
-			tile_source = [
-				"osm-vector-landuse",
-				"osm-vector-water",
-				"osm-vector-roads",
-				"osm-vector-road-labels",
-				"osm-vector-buildings",
-				"osm-vector-pois",
-				]
 
 		# Accept either a string or a list of strings.
 		if isinstance(tile_source, basestring):
 			tile_source = [tile_source]
+
+		# Accept shortcuts for whole sets of layers.
+		temp = []
+		for layer_name in tile_source:
+			if layer_name in map_layer_sets:
+				temp.extend(map_layer_sets[layer_name])
+			else:
+				temp.append(layer_name)
+		tile_source = temp
 
 		# If this is a different tile source...
 		if self.layers_group_1 != tile_source:
@@ -510,6 +517,12 @@ class MapFeedback(object):
 		self.debug_callback = pykarta.misc.BoundMethodProxy(debug_callback) if debug_callback else None
 		self.progress_callback = pykarta.misc.BoundMethodProxy(progress_callback) if progress_callback else None
 
+		self.step = 0
+		self.steps = 1
+
+	def __del__(self):
+		print "Map: feedback deallocated"
+
 	def debug(self, level, message):
 		if self.debug_callback:
 			self.debug_callback(level, message)
@@ -522,11 +535,16 @@ class MapFeedback(object):
 		else:
 			print "Map Error:", message
 
-	def progress(self, x, y, message):
+	def progress_step(self, step=0, steps=1):
+		self.step = step
+		self.steps = steps
+
+	def progress(self, finished, total, message):
 		if self.progress_callback:
-			self.progress_callback(x, y, message)
+			fraction = (self.step / float(self.steps)) + float(finished) / float(total) / float(self.steps)
+			self.progress_callback(fraction, 1.0, message)
 		else:
-			print "Map Progress: %f of %f: %s" % (x, y, message)
+			print "Map Progress: %f of %f: %s" % (finished, total, message)
 
 #=============================================================================
 # Map which can be drawn directly on a Cairo context. This is used when
@@ -540,6 +558,7 @@ class MapCairo(MapBase):
 
 		if not isinstance(ctx, cairo.Context):
 			raise TypeError
+		assert(self.width is not None and self.height is not None)
 
 		ctx.save()
 
@@ -550,7 +569,17 @@ class MapCairo(MapBase):
 		ctx.rectangle(0, 0, self.width, self.height)
 		ctx.clip()
 
-		for layer in (self.layers_ordered + self.layers_osd):
+		finished = 0
+		for layer in self.layers_ordered:
+			self.feedback.progress_step(finished, len(self.layers_ordered))
+			self.feedback.debug(2, "drawing layer: %s" % str(layer))
+			layer.do_viewport()
+			ctx.save()
+			layer.do_draw(ctx)
+			ctx.restore()
+			finished += 1
+
+		for layer in self.layers_osd:
 			self.feedback.debug(2, "drawing layer: %s" % str(layer))
 			layer.do_viewport()
 			ctx.save()

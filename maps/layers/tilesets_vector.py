@@ -2,7 +2,7 @@
 # pykarta/maps/layers/tilesets_vector.py
 # Vector tile sets and renders for them
 # Copyright 2013, 2014, Trinity College
-# Last modified: 18 September 2014
+# Last modified: 8 October 2014
 
 try:
 	import simplejson as json
@@ -13,6 +13,7 @@ import time
 import os
 import glob
 import cairo
+import math
 
 from tilesets_base import tilesets, MapTilesetVector
 from pykarta.maps.projection import project_to_tilespace_pixel
@@ -25,23 +26,44 @@ from pykarta.maps.symbols import MapSymbolSet
 #=============================================================================
 class RenderGeoJSON(object):
 	clip = None
-	sort_features = False
+	sort_key = None
 	draw_passes = 1
+	label_polygons = False
 	def __init__(self, layer, filename, zoom, x, y):
 		self.timing = False
-		self.elapsed_start("Parsing %s %d %d %d..." % (layer.tileset.key, zoom, x, y))
-		self.layer = layer
+		self.tileset = layer.tileset					# Note that we do not keep a reference to layer
+		self.containing_map = layer.containing_map		# itself since that would be circular.
+		self.dedup = layer.dedup
 		self.zoom = zoom
 		self.x = x
 		self.y = y
+		self.labels = None
+
+		self.elapsed_start("Parsing %s %d %d %d..." % (layer.tileset.key, zoom, x, y))
 
 		try:
 			f = gzip.GzipFile(filename, "rb")
-			geojson = json.load(f)
+			parsed_json = json.load(f)
 		except IOError:
 			f = open(filename, "r")
-			geojson = json.load(f)
+			parsed_json = json.load(f)
 
+		self.load_features(parsed_json)
+
+		if self.label_polygons:
+			polygon_labels = self.polygon_labels = []
+			if zoom >= 13:
+				for id, polygon, properties, style in self.polygons:
+					name = properties.get("name")
+					if name is not None:
+						polygon_obj = Polygon(Points(polygon))
+						area = polygon_obj.area()
+						center = polygon_obj.choose_label_center()
+						polygon_labels.append((id, area, center, name))
+
+		self.elapsed()
+
+	def load_features(self, geojson):
 		assert geojson['type'] == 'FeatureCollection'
 
 		points = self.points = []
@@ -49,56 +71,55 @@ class RenderGeoJSON(object):
 		polygons = self.polygons = []
 
 		features = geojson['features']
-		if self.sort_features:
-			features = sorted(features, key=lambda feature: int(feature['properties']['sort_key']))
+		if self.sort_key is not None:
+			features = sorted(features, key=lambda feature: feature['properties'][self.sort_key])
 
 		for feature in features:
 			assert feature['type'] == 'Feature'
+			id = feature.get('id', None)
 			properties = feature['properties']
 			geometry = feature['geometry']
 			try:
 				coordinates = geometry['coordinates']
 			except KeyError:
-				print "Broken geometry:", geometry
+				print "Warning: broken geometry:", geometry
 
 			if geometry['type'] == 'Point':
 				style = self.choose_point_style(properties)
 				if style is not None:
-					point = project_to_tilespace_pixel(coordinates[1], coordinates[0], zoom, x, y)
-					points.append((point, properties, style))
+					point = project_to_tilespace_pixel(coordinates[1], coordinates[0], self.zoom, self.x, self.y)
+					points.append((id, point, properties, style))
 
 			elif geometry['type'] == 'LineString':
 				style = self.choose_line_style(properties)
 				if style is not None:
-					line = map(lambda p: project_to_tilespace_pixel(p[1], p[0], zoom, x, y), coordinates)
-					lines.append((line, properties, style))
+					line = map(lambda p: project_to_tilespace_pixel(p[1], p[0], self.zoom, self.x, self.y), coordinates)
+					lines.append((id, line, properties, style))
 
 			elif geometry['type'] == 'MultiLineString':
 				style = self.choose_line_style(properties)
 				if style is not None:
 					for coordinates2 in coordinates:
-						line = map(lambda p: project_to_tilespace_pixel(p[1], p[0], zoom, x, y), coordinates2)
-						lines.append((line, properties, style))
+						line = map(lambda p: project_to_tilespace_pixel(p[1], p[0], self.zoom, self.x, self.y), coordinates2)
+						lines.append((id, line, properties, style))
 
 			elif geometry['type'] == 'Polygon':
 				style = self.choose_polygon_style(properties)
 				if style is not None:
 					for coordinates2 in coordinates:
-						polygon = map(lambda p: project_to_tilespace_pixel(p[1], p[0], zoom, x, y), coordinates2)
-						polygons.append((polygon, properties, style))
+						polygon = map(lambda p: project_to_tilespace_pixel(p[1], p[0], self.zoom, self.x, self.y), coordinates2)
+						polygons.append((id, polygon, properties, style))
 
 			elif geometry['type'] == 'MultiPolygon':
 				style = self.choose_polygon_style(properties)
 				if style is not None:
 					for coordinates2 in coordinates:
 						for coordinates3 in coordinates2:
-							polygon = map(lambda p: project_to_tilespace_pixel(p[1], p[0], zoom, x, y), coordinates3)
-							polygons.append((polygon, properties, style))
+							polygon = map(lambda p: project_to_tilespace_pixel(p[1], p[0], self.zoom, self.x, self.y), coordinates3)
+							polygons.append((id, polygon, properties, style))
 
 			else:
-				print "Unimplemented geometry:", geometry['type'], properties
-
-		self.elapsed()
+				print "Warning: unimplemented geometry:", geometry['type'], properties
 
 	def elapsed_start(self, message):
 		if self.timing:
@@ -119,28 +140,39 @@ class RenderGeoJSON(object):
 	def scale_points(points, scale):
 		return map(lambda point: (point[0]*scale,point[1]*scale), points)
 
+	def zoom_feature(self, rule, scale=None):
+		zoom = self.zoom
+		if scale is not None:
+			zoom += math.log(scale, 2.0)
+		start_zoom, start_width, end_zoom, end_width = rule
+		position = float(zoom - start_zoom) / float(end_zoom - start_zoom)
+		width = start_width + position * (end_width - start_width)
+		return width
+
 	# Override these to return something other than None for those objects
 	# which you wish to render. It will be stored with the object so that
 	# you can use it during the drawing stage.
 	def choose_point_style(self, properties):
-		print "Warning: renderer %s did not expect points in tile %d %d %d" % (str(type(self), self.zoom, self.x, self.y))
+		print "Warning: renderer %s did not expect points in tile %d %d %d" % (str(type(self)), self.zoom, self.x, self.y)
 		return None
 
 	def choose_line_style(self, properties):
-		print "Warning: renderer %s did not expect lines in tile %d %d %d" % (str(type(self), self.zoom, self.x, self.y))
+		print "Warning: renderer %s did not expect lines in tile %d %d %d" % (str(type(self)), self.zoom, self.x, self.y)
 		return None
 
 	def choose_polygon_style(self, properties):
-		print "Warning: renderer %s did not expect polygons in tile %d %d %d" % (str(type(self), self.zoom, self.x, self.y))
+		print "Warning: renderer %s did not expect polygons in tile %d %d %d" % (str(type(self)), self.zoom, self.x, self.y)
 		return None
 
 	# Draw and redraw
 	def draw(self, ctx, scale, draw_pass):
-		self.elapsed_start("Drawing %s %d %d %d, pass %d..." % (self.layer.tileset.key, self.zoom, self.x, self.y, draw_pass))
+		self.elapsed_start("Drawing %s %d %d %d, pass %d..." % (self.tileset.key, self.zoom, self.x, self.y, draw_pass))
 		start_time = time.time()
 		getattr(self,"draw%d" % (draw_pass+1))(ctx, scale)
 		self.elapsed()
 
+	# draw1(), draw2(), etc. should call this if they want their drawing commands
+	# to be clipped to the tile borders.
 	def start_clipping(self, ctx, scale):
 		if self.clip is not None:
 			pad = self.clip
@@ -153,23 +185,42 @@ class RenderGeoJSON(object):
 	# Override to draw the bottom layer.
 	def draw1(self, ctx, scale):
 		self.start_clipping(ctx, scale)
-		for polygon, properties, style in self.polygons:
+		for id, polygon, properties, style in self.polygons:
 			pykarta.draw.polygon(ctx, self.scale_points(polygon, scale))
 			pykarta.draw.fill_with_style(ctx, style, preserve=True)
 			pykarta.draw.stroke_with_style(ctx, style, preserve=True)
 			ctx.new_path()
-		for line, properties, style in self.lines:
+		for id, line, properties, style in self.lines:
 			pykarta.draw.line_string(ctx, self.scale_points(line, scale))
 			pykarta.draw.stroke_with_style(ctx, style)
-		for point, properties, style in self.points:
+		for id, point, properties, style in self.points:
 			pykarta.draw.node_dots(ctx, [point], style=style)
+
+#=============================================================================
+# Base class for TopoJSON vector tile renderers
+# https://github.com/mbostock/topojson/wiki
+#=============================================================================
+
+# FIXME: this unfinished
+class RenderTopoJSON(RenderGeoJSON):
+	def load_features(self, topojson):
+		assert topojson['type'] == "Topology"
+		translate = topojson['translate']
+		scale = topojson['scale']
+		arcs = topojson['arcs']
+		vectile = topojson['objects']['vectile']
+		assert vectile['type'] == "GeometryCollection"
+		for feature in vectile['geometries']:		# geometries?
+			print feature 
 
 #=============================================================================
 # Tile.Openstreetmap.us
 # Renders OSM map from the vector tiles provided at:
-# http://openstreetmap.us/~migurski/vector-datasource/
-# Though it is not advertised, this provider can also make topojson.
+#   http://openstreetmap.us/~migurski/vector-datasource/
+# Configuration on Github:
+#   https://github.com/migurski/OSM.us-vector-datasource
 #=============================================================================
+
 class RenderOsmusLanduse(RenderGeoJSON):
 	styles = {
 		'school': { 'fill-color': (1.0, 0.7, 0.7) },			# redish
@@ -183,23 +234,14 @@ class RenderOsmusLanduse(RenderGeoJSON):
 		'conservation': { 'fill-color': (0.8, 1.0, 0.8) },		# dark green
 		'farm': { 'fill-color': (0.9, 0.9, 0.6) },				# redish brown
 		}
-	draw_passes = 1	# set to 2 to enable labels
-	def __init__(self, layer, filename, zoom, x, y):
-		RenderGeoJSON.__init__(self, layer, filename, zoom, x, y)
-		self.labels = []
-		if zoom >= 14:
-			dedup = set()
-			for polygon, properties, style in self.polygons:
-				center = Polygon(Points(polygon)).choose_label_center()
-				kind = properties.get("kind", "?")
-				name = properties.get("name", "?")
-				if name is not None:
-					label_text = "%s:%s" % (kind, name)
-				else:
-					label_text = kind
-				if not label_text in dedup:
-					self.labels.append((center, label_text))
-					dedup.add(label_text)
+	label_style = {
+		'font-size':10,
+		'font-weight':'bold',
+		'halo':False,
+		'color':(0.5, 0.5, 0.5),
+		}
+	draw_passes = 2	# set to 2 to enable labels, 1 to disable
+	label_polygons = True
 	def choose_polygon_style(self, properties):
 		kind = properties.get("kind", "?")
 		style = self.styles.get(kind)
@@ -207,15 +249,21 @@ class RenderOsmusLanduse(RenderGeoJSON):
 			style = { 'fill-color': (0.90, 0.90, 0.90) }
 		return style
 	def draw2(self, ctx, scale):
-		for center, text in self.labels:
-			center = self.scale_point(center, scale)
-			pykarta.draw.centered_label(ctx, center[0], center[1], text, fontsize=8)
+		for id, area, center, text in self.polygon_labels:
+			if not id in self.dedup:
+				area = area * scale * scale
+				if area > 10000:	# equivalent of 100 pixel square
+					center = self.scale_point(center, scale)
+					pykarta.draw.centered_label(ctx, center[0], center[1], text, style=self.label_style)
+					self.dedup.add(id)
 
 tilesets.append(MapTilesetVector('osm-vector-landuse',
 	url_template="http://tile.openstreetmap.us/vectiles-land-usages/{z}/{x}/{y}.json", 
 	attribution=u"Map © OpenStreetMap contributors",
 	renderer=RenderOsmusLanduse,
 	))
+
+#-----------------------------------------------------------------------------
 
 class RenderOsmusWater(RenderGeoJSON):
 	def choose_polygon_style(self, properties):
@@ -227,6 +275,9 @@ tilesets.append(MapTilesetVector('osm-vector-water',
 	renderer=RenderOsmusWater,
 	))
 
+#-----------------------------------------------------------------------------
+
+# These vector tiles do not include any building properties.
 class RenderOsmusBuildings(RenderGeoJSON):
 	def choose_polygon_style(self, properties):
 		return  { 'fill-color': (0.8, 0.7, 0.7) }
@@ -235,12 +286,14 @@ tilesets.append(MapTilesetVector('osm-vector-buildings',
 	url_template="http://tile.openstreetmap.us/vectiles-buildings/{z}/{x}/{y}.json", 
 	attribution=u"Map © OpenStreetMap contributors",
 	renderer=RenderOsmusBuildings,
-	zoom_min=16,
+	zoom_min=12,
 	))
+
+#-----------------------------------------------------------------------------
 
 class RenderOsmusRoads(RenderGeoJSON):
 	clip = 15
-	sort_features = True
+	sort_key = 'sort_key'
 	draw_passes = 2
 	line_cap = {
 		'butt':cairo.LINE_CAP_BUTT,				# default
@@ -252,46 +305,84 @@ class RenderOsmusRoads(RenderGeoJSON):
 		'bevel':cairo.LINE_JOIN_BEVEL,
 		'round':cairo.LINE_JOIN_ROUND,
 		}
+	# http://colorbrewer2.org/ is helpful for picking color palates
 	styles = {
 		'highway':{
-			'line-color':(0.2, 0.3, 0.9),		# blue
+			'line-color':(0.2, 0.3, 0.9),			# blue
 			'line-width':(10,2.0, 14,10.0),
 			'line-cap':'round',
 			},
 		'major_road':{
-			'line-color':(0.8, 0.2, 0.2),		# dark red
+			'line-color':(0.8, 0.2, 0.2),			# dark red
 			'line-width':(10,1.0, 14,6.0),
 			'line-cap':'round',
 			},
 		'minor_road':{
-			'line-color':(0.0, 0.0, 0.0),		# black
+			'line-color':(0.0, 0.0, 0.0),			# black
 			'line-width':(12,0.25, 14,1.0),
 			'line-cap':'round',
+			},
+		'rail':{
+			'line-width': (12,0.5, 14,1.0),
+			'line-color': (0.0, 0.0, 0.0),
+			'line-dasharray': (1, 1),
 			},
 		}
 	styles_z14 = {
 		'highway':{
-			'line-color':(0.0, 0.0, 0.0),		# black casing
-			'line-width':(14,11.0, 18,20.0),
+			'line-color':(0.0, 0.0, 0.0),			# black casing
+			'line-width':(14,9.0, 18,18.0),
 			'line-cap':'round',
-			'overline-color':(0.2, 0.3, 0.9),	# blue
-			'overline-width':(14,10.0, 18,18.0),
+			'overline-color':(0.2, 0.3, 0.9),		# blue
+			'overline-width':(14,8.0, 18,16.0),
 			'overline-cap':'round',
 			},
 		'major_road':{
-			'line-color':(0.0, 0.0, 0.0),		# black casing
+			'line-color':(0.0, 0.0, 0.0),			# black casing
 			'line-width':(14,7.0, 18,13.0),
 			'line-cap':'round',
-			'overline-color':(0.8, 0.2, 0.2),	# dark red
+			'overline-color':(0.7, 0.0, 0.0),		# dark red
+			'overline-width':(14,6.0, 18,11.0),
+			'overline-cap':'round',
+			},
+		'major_road-secondary':{
+			'line-color':(0.0, 0.0, 0.0),			# black casing
+			'line-width':(14,7.0, 18,13.0),
+			'line-cap':'round',
+			'overline-color':(0.9, 0.3, 0.2),		# lighter red
+			'overline-width':(14,6.0, 18,11.0),
+			'overline-cap':'round',
+			},
+		'major_road-tertiary':{
+			'line-color':(0.0, 0.0, 0.0),			# black casing
+			'line-width':(14,7.0, 18,13.0),
+			'line-cap':'round',
+			'overline-color':(0.998, 0.55, 0.35),	# orange
 			'overline-width':(14,6.0, 18,11.0),
 			'overline-cap':'round',
 			},
 		'minor_road':{
-			'line-color':(0.0, 0.0, 0.0),		# black casing
+			'line-color':(0.0, 0.0, 0.0),			# black casing
 			'line-width':(14,4.0, 18,12.0),
 			'line-cap':'round',
-			'overline-color':(1.0, 1.0, 1.0),	# white fill
+			'overline-color':(0.99, 0.94, 0.85),	# tan fill
 			'overline-width':(14,3.0, 18,10.0),
+			'overline-cap':'round',
+			},
+		'minor_road-residential':{
+			'line-color':(0.0, 0.0, 0.0),			# black casing
+			'line-width':(14,4.0, 18,12.0),
+			'line-cap':'round',
+			'overline-color':(1.0, 1.0, 1.0),		# white fill
+			'overline-width':(14,3.0, 18,10.0),
+			'overline-cap':'round',
+			},
+		'minor_road-service':{
+			'line-color':(0.0, 0.0, 0.0),			# black casing
+			'line-width':(14,2.0, 18,6.0),
+			'line-cap':'round',
+			'overline-color':(1.0, 1.0, 1.0),		# white fill
+			'overline-width':(14,1.5, 18,5.0),
 			'overline-cap':'round',
 			},
 		'rail':{
@@ -308,22 +399,24 @@ class RenderOsmusRoads(RenderGeoJSON):
 		}
 	def choose_line_style(self, properties):
 		kind = properties['kind']
+		highway = properties['highway']
 		style = None
 		if self.zoom >= 14:
-			style = self.styles_z14.get(kind,None)
+			style = self.styles_z14.get("%s-%s" % (kind,highway),None)
+			if style is None:
+				style = self.styles_z14.get(kind,None)
 		if style is None:
 			style = self.styles.get(kind)
 		if style is None:
-			style = {'line-width':10, 'line-color':(0.0, 1.0, 0.0)}
+			print "Warning: no style for:", properties
+			style = {'line-width':(0,10, 16,10), 'line-color':(0.0, 1.0, 0.0)}		# error indicator
 		style = style.copy()
 		for i in ("line-width", "overline-width"):
 			if i in style:
 				# Scale widths to zoom level
-				start_zoom, start_width, end_zoom, end_width = style[i]
-				position = float(self.zoom - start_zoom) / float(end_zoom - start_zoom)
-				width = start_width + position * (end_width - start_width)
+				width = self.zoom_feature(style[i])
 				# make subsidiary highways smaller
-				if properties['is_link'] == 'yes' or properties['highway'] == 'service':
+				if properties['is_link'] == 'yes':
 					width /= 2
 				# Accept modified style
 				style[i] = width
@@ -333,7 +426,7 @@ class RenderOsmusRoads(RenderGeoJSON):
 		return style
 	def draw1(self, ctx, scale):
 		self.start_clipping(ctx, scale)
-		for line, name, style in self.lines:
+		for id, line, name, style in self.lines:
 			if 'line-width' in style:
 				pykarta.draw.line_string(ctx, self.scale_points(line, scale))
 				ctx.set_line_width(style['line-width'])
@@ -344,7 +437,7 @@ class RenderOsmusRoads(RenderGeoJSON):
 				ctx.stroke()
 	def draw2(self, ctx, scale):
 		self.start_clipping(ctx, scale)
-		for line, name, style in self.lines:
+		for id, line, name, style in self.lines:
 			if 'overline-width' in style:
 				pykarta.draw.line_string(ctx, self.scale_points(line, scale))
 				ctx.set_line_width(style.get('overline-width'))
@@ -360,33 +453,58 @@ tilesets.append(MapTilesetVector('osm-vector-roads',
 	renderer=RenderOsmusRoads,
 	))
 
+#-----------------------------------------------------------------------------
+
 class RenderOsmusRoadLabels(RenderGeoJSON):
-	def __init__(self, layer, filename, zoom, x, y):
-		RenderGeoJSON.__init__(self, layer, filename, zoom, x, y)
-		self.labels = None
+	fontsizes = {
+		'motorway':(12,8, 16,14),
+		'primary':(12,8, 16,14),
+		'trunk':(12,8, 16,14),
+		'secondary':(12,8, 16,14),
+		'tertiary':(12,8, 16,12),
+		'residential':(15,6, 18,12),
+		'unclassified':(15,6, 18,12),
+		}
 	def choose_line_style(self, properties):
 		if properties.get('name',"") != "":
-			return {}
+			highway = properties['highway']
+			rule = self.fontsizes.get(highway, self.fontsizes['unclassified'])
+			return rule
 		return None
 	def draw1(self, ctx, scale):
 		if self.labels is None:
-			self.labels = []
-			for line, properties, style in self.lines:
+			self.labels = {}
+		zoom = int(self.zoom + math.log(scale, 2.0) + 0.5)
+		if not zoom in self.labels:
+			labels = self.labels[zoom] = []
+			for id, line, properties, style in self.lines:
 				label_text = properties['name']
-				placement = pykarta.draw.place_line_label(ctx, line, label_text, fontsize=10, tilesize=256)
+				fontsize = self.zoom_feature(style, scale)
+				placement = pykarta.draw.place_line_label(ctx, line, label_text, fontsize=fontsize, tilesize=256)
 				if placement is not None:
-					self.labels.append(placement)
-		for placement in self.labels:
-			pykarta.draw.draw_line_label(ctx, placement, scale)
+					labels.append(placement)
+		offset = self.zoom_feature((12,2.0, 16,8.0), scale)
+		for placement in self.labels[zoom]:
+			pykarta.draw.draw_line_label(ctx, placement, scale, offset)
 
 tilesets.append(MapTilesetVector('osm-vector-road-labels',
 	url_template="http://tile.openstreetmap.us/vectiles-skeletron/{z}/{x}/{y}.json", 
 	attribution=u"Map © OpenStreetMap contributors",
 	renderer=RenderOsmusRoadLabels,
+	zoom_min=12,
 	zoom_max=16,
+	zoom_substitutions={
+		#14:16,
+		15:16,
+		},
 	))
 
+#-----------------------------------------------------------------------------
+
 class RenderOsmusPois(RenderGeoJSON):
+	label_style = {
+		'font-size':8,
+		}
 	def __init__(self, layer, filename, zoom, x, y):
 		if layer.tileset.symbols is None:
 			layer.tileset.symbols = MapSymbolSet()
@@ -397,20 +515,19 @@ class RenderOsmusPois(RenderGeoJSON):
 	def choose_point_style(self, properties):
 		kind = properties.get("kind")
 		name = properties.get("name")
-		symbol = self.layer.tileset.symbols.get_symbol(kind)
+		symbol = self.tileset.symbols.get_symbol(kind)
 		if symbol is not None:
-			renderer = symbol.get_renderer(self.layer.containing_map)
-			return (renderer, None)
-		else:
-			return (None, "%s:%s" % (kind, name))
+			renderer = symbol.get_renderer(self.containing_map)
+			return (renderer, name)
+		print "Warning: no symbol for POI:", properties
+		return None
 	def draw1(self, ctx, scale):
-		for point, properties, style in self.points:
+		for id, point, properties, style in self.points:
 			x, y = self.scale_point(point, scale)
 			renderer, label_text = style
-			if renderer is not None:
-				renderer.blit(ctx, x, y)
-			else:
-				pykarta.draw.poi_label(ctx, x+2, y-2, label_text, fontsize=10)
+			renderer.blit(ctx, x, y)
+			if label_text is not None:
+				pykarta.draw.centered_label(ctx, x, y+10, label_text, style=self.label_style)
 
 tilesets.append(MapTilesetVector('osm-vector-pois',
 	url_template="http://tile.openstreetmap.us/vectiles-pois/{z}/{x}/{y}.json", 
@@ -420,56 +537,18 @@ tilesets.append(MapTilesetVector('osm-vector-pois',
 	))
 
 #=============================================================================
-# Vector.Mapzen.com
-# https://github.com/mapzen/vector-datasource/wiki/Mapzen-Vector-Tile-Service
-# https://github.com/mapzen/vector-datasource
-# https://github.com/mapzen/vector-datasource/blob/master/tilestache.cfg
-#=============================================================================
-
-class RenderMapzenPlaces(RenderOsmusPois):
-	pass
-
-tilesets.append(MapTilesetVector("osm-vector-places",
-	url_template="http://vector.mapzen.com/osm/places/{z}/{x}/{y}.json",
-	renderer=RenderMapzenPlaces,
-	))
-
-#=============================================================================
 # Tiles.osm.trincoll.edu
+# http://tilestache.org/doc/TileStache.Goodies.VecTiles.server.html
 #=============================================================================
-class RenderTowns(RenderGeoJSON):
-	clip = 2
-	draw_passes = 1
-	def choose_polygon_style(self, properties):
-		return {
-			"underline-width": 1,
-			"underline-color": (1.0, 1.0, 1.0),
-			"line-width": 1.0,
-			"line-color": (0.5, 0.5, 0.5),
-			"line-dasharray": (12, 4, 4, 4),
-			}
-	def draw2(self, ctx, scale):
-		if self.zoom >= 12:
-			for line, properties, style in self.polygons:
-				label_text = properties['TOWN']
-				#print " %s" % label_text
-				# FIXME: function is gone, didn't label right side anyway
-				pykarta.draw.label_line(ctx, self.scale_points(line, scale), label_text, fontsize=10, tilesize=(256.0*scale))
-
-tilesets.append(MapTilesetVector('tc-towns',
-	url_template="http://tiles.osm.trincoll.edu/towns/{z}/{x}/{y}.geojson",
-	renderer=RenderTowns,
-	zoom_max=16,
-	))
 
 class RenderParcels(RenderGeoJSON):
-	clip = 2
+	clip = 0
 	draw_passes = 2
 	def __init__(self, layer, filename, zoom, x, y):
 		RenderGeoJSON.__init__(self, layer, filename, zoom, x, y)
 		self.labels = []
 		if zoom >= 16:		# labels appear
-			for polygon, properties, style in self.polygons:
+			for id, polygon, properties, style in self.polygons:
 				geojson = json.loads(properties['centroid'])
 				coordinates = geojson['coordinates']
 				center = project_to_tilespace_pixel(coordinates[1], coordinates[0], zoom, x, y)
@@ -479,14 +558,15 @@ class RenderParcels(RenderGeoJSON):
 	def choose_polygon_style(self, properties):
 		return { "line-color": (0.0, 0.0, 0.0), "line-width": 0.25 }
 	def draw2(self, ctx, scale):
-		show_street = self.layer.zoom >= 17.9
+		zoom = self.zoom + math.log(scale, 2.0)
+		show_street = zoom >= 17.9
 		for center, house_number, street in self.labels:
 			center = self.scale_point(center, scale)
 			if show_street:
 				text = "%s %s" % (house_number, street)
 			else:
 				text = house_number
-			pykarta.draw.centered_label(ctx, center[0], center[1], text, fontsize=8)
+			pykarta.draw.centered_label(ctx, center[0], center[1], text, style={'font-size':8})
 
 tilesets.append(MapTilesetVector('tc-parcels',
 	url_template="http://tiles.osm.trincoll.edu/parcels/{z}/{x}/{y}.geojson",
@@ -495,12 +575,14 @@ tilesets.append(MapTilesetVector('tc-parcels',
 	zoom_max=16,
 	))
 
-class RenderRoadRefs(RenderGeoJSON):
+#-----------------------------------------------------------------------------
+
+class RenderTcRoadRefs(RenderGeoJSON):
 	def __init__(self, layer, filename, zoom, x, y):
 		RenderGeoJSON.__init__(self, layer, filename, zoom, x, y)
 		self.shields = []
 		dedup = set()
-		for line, properties, style in self.lines:
+		for id, line, properties, style in self.lines:
 			shield_text = properties['ref'].split(";")[0]
 			if not shield_text in dedup:
 				shield_pos = pykarta.draw.place_line_shield(line)
@@ -508,17 +590,145 @@ class RenderRoadRefs(RenderGeoJSON):
 					self.shields.append((shield_pos, shield_text))
 				dedup.add(shield_text)
 	def choose_line_style(self, properties):
-		return True		# dummy value
+		return {}
 	def draw1(self, ctx, scale):
 		for center, shield_text in self.shields:
 			center = self.scale_point(center, scale)
 			pykarta.draw.generic_shield(ctx, center[0], center[1], shield_text, fontsize=8)
 
-tilesets.append(MapTilesetVector('osm-road-refs',
-	url_template="http://localhost:8080/road-refs/{z}/{x}/{y}.json",
-	renderer=RenderRoadRefs,
+tilesets.append(MapTilesetVector('osm-vector-road-refs',
+	url_template="http://tiles.osm.trincoll.edu/osm-vector-road-refs/{z}/{x}/{y}.json",
+	renderer=RenderTcRoadRefs,
 	zoom_min=10,
 	zoom_max=14,
 	))
 
+#-----------------------------------------------------------------------------
+
+class RenderWaterways(RenderGeoJSON):
+	styles = {
+		"river": {
+				'line-color': (0.53, 0.80, 0.98),
+				'line-width': (11,0.5, 16, 7.0),
+				},
+		"stream": {
+				'line-color': (0.53, 0.80, 0.98),
+				'line-width': (11,0.25, 16, 3.0),
+				},
+		"default": {
+				'line-color': (1.00, 1.00, 0.00),
+				'line-width': (11,0.25, 16, 2.0),
+				},
+		}
+	def choose_line_style(self, properties):
+		style = self.styles.get(properties['type'], self.styles['default'])
+		style = style.copy()
+		style['line-width'] = self.zoom_feature(style['line-width'])	
+		return style
+
+tilesets.append(MapTilesetVector('osm-vector-waterways',
+	url_template="http://tiles.osm.trincoll.edu/osm-vector-waterways/{z}/{x}/{y}.json",
+	renderer=RenderWaterways,
+	zoom_min=11,		# at lower zooms osm-vector-water is enough
+	zoom_max=16,
+	))
+
+#-----------------------------------------------------------------------------
+
+class RenderAdminBorders(RenderGeoJSON):
+	clip = 2
+	sort_key = 'admin_level'
+	styles = {
+		4: { 	# state
+			'line-color': (1.0, 1.0, 1.0),
+			'line-width': (4, 1.5, 14, 3.5),
+			'overline-color': (0.0, 0.0, 0.0),
+			'overline-width': (4, 1.0, 14, 3.0),
+			'overline-dasharray': (15, 4, 4, 4),
+			},
+		6: {	# county
+			'line-color': (1.0, 1.0, 1.0),
+			'line-width': (4, 0.9, 14, 2.5),
+			'overline-color': (0.0, 0.0, 0.0),
+			'overline-width': (4, 0.66, 14, 2.0), 
+			'overline-dasharray': (15, 4, 4, 4),
+			},
+		7: {	# New York City
+			'line-color': (1.0, 1.0, 1.0),
+			'line-width': (4, 0.7, 14, 2.0),
+			'overline-color': (0.0, 0.0, 0.0),
+			'overline-width': (4, 0.55, 14, 1.5), 
+			'overline-dasharray': (15, 4, 4, 4),
+			},
+		8: {	# town
+			'line-color': (1.0, 1.0, 1.0),
+			'line-width': (4, 0.4, 14, 1.5),
+			'overline-color': (0.0, 0.0, 0.0),
+			'overline-width': (4, 0.33, 14, 1.0),
+			'overline-dasharray': (15, 4, 4, 4),
+			}
+		}
+	def choose_polygon_style(self, properties):
+		style = self.styles.get(properties['admin_level'],None)
+		if style is None:
+			print "Warning: no style for admin polygon:", properties
+		if style is not None:
+			style = style.copy()
+			for i in ("line-width", "overline-width"):
+				if i in style:
+					style[i] = self.zoom_feature(style[i])
+		return style
+	def draw1(self, ctx, scale):
+		self.start_clipping(ctx, scale)
+		for id, polygon, properties, style in reversed(self.polygons):
+			pykarta.draw.polygon(ctx, self.scale_points(polygon, scale))
+			pykarta.draw.stroke_with_style(ctx, style)
+
+tilesets.append(MapTilesetVector('osm-vector-admin-borders',
+	url_template="http://tiles.osm.trincoll.edu/osm-vector-admin-borders/{z}/{x}/{y}.json",
+	renderer=RenderAdminBorders,
+	zoom_min=4,
+	zoom_max=14,
+	))
+
+#-----------------------------------------------------------------------------
+
+class RenderPlaces(RenderGeoJSON):
+	sort_key = 'sort_key'
+	sizes = {
+		'state':    ( 5, 8.0,  9, 40.0),
+		'county':   ( 7, 10.0, 9, 15.0),
+		'city':     ( 6, 5.0, 16, 60.0),
+		'town':     ( 9, 6.0, 16, 40.0),
+		'village':  (13, 8.0, 16,30.0),
+		'hamlet':   (13, 8.0, 16,30.0),
+		'suburb':   (13, 8.0, 16,30.0),
+		'locality': (13, 8.0, 16,30.0),
+		}
+	def choose_point_style(self, properties):
+		#print "admin point:", properties
+		if 'name' in properties and properties['name'] is not None:
+			fontsize = self.sizes.get(properties['type'])
+			if fontsize is not None:
+				fontsize = self.zoom_feature(fontsize)
+				if self.zoom >= 11.0:
+					return {
+						'font-size':fontsize,
+						'color':(0.0,0.0,0.0,0.6),
+						'halo':False,
+						}
+				else:
+					return { 'font-size':fontsize }
+		return None
+	def draw1(self, ctx, scale):
+		for id, point, properties, style in self.points:
+			point = self.scale_point(point, scale)
+			pykarta.draw.centered_label(ctx, point[0], point[1], properties['name'], style=style)
+
+tilesets.append(MapTilesetVector('osm-vector-places',
+	url_template="http://tiles.osm.trincoll.edu/osm-vector-places/{z}/{x}/{y}.json",
+	renderer=RenderPlaces,
+	zoom_min=4,
+	zoom_max=14,
+	))
 

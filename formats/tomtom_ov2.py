@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/formats/tomtom_ov2.py
 # Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 1 September 2014
+# Last modified: 10 October 2014
 
 import struct
 
@@ -144,6 +144,7 @@ class Ov2Splitter:
 class Ov2Writer:
 	def __init__(self, writable_object):
 		self.fh = writable_object
+		self.saved = False
 		self.pois = []
 		self.minlat = 90.0
 		self.minlon = 180.0
@@ -157,7 +158,12 @@ class Ov2Writer:
 		self.maxlat = max(self.maxlat, poi.lat)
 		self.maxlon = max(self.maxlon, poi.lon)
 
+	def __del__(self):
+		if not self.saved:
+			self.save()
+
 	def save(self):
+		self.saved = True
 
 		if self.minlat > self.maxlat or self.minlon > self.maxlon:
 			raise Ov2Error("Incorrect usage: No POIs")

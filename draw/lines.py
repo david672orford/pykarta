@@ -1,6 +1,6 @@
 # pykarta/draw/lines.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 30 August 2014
+# Last modified: 18 December 2014
 
 import cairo
 import math
@@ -63,7 +63,7 @@ def arrowhead_barbs(start_point, end_point, arrow_length=15, arrow_angle_degrees
 # Draw circles to represent the nodes of a geometric shape. Examples of
 # such nodes would be route points or a polygon vertexes.
 def node_dots(ctx, points, style={}):
-	diameter = style.get("diameter", 7.0)
+	diameter = style.get("diameter", 8.0)
 	stroke_color = style.get("border-color", (0.0, 0.0, 0.0, 1.0))
 	fill_color = style.get("fill-color", (1.0, 1.0, 1.0, 1.0))
 
@@ -82,8 +82,8 @@ def node_dots(ctx, points, style={}):
 # point by dragging.
 def node_pluses(ctx, points, style={}):
 	radius = style.get("diameter", 10) / 2.0
-	underline_color = style.get("underline_color", (0.0, 0.0, 0.0, 1.0))	#(0.8, 0.2, 0.2, 1.0))
-	color = style.get("color", (1.0, 1.0, 1.0, 1.0))
+	underline_color = style.get("underline-color", (0.0, 0.0, 0.0, 1.0))	#(0.8, 0.2, 0.2, 1.0))
+	color = style.get("line-color", (1.0, 1.0, 1.0, 1.0))
 	line_width = style.get("line-width", 1)
 	ctx.new_path()
 	for x, y in points:

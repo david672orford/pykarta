@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tilesets_base.py
 # Copyright 2013, 2014, Trinity College
-# Last modified: 16 September 2014
+# Last modified: 7 October 2014
 
 import time
 import urllib
@@ -54,6 +54,7 @@ class MapTileset(object):
 
 		self.renderer = None
 		self.layer_cache_enabled = False
+		self.zoom_substitutions = None
 
 		self.extra_headers = {
 			"User-Agent":"PyKarta %s" % pykarta.version
@@ -113,7 +114,7 @@ class MapTileset(object):
 
 		return path
 
-# Describes a set of raster tiles
+# Describes a set of TMS raster tiles
 class MapTilesetRaster(MapTileset):
 	def __init__(self, key, 
 			opacity=1.0,				# used to fade out raster tiles
@@ -154,15 +155,15 @@ class MapTilesetWMS(MapTilesetRaster):
 		query_params = {'bbox':",".join(map(str,(nw_lon, se_lat, se_lon, nw_lat)))}
 		query_params.update(self.wms_params)
 		path = "%s?%s" % (self.path_template, urllib.urlencode(query_params))
-		print path
 		return path
 
 # Describes a set of vector tiles
 class MapTilesetVector(MapTileset):
-	def __init__(self, key, zoom_max=20, renderer=None, **kwargs):
+	def __init__(self, key, zoom_max=20, renderer=None, zoom_substitutions=None, **kwargs):
 		MapTileset.__init__(self, key, zoom_max=zoom_max, **kwargs)
 		self.extra_headers["Accept-Encoding"] = "gzip,deflate"
 		self.renderer = renderer
+		self.zoom_substitutions = zoom_substitutions
 		self.layer_cache_enabled = True
 		self.symbols = None
 
