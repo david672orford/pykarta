@@ -1,6 +1,6 @@
 # pykarta/address/__init__.py
 # Copyright 2013, 2014, 2015, Trinity College
-# Last modified: 13 January 2015
+# Last modified: 27 January 2015
 
 import string
 import re
@@ -141,12 +141,12 @@ def split_schema_person(item):
 	return components
 
 #=============================================================================
-#
+# Abbreviate and disabbreviate address elements
 #=============================================================================
 
 # Directional prefixes of street and town names
 # Applies only to a run of one or more words starting with the first
-prefix_table = {
+directional_prefix_table = {
 	'N':'North',
 	'Ne':'Northeast',
 	'E':'East',
@@ -156,24 +156,24 @@ prefix_table = {
 	'W':'West',
 	'Nw':'Northwest',
 	}
-for i in prefix_table.values():
-	prefix_table[i] = i
+for i in directional_prefix_table.values():
+	directional_prefix_table[i] = i
 
 # Suffixes of street names
 # Applies only to a run of one or more words starting with the last
-suffix_table = {
+directional_suffix_table = {
 	'Ext':'Extension',
 	'N':'North',
 	'S':'South',
 	'E':'East',
 	'W':'West',
 	}
-for i in suffix_table.values():		# add unabbreviated versions
-	suffix_table[i] = i
+for i in directional_suffix_table.values():		# add unabbreviated versions
+	directional_suffix_table[i] = i
 
 # Street type, recommended abbreviation, followed by other abbreviations
-street_types = [
-	# From USPS list
+street_suffix_abbreviations = [
+	# From USPS Publication 28 Appendix C <http://pe.usps.gov/text/pub28/28apc_002.htm>
 	['Alley','Aly','Allee','Ally'],
 	['Annex','Anx','Anex','Annx'],
 	['Arcade','Arc'],
@@ -385,20 +385,43 @@ street_types = [
 # Create an easily searchable version of the street types table.
 # The keys will be words and word abbreviations that may be
 # encountered. The cooresponding values are the unabbreviated forms.
-words_table = { }
-for x in street_types:						# alternative abbreviations first
-	for y in x[2:]:
-		words_table[y] = x[0]
-for x in street_types:						# unabbreviated form and preferred abbreviation
-	words_table[x[0]] = x[0]
-	if len(x) > 1:
-		words_table[x[1]] = x[0]
+street_words_table = { }
+for x in street_suffix_abbreviations:			# Insert alternative abbreviations first (in case andy of them
+	for y in x[2:]:								# are preferred abbreviations for something else)
+		street_words_table[y] = x[0]
+for x in street_suffix_abbreviations:
+	street_words_table[x[0]] = x[0]				# Insert unabbreviated form (for phonebook mode)
+	if len(x) > 1:								# Finally, insert preferred abbreviation
+		street_words_table[x[1]] = x[0]
 
 # Create a table for abbreviating street names.
 street_abbreviator_table = {}
-for x in street_types:
+for x in street_suffix_abbreviations:
 	if len(x) > 1:
 		street_abbreviator_table[x[0]] = x[1]
+
+# Some towns are called things other than "City" or "Town".
+# Here are some abbreviations which we have encountered.
+town_suffix_table = [
+	["Beach", "Bch"],
+	["Center", "Ctr"],
+	["Depot", "Dpt"],
+	["Falls", "Fls"],
+	["Gardens", "Gdns"],
+	["Hills", "Hls"],
+	["Junction", "Jct"],
+	["Mountain", "Mtn"],
+	["Springs", "Spgs", "Sp"],
+	["Township", "Twp", "Tw"],
+	]
+
+# Create a table for disabbreviating town names. This might be used to
+# take "N Smith Bch" and turn it into "North Smith Beach".
+town_words_table = { }
+town_words_table.update(directional_prefix_table)
+for x in town_suffix_table:
+	for y in x[1:]:
+		town_words_table[y] = x[0]
 
 # Use the above tables to disabbreviate a street name.
 #
@@ -418,14 +441,14 @@ def disabbreviate_street(street, phonebook_format=False):
 	# Use prefix table to disabbreviate words starting from the left until we 
 	# hit a word that his not a prefix (whether abbreviated or not).
 	prefixes = []
-	while words and prefix_table.has_key(words[0]):
-		prefixes.append(prefix_table[words.pop(0)])
+	while words and directional_prefix_table.has_key(words[0]):
+		prefixes.append(directional_prefix_table[words.pop(0)])
 
 	# Use suffix table to disabbreviate words starting from the right until we 
 	# hit a word that his not a prefix (whether abbreviated or not).
 	suffixes = []
-	while words and suffix_table.has_key(words[-1]):
-		suffixes.insert(0, suffix_table[words.pop(-1)])
+	while words and directional_suffix_table.has_key(words[-1]):
+		suffixes.insert(0, directional_suffix_table[words.pop(-1)])
 
 	# "St" at the beginning of the street name means "Saint". (At the
 	# end it means "Street".)
@@ -435,7 +458,7 @@ def disabbreviate_street(street, phonebook_format=False):
 	# Run all remaining words throught the general table.
 	new_words = []
 	for w in words:
-		new_words.append(words_table.get(w,w))
+		new_words.append(street_words_table.get(w,w))
 
 	words = prefixes + new_words
 
@@ -443,7 +466,7 @@ def disabbreviate_street(street, phonebook_format=False):
 	# "Park Drive" remains the same
 	# "City Arcade" remains the same (since "Arcade" is a street suffix), but
 	# "Arcade" becomes "Arcade Street"
-	if phonebook_format and ( len(words) < 2 or not words_table.has_key(words[-1]) ):
+	if phonebook_format and ( len(words) < 2 or not street_words_table.has_key(words[-1]) ):
 		words.append("Street")
 
 	words.extend(suffixes)
@@ -466,7 +489,7 @@ def disabbreviate_town(town):
 	words = town.split(' ')
 	new_words = []
 	for w in words:
-		new_words.append(prefix_table.get(w, w))
+		new_words.append(town_words_table.get(w, w))
 	return ' '.join(new_words)
 
 states_table = {
@@ -494,6 +517,8 @@ if __name__ == "__main__":
 		print split_address(sys.argv[2])
 	elif len(sys.argv) == 3 and sys.argv[1] == 'street':
 		print disabbreviate_street(sys.argv[2], True)
+	elif len(sys.argv) == 3 and sys.argv[1] == 'town':
+		print disabbreviate_town(sys.argv[2])
 	elif len(sys.argv) == 2 and sys.argv[1] == 'test1':
 		print split_address("""
 			Mr. John Smith

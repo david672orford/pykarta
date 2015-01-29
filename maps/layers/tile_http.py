@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tile_http.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 15 October 2014
+# Copyright 2013, 2014, 2015, Trinity College
+# Last modified: 15 January 2015
 
 import os
 import errno
@@ -11,7 +11,6 @@ import threading
 import time
 import socket
 import gobject
-#import weakref
 
 from pykarta.misc.http import http_date
 from pykarta.maps.layers.base import MapTileLayer, MapRasterTile, MapCustomTile
@@ -70,14 +69,12 @@ class MapTileLayerHTTP(MapTileLayer):
 			self.downloader = MapTileCacheLoader(
 				self.tileset,
 				self.containing_map.tile_cache_basedir,
-				#feedback=weakref.proxy(self.feedback),
 				feedback=self.feedback,
 				)
 		else:
 			self.downloader = MapTileDownloader(
 				self.tileset,
 				self.containing_map.tile_cache_basedir,
-				#feedback=weakref.proxy(self.feedback),
 				feedback=self.feedback,
 				done_callback=BoundMethodProxy(self.tile_loaded_cb) if self.containing_map.lazy_tiles else None,
 				)
@@ -105,7 +102,9 @@ class MapTileLayerHTTP(MapTileLayer):
 	# and is waiting in the disk cache. Note that it is called from
 	# the downloader thread, so we have to schedual the work
 	# in the gobject event loop. We set the priority high so that
-	# these messages will be delivered before redraw requests.
+	# these messages will be delivered before redraw requests. If we do
+	# not give them a high priority, then new times will not be added
+	# as we are dragging the map.
 	def tile_loaded_cb(self, *args):
 		gobject.idle_add(lambda: self.tile_loaded_cb_idle(*args), priority=gobject.PRIORITY_HIGH)
 	def tile_loaded_cb_idle(self, zoom, x, y, modified):
