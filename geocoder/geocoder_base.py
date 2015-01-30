@@ -1,6 +1,6 @@
 # pykarta/geocoder/geocoder_base.py
 # Copyright 2013, 2014, 2015, Trinity College Computing Center
-# Last modified: 4 January 2015
+# Last modified: 29 January 2015
 
 import threading
 import httplib
@@ -95,9 +95,10 @@ class GeocoderBase:
 					raise thread.exception
 				return thread.result
 			except GeocoderError as e:
+				self.debug("  %s" % str(e))
 				self.conn = None		# close connexion
 				retry += 1
-				if retry <= self.retry_limit:
+				if e.retryable and retry <= self.retry_limit:
 					countdown = self.retry_delay
 					while countdown > 0:
 						time.sleep(1)
@@ -129,9 +130,9 @@ class GeocoderBase:
 					self.conn = httplib.HTTPConnection(self.url_server, timeout=self.timeout)
 
 				# Send the HTTP request
-				# We could use self.conn.request() here, but then we would have to
-				# build the headers hash, and that would take about the same amount
-				# of code.
+				# We could use self.conn.request() here, but then we would have
+				# to build the headers hash, and that would take about the same
+				# amount of code.
 				self.conn.putrequest(method, path)
 				self.conn.putheader("User-Agent", "PyKarta %s" % pykarta.version)
 				if method == "POST":
@@ -140,7 +141,9 @@ class GeocoderBase:
 					self.conn.putheader("Content-Type", content_type)
 				self.conn.endheaders(message_body=message_body)
 
-				# Read the HTTP status line
+				# Read the HTTP status line. If it is empty, assume the connection
+				# was persistent, but the server disconnected it and try again
+				# immediately.
 				try:
 					http_resp = self.conn.getresponse()
 				except httplib.BadStatusLine as e:
@@ -155,7 +158,7 @@ class GeocoderBase:
 				# Does the server think it suceeded?
 				self.debug("    %s %s" % (http_resp.status, http_resp.reason))
 				if http_resp.status != 200:
-					raise GeocoderError("HTTP %s failed: %d %s" % (method, http_resp.status, http_resp.reason))
+					raise GeocoderError("HTTP %s failed: %d %s" % (method, http_resp.status, http_resp.reason), retryable=False)
 
 				# Read the HTTP response body
 				resp_text = http_resp.read()
@@ -242,7 +245,11 @@ class GeocoderResult(object):
 
 # Geocoders throw this for most errors.
 class GeocoderError(Exception):
-	pass
+	def __init__(self, message, retryable=True):
+		self.message = message
+		self.retryable = retryable
+	def __str__(self):
+		return self.message
 
 # For methods which a particular geocoder does not implement.
 class GeocoderUnimplemented(GeocoderError):
