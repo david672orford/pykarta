@@ -1,6 +1,6 @@
 # pykarta/geocoder/bing.py
-# Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 20 October 2014
+# Copyright 2013, 2014, 2015, Trinity College Computing Center
+# Last modified: 30 January 2014
 
 import json
 import pykarta
@@ -27,10 +27,10 @@ class GeocoderBing(GeocoderBase):
 		result = GeocoderResult(address, "Bing")
 
 		query = {
-			'countryRegion':countrycode,
-			'adminDistrict':address[self.f_state],
-			'locality':address[self.f_town],
-			'addressLine':"%s %s" % (address[self.f_house_number], address[self.f_street]),
+			'countryRegion': countrycode,
+			'adminDistrict': address[self.f_state],
+			'locality': address[self.f_town].encode("utf-8"),
+			'addressLine': (u"%s %s" % (address[self.f_house_number], address[self.f_street])).encode("utf-8"),
 			}
 		if address[self.f_postal_code] != "":
 			query['postalCode'] = address[self.f_postal_code]

@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/nominatim.py
-# Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 10 October 2014
+# Copyright 2013, 2014, 2015, Trinity College Computing Center
+# Last modified: 30 January 2015
 
 import xml.etree.cElementTree as ET
 import json
