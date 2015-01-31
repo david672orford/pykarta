@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/nominatim.py
-# Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 10 October 2014
+# Copyright 2013, 2014, 2015, Trinity College Computing Center
+# Last modified: 30 January 2015
 
 import xml.etree.cElementTree as ET
 import json
@@ -50,7 +50,7 @@ class GeocoderNominatim(GeocoderBase):
 			'polygon': '1',
 			# For 2071 Riverdale Street, West Springfield, MA 01089 including the ZIP code makes the results worse.
 			#'q': "%s %s, %s, %s %s" % (address[self.f_house_number], address[self.f_street], address[self.f_town], address[self.f_state], address[self.f_postal_code])
-			'q': "%s %s, %s, %s" % (address[self.f_house_number], address[self.f_street], address[self.f_town], address[self.f_state])
+			'q': (u"%s %s, %s, %s" % (address[self.f_house_number], address[self.f_street], address[self.f_town], address[self.f_state])).encode("utf-8")
 			}
 		if countrycode is not None:
 			query_hash['countrycodes'] = countrycode

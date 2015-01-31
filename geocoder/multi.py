@@ -81,6 +81,8 @@ class GeocoderMulti(GeocoderBase):
 		self.debug("\n")
 		return result
 
+	# Like FindAddr() but rather than returning the best result,
+	# it returns all of the results.
 	def FindAddrAll(self, address, countrycode=None):
 		results = []
 		for geocoder in self.geocoders:

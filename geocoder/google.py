@@ -1,6 +1,6 @@
 # pykarta/geocoder/google.py
 # Copyright 2013, 2014, 2015, Trinity College Computing Center
-# Last modified: 9 January 2015
+# Last modified: 30 January 2015
 
 import string
 import xml.etree.cElementTree as ET
@@ -62,9 +62,9 @@ class GeocoderGoogle(GeocoderBase):
 		# See: https://developers.google.com/maps/documentation/geocoding/
 		query_hash = {
 			'sensor': 'false',
-			'address': "%s %s, %s, %s" \
+			'address': (u"%s %s, %s, %s" \
 				% (address[self.f_house_number], address[self.f_street],
-				  address[self.f_town], address[self.f_state]),
+				  address[self.f_town], address[self.f_state])).encode("utf-8"),
 			}
 		components = []
 		if countrycode != None:
