@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/multi.py
-# Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 19 October 2014
+# Copyright 2013, 2014, 2015, Trinity College Computing Center
+# Last modified: 30 January 2015
 
 import os
 from pykarta.misc import file_age_in_days, get_cachedir
@@ -38,7 +38,7 @@ class GeocoderMulti(GeocoderBase):
 
 	# Query the geocoders and cache the answers
 	def FindAddr(self, address, countrycode=None, bypass_cache=False):
-		self.debug("======== %s ========" % address)
+		self.debug("======== %s ========" % str(address))
 
 		if not bypass_cache:
 			result = self.cache.FindAddr(address, countrycode=countrycode)
