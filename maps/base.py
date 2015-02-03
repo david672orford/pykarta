@@ -1,8 +1,8 @@
 # encoding=utf-8
 #=============================================================================
 # pykarta/maps/base.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 27 December 2014
+# Copyright 2013, 2014, 2015, Trinity College
+# Last modified: 3 February 2015
 #=============================================================================
 
 import os
@@ -12,7 +12,7 @@ import cairo
 import weakref
 
 from pykarta.geometry import Point, BoundingBox
-from pykarta.maps.projection import *
+from pykarta.geometry.projection import project_to_tilespace, unproject_from_tilespace
 import pykarta.maps.symbols
 from pykarta.maps.layers import MapLayerBuilder, map_layer_sets, MapCacheCleaner
 import pykarta.misc
