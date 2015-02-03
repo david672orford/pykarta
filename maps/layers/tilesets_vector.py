@@ -1,8 +1,8 @@
 # encoding=utf-8
 # pykarta/maps/layers/tilesets_vector.py
 # Vector tile sets and renders for them
-# Copyright 2013, 2014, Trinity College
-# Last modified: 8 October 2014
+# Copyright 2013, 2014, 2015, Trinity College
+# Last modified: 3 February 2015
 
 try:
 	import simplejson as json
@@ -16,7 +16,7 @@ import cairo
 import math
 
 from tilesets_base import tilesets, MapTilesetVector
-from pykarta.maps.projection import project_to_tilespace_pixel
+from pykarta.geometry.projection import project_to_tilespace_pixel
 from pykarta.geometry import Points, Polygon
 import pykarta.draw
 from pykarta.maps.symbols import MapSymbolSet

@@ -1,12 +1,12 @@
 # pykarta/maps/layers/marker.py
 # A simple marker layer
-# Copyright 2013, 2014, Trinity College
-# Last modified: 4 September 2014
+# Copyright 2013, 2014, 2015, Trinity College
+# Last modified: 3 February 2015
 
 from pykarta.maps.layers import MapLayer
 from pykarta.draw import poi_label
 from pykarta.geometry import Point, BoundingBox
-from pykarta.maps.projection import project_to_tilespace
+from pykarta.geometry.projection import project_to_tilespace
 
 class MapMarker(object):
 	__slots__ = ('lat', 'lon', 'x', 'y', 'symbol_name', 'symbol', 'label')

@@ -1,6 +1,6 @@
 # pykarta/maps/tilegen.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 14 September 2014
+# Copyright 2013, 2014, 2015, Trinity College
+# Last modified: 3 February 2015
 
 import cairo
 import os
@@ -11,7 +11,7 @@ from pykarta.maps import MapBase
 from pykarta.geometry import BoundingBox
 from pykarta.misc import tile_count
 import pyapp.i18n
-from pykarta.maps.projection import project_to_tilespace, unproject_from_tilespace
+from pykarta.geometry.projection import project_to_tilespace, unproject_from_tilespace
 
 # This is a Pykarta map object which produces map tiles as its output.
 # But rather than stitch them together on a Cairo surface, it saves

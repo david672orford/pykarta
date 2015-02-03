@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/base.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 15 October 2014
+# Copyright 2013, 2014, 2015, Trinity College
+# Last modified: 3 February 2015
 
 import math
 import cairo
@@ -13,7 +13,7 @@ except ImportError:
 	from pykarta.fallback.ordereddict import OrderedDict
 
 from pykarta.maps.image_loaders import surface_from_pixbuf, pixbuf_from_file, pixbuf_from_file_data
-from pykarta.maps.projection import *
+from pykarta.geometry.projection import project_to_tilespace
 
 #=============================================================================
 # Base of all map layers

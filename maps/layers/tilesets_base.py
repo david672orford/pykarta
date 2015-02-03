@@ -1,14 +1,14 @@
 # encoding=utf-8
 # pykarta/maps/layers/tilesets_base.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 7 October 2014
+# Copyright 2013, 2014, 2015, Trinity College
+# Last modified: 3 February 2015
 
 import time
 import urllib
 
 import pykarta
 from pykarta.misc.http import simple_url_split
-from pykarta.maps.projection import *
+from pykarta.geometry.projection import unproject_from_tilespace
 
 # A list of tile sets from which they can be retrieved
 # either by key or by searching.
