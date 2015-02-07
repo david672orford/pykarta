@@ -1,6 +1,6 @@
 # pykarta/geocoder/geocoder_base.py
 # Copyright 2013, 2014, 2015, Trinity College Computing Center
-# Last modified: 29 January 2015
+# Last modified: 6 February 2015
 
 import threading
 import httplib
@@ -38,7 +38,6 @@ class GeocoderBase:
 	f_state = 4
 	f_postal_code = 5
 
-	debug_enabled = False
 	url_server = None
 	url_path = None
 	conn = None					# HTTP connexion to server
@@ -47,8 +46,9 @@ class GeocoderBase:
 	retry_delay = 10			# delay in seconds between retries
 	timeout = 30
 
-	def __init__(self, progress_dialog=None):
+	def __init__(self, progress_dialog=None, debug=False):
 		self.progress_dialog = progress_dialog
+		self.debug_enabled = debug
 		self.name = self.__class__.__name__
 		self.last_request_time = 0
 		self.last_progress_part = 0

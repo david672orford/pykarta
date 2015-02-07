@@ -12,6 +12,7 @@ from pykarta.geometry import Point, Polygon, BoundingBox
 
 # See http://wiki.openstreetmap.org/wiki/Nominatim
 class GeocoderNominatim(GeocoderBase):
+
 	def __init__(self, instance="osm", **kwargs):
 		GeocoderBase.__init__(self, **kwargs)
 

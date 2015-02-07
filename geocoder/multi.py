@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/multi.py
 # Copyright 2013, 2014, 2015, Trinity College Computing Center
-# Last modified: 30 January 2015
+# Last modified: 6 February 2015
 
 import os
 from pykarta.misc import file_age_in_days, get_cachedir
@@ -25,7 +25,7 @@ class GeocoderMulti(GeocoderBase):
 
 	def __init__(self, **kwargs):
 		GeocoderBase.__init__(self, **kwargs)
-		self.cache = GeocoderCache()
+		self.cache = GeocoderCache(**kwargs)
 		self.geocoders = [
 			(GeocoderSpreadsheet(**kwargs), True),
 			(GeocoderNominatim(**kwargs), False),
@@ -41,9 +41,12 @@ class GeocoderMulti(GeocoderBase):
 		self.debug("======== %s ========" % str(address))
 
 		if not bypass_cache:
+			self.debug("Trying cache...")
 			result = self.cache.FindAddr(address, countrycode=countrycode)
 			if result.coordinates is not None:
+				self.debug("Using cached answer.\n")
 				return result
+			self.debug("")
 
 		result = GeocoderResult(address, "None")
 		should_cache = False
@@ -53,7 +56,7 @@ class GeocoderMulti(GeocoderBase):
 		best = None
 		i = 0
 		for geocoder, stop_on_interpolated in self.geocoders:
-			self.debug("Trying:", geocoder.name)
+			self.debug("Trying: %s..." % geocoder.name)
 			self.progress(i, len(self.geocoders), _("Trying %s...") % geocoder.name)
 			iresult = geocoder.FindAddr(address, countrycode=countrycode)
 			if iresult.coordinates is not None:
@@ -78,7 +81,7 @@ class GeocoderMulti(GeocoderBase):
 		if should_cache:
 			self.cache.store(result)
 
-		self.debug("\n")
+		self.debug("")
 		return result
 
 	# Like FindAddr() but rather than returning the best result,
@@ -98,7 +101,9 @@ class GeocoderMulti(GeocoderBase):
 #=============================================================================
 class GeocoderCache(GeocoderBase):
 
-	def __init__(self):
+	def __init__(self, **kwargs):
+		GeocoderBase.__init__(self, **kwargs)
+
 		self.cachedir = os.path.join(get_cachedir(), "geocoder")
 		if not os.path.exists(self.cachedir):
 			os.makedirs(self.cachedir)	
