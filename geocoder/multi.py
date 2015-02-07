@@ -38,7 +38,7 @@ class GeocoderMulti(GeocoderBase):
 
 	# Query the geocoders and cache the answers
 	def FindAddr(self, address, countrycode=None, bypass_cache=False):
-		self.debug("======== %s ========" % str(address))
+		self.debug("======== %s ========" % ", ".join(address))
 
 		if not bypass_cache:
 			self.debug("Trying cache...")
@@ -59,13 +59,13 @@ class GeocoderMulti(GeocoderBase):
 			self.debug("Trying: %s..." % geocoder.name)
 			self.progress(i, len(self.geocoders), _("Trying %s...") % geocoder.name)
 			iresult = geocoder.FindAddr(address, countrycode=countrycode)
+			self.debug("")
 			if iresult.coordinates is not None:
 				best = (geocoder, iresult)
 				if stop_on_interpolated or iresult.precision != "INTERPOLATED":
 					break		# good enough
 			else:
 				result.alternative_addresses.extend(iresult.alternative_addresses)
-			self.debug("")
 			i += 1
 
 		if best is not None:
@@ -81,7 +81,7 @@ class GeocoderMulti(GeocoderBase):
 		if should_cache:
 			self.cache.store(result)
 
-		self.debug("")
+		self.debug("")	# blank line
 		return result
 
 	# Like FindAddr() but rather than returning the best result,
@@ -141,10 +141,10 @@ class GeocoderCache(GeocoderBase):
 	def store(self, result):
 		cachefile = open(self.cachefile_name(result.query_address), "w")
 		if result:	
-			self.debug("  Storing new result in cache.")
+			self.debug("Storing new result in cache.")
 			cachefile.write("%s,%s,%s,%s\n" % (repr(result.coordinates[0]), repr(result.coordinates[1]), result.precision, result.source))
 		else:
-			self.debug("  Storing empty result in cache.")
+			self.debug("Storing empty result in cache.")
 		cachefile.close()
 
 #=============================================================================
