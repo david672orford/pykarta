@@ -38,7 +38,9 @@ class GeocoderMulti(GeocoderBase):
 
 	# Query the geocoders and cache the answers
 	def FindAddr(self, address, countrycode=None, bypass_cache=False):
-		self.debug("======== %s ========" % ", ".join(address))
+		self.debug("=====================================================")
+		self.debug("= %s" % ", ".join(address))
+		self.debug("=====================================================")
 
 		if not bypass_cache:
 			self.debug("Trying cache...")
@@ -70,14 +72,14 @@ class GeocoderMulti(GeocoderBase):
 
 		if best is not None:
 			geocoder, iresult = best
-			self.debug("Best result given by %s" % geocoder.name)
+			self.debug("Accepting result from %s" % geocoder.name)
 			result.postal_code = iresult.postal_code
 			result.coordinates = iresult.coordinates
 			result.precision = iresult.precision
 			result.source = iresult.source
 			should_cache = geocoder.should_cache()
 		else:
-			self.debug("No geocoder found a match.")
+			self.debug("No geocoder found a full match.")
 
 		# Store the result.
 		if should_cache:
