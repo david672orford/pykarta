@@ -1,6 +1,6 @@
 # pykarta/geocoder/google.py
 # Copyright 2013, 2014, 2015, Trinity College Computing Center
-# Last modified: 30 January 2015
+# Last modified: 6 February 2015
 
 import string
 import xml.etree.cElementTree as ET
@@ -116,7 +116,7 @@ class GeocoderGoogle(GeocoderBase):
 				break
 	
 		if result.coordinates is None:
-			self.debug("  No acceptable match found.")
+			self.debug("  No (acceptable) match.")
 		return result
 
 	#-------------------------------------------------------------------

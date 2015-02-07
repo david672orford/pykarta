@@ -76,6 +76,8 @@ class GeocoderMulti(GeocoderBase):
 			result.precision = iresult.precision
 			result.source = iresult.source
 			should_cache = geocoder.should_cache()
+		else:
+			self.debug("No geocoder found a match.")
 
 		# Store the result.
 		if should_cache:
