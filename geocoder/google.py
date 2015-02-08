@@ -1,6 +1,6 @@
 # pykarta/geocoder/google.py
 # Copyright 2013, 2014, 2015, Trinity College Computing Center
-# Last modified: 6 February 2015
+# Last modified: 7 February 2015
 
 import string
 import xml.etree.cElementTree as ET
@@ -172,5 +172,5 @@ class GeocoderGoogle(GeocoderBase):
 if __name__ == "__main__":
 	gc = GeocoderGoogle()
 	gc.debug_enabled = True
-	print gc.FindAddr(["61","Steiger Drive","","Westfield","MA","01085"])
+	print gc.FindAddr(["300","Summit Street","","Hartford","CT","06106"])
 

@@ -1,6 +1,6 @@
 # pykarta/geocoder/datasciencetoolkit.py
-# Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 9 October 2014
+# Copyright 2013, 2014, 2015, Trinity College Computing Center
+# Last modified: 8 February 2015
 
 import json
 import urllib
@@ -10,20 +10,34 @@ from pykarta.address import disabbreviate_street
 
 # See http://www.datasciencetoolkit.org/developerdocs
 class GeocoderDataScienceToolKit(GeocoderBase):
-	url_server = "www.datasciencetoolkit.org"
-	url_path = "/street2coordinates"
-	delay = 1.0		# no more than one request per second
+
+	def __init__(self, instance="official", **kwargs):
+		GeocoderBase.__init__(self, **kwargs)
+		if instance == "official":
+			self.url_server = "www.datasciencetoolkit.org"
+			self.url_path = "/street2coordinates"
+			self.delay = 1.0		# no more than one request per second
+		elif instance == "trincoll":
+			self.url_server = "geocoders.osm.trincoll.edu"
+			self.url_path = "/street2coordinates"
+			self.delay = 0.1
+		else:
+			raise ValueError
 
 	# Given a street address, try to find the latitude and longitude.
 	def FindAddr(self, address, countrycode=None):
 		result = GeocoderResult(address, "DSTK")
 
-		query = "%s %s, %s, %s %s" \
-				% (address[self.f_house_number], address[self.f_street],
-				  address[self.f_town], address[self.f_state], address[self.f_postal_code])
-		get_path = "%s/%s" % (self.url_path, urllib.quote_plus(query))
-
-		response_text = self.get(get_path)
+		query = "%s %s, %s, %s %s" % (
+			address[self.f_house_number],
+			address[self.f_street],
+			address[self.f_town],
+			address[self.f_state],
+			address[self.f_postal_code]
+			)
+		#get_path = "%s/%s" % (self.url_path, urllib.quote_plus(query.encode("utf-8"), safe=""))
+		#response_text = self.get(get_path)
+		response_text = self.get(self.url_path, method="POST", query=json.dumps([query]))
 
 		response = json.loads(response_text)
 		response = response[query]	# keyed by sought address
@@ -46,4 +60,9 @@ class GeocoderDataScienceToolKit(GeocoderBase):
 		if result.coordinates is None:
 			self.debug("  No match")
 		return result
+
+if __name__ == "__main__":
+	gc = GeocoderDataScienceToolKit(instance="trincoll")
+	gc.debug_enabled = True
+	print gc.FindAddr(["300","Summit Street","","Hartford","CT","06106"])
 

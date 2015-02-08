@@ -1,6 +1,6 @@
 # pykarta/geocoder/parcel.py
-# Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 20 October 2014
+# Copyright 2013, 2014, 2015, Trinity College Computing Center
+# Last modified: 7 Feburary 2015
 
 import json
 import urllib
@@ -10,7 +10,7 @@ from geocoder_base import GeocoderBase, GeocoderResult
 class GeocoderParcel(GeocoderBase):
 	url_server = "geocoders.osm.trincoll.edu"
 	url_path = "/parcel1"
-	delay = 0.1		# ten requests per second
+	delay = 0.1
 
 	# Given a street address, try to find the latitude and longitude.
 	def FindAddr(self, address, countrycode=None):
