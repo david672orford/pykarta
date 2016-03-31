@@ -1,6 +1,6 @@
 # pykarta/misc/__init__.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 12 September 2014
+# Copyright 2013, 2014, 2015, Trinity College
+# Last modified: 18 August 2015
 
 import os
 import time
@@ -16,8 +16,8 @@ class NoInet(Exception):
 def get_cachedir():
 	app_name = "PyKarta"
 
-	# If there is a directory called "Cache" at the same level as the
-	# "Code" directory, use that. This is for when we install on a thumdrive.
+	# If there is a directory called "Cache" at the same level as the "Code"
+	# directory, use that. This is for when the program is running from a thumbdrive.
 	if os.path.exists(os.path.join(sys.path[0], "..", "Cache")):
 		cachedir = os.path.join(sys.path[0], "..", "Cache")
 
@@ -38,7 +38,7 @@ def get_cachedir():
 
 	# Fallback
 	else:
-		cachedir = os.path.join(app_dir, "..", "Cache")
+		cachedir = os.path.join(sys.path[0], "..", "Cache")
 
 	#print "Cache directory:", cachedir
 	return cachedir

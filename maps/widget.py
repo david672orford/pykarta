@@ -1,7 +1,7 @@
 #=============================================================================
 # pykarta/maps/widget.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 15 October 2014
+# Copyright 2013--2016, Trinity College
+# Last modified: 31 March 2016
 #=============================================================================
 
 import gtk
@@ -104,12 +104,15 @@ class MapWidget(gtk.DrawingArea, MapBase):
 		self.feedback.debug(2, "Drawing layers: map_drag_start=%s" % str(self.map_drag_start))
 		for layer in self.layers_ordered:
 			self.feedback.debug(2, " %s: stale=%s" % (layer.name, layer.stale))
-			if layer.stale and self.map_drag_start is None:		# if layer is dirty and we are not dragging right now,
-				start_time = time.time()
-				layer.cache_surface = None
-				layer.do_viewport()
-				self.elapsed("%s (reproject)" % layer.name, start_time)
-				layer.stale = False
+			if layer.stale:
+				if self.map_drag_start:
+					print "Warning: dragging dirty layer"
+				else:
+					start_time = time.time()
+					layer.cache_surface = None
+					layer.do_viewport()
+					self.elapsed("%s (reproject)" % layer.name, start_time)
+					layer.stale = False
 			ctx.save()
 			start_time = time.time()
 			layer.do_draw_cached(ctx)

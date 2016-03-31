@@ -1,6 +1,6 @@
 # pykarta/address/__init__.py
 # Copyright 2013, 2014, 2015, Trinity College
-# Last modified: 27 January 2015
+# Last modified: 5 February 2015
 
 import string
 import re
@@ -63,7 +63,8 @@ def split_address(address):
 # Split a person's name into its component parts.
 def split_name(name):
 	components = {}
-	name = re.sub('^((Mr\.?)|(Mrs\.)|(Ms\.)) ', '', name, re.IGNORECASE)
+	name = re.sub(r'^((Mr\.?)|(Mrs\.)|(Ms\.)) ', '', name, re.IGNORECASE)
+	name = re.sub(r' ((Jr)|(Sr)|(II)|(III))$', '', name, re.IGNORECASE)
 	match = re.match('^([^,]+), ?(.*)', name)
 	if match:
 		components['Last Name'] = match.group(1)

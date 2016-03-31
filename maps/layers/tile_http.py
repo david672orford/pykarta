@@ -94,8 +94,8 @@ class MapTileLayerHTTP(MapTileLayer):
 			else:
 				try:
 					return MapRasterTile(self, filename=filename)
-				except:
-					self.feedback.debug(1, " defective tile file: %s" % filename)
+				except Exception as e:
+					self.feedback.debug(1, " defective tile file: %s, %s" % (filename, str(e)))
 		return None
 
 	# The tile downloader calls this when the tile has been received
@@ -358,20 +358,39 @@ class MapTileDownloaderThread(threading.Thread):
 
 		# Download the tile. This uses a persistent connection.
 		try:
-			# Send GET request
+			# Connect if we are not connected already.
 			if self.conn is None:
 				hostname = self.tileset.get_hostname()
 				self.feedback.debug(3, " Thread %s opening HTTP connexion to %s..." % (self.name, hostname))
 				self.conn = httplib.HTTPConnection(hostname, timeout=30)
-			self.feedback.debug(3, " GET %s" % remote_filename)
+
 			hdrs = {}
 			hdrs.update(self.tileset.extra_headers)
 			if statbuf is not None:
 				hdrs['If-Modified-Since'] = http_date(statbuf.st_mtime)
-			self.conn.request("GET", remote_filename, None, hdrs)
 
-			# Read response
-			response = self.conn.getresponse()
+			redirect_count = 0
+			while True:
+				# send request
+				self.feedback.debug(3, " GET %s" % remote_filename)
+				self.conn.request("GET", remote_filename, None, hdrs)
+
+				# Read reasponse and if it is not "moved temporarily", break out.
+				response = self.conn.getresponse()
+				if response.status != 302:
+					break
+
+				# This 302 handling has not been tested.
+				response_body = response.read()
+				location = response.getheader("location")
+				print "Redirect to:", location
+				assert location.startswith("/")		# FIXME
+				redirect_count += 1
+				if redirect_count > 5:
+					self.feedback.error(_("Tile %s/%d/%d/%d: Redirect loop") % debug_args)
+					self.conn = None	# close connexion
+					return True			# give up on tile
+				remote_filename = location
 
 		except socket.gaierror, msg:
 			self.feedback.error(_("Tile %s/%d/%d/%d: Address lookup error: %s") % (debug_args + (msg,)))
@@ -430,7 +449,7 @@ class MapTileDownloaderThread(threading.Thread):
 					if e.errno != errno.EEXIST:
 						raise
 	
-			# Save the file without there every being a partial tile written with the final name.
+			# Save the file in such a manner that there is never a partial tile with the final name.
 			cachefile = SaveAtomically(local_filename)
 			try:
 				cachefile.write(response.read())

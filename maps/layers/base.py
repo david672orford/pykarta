@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/base.py
-# Copyright 2013, 2014, 2015, Trinity College
-# Last modified: 3 February 2015
+# Copyright 2013--2016, Trinity College
+# Last modified: 31 March 2016
 
 import math
 import cairo
@@ -36,8 +36,8 @@ class MapLayer(object):
 		self.containing_map = containing_map
 		self.feedback = containing_map.feedback		# usable even after map is destroyed
 
-	# Mark layer so that at next redraw its do_viewport() will be called.
-	# If the layer has already been added to a map, request a redraw.
+	# Mark layer so that at next redraw its do_viewport() will
+	# be called and request a redraw now.
 	def set_stale(self):
 		if not self.stale:
 			self.stale = True
@@ -318,12 +318,20 @@ class MapRasterTile(object):
 		if saturation is not None:
 			pixbuf.saturate_and_pixelate(pixbuf, saturation, False)
 
+		# Convert pixbuf to a Cairo image surface.
 		self.tile_surface = surface_from_pixbuf(pixbuf)
 
 	# Draw a 265x265 unit tile at position (xpixoff, ypixoff).
 	def draw(self, ctx, scale, draw_pass):
 		ctx.scale(scale, scale)
+
+		# This is blurry in PDF output
 		ctx.set_source_surface(self.tile_surface, 0, 0)
+		# But this does not help.
+		#imgpat = cairo.SurfacePattern(self.tile_surface)
+		#imgpat.set_filter(cairo.FILTER_NEAREST)
+		#ctx.set_source(imgpat)
+
 		ctx.paint_with_alpha(self.opacity)
 
 # Used for vector tiles

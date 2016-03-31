@@ -9,7 +9,9 @@ import tilesets_mapquest
 import tilesets_arcgis
 import tilesets_massgis
 import tilesets_modestmaps
-import tilesets_vector
+import tilesets_vec_osmus
+import tilesets_vec_tc
+import tilesets_vec_mapzen
 
 def MapLayerBuilder(layer_name):
 	if layer_name == "osm-default-svg":

@@ -513,7 +513,11 @@ class MapToolSelect(MapToolBase):
 	def on_button_release(self, gdkevent):
 		if self.down:
 			lat_lon = self.layer.containing_map.unproject_point(gdkevent.x, gdkevent.y)
-			for obj in reversed(self.layer.visible_objs):
+			if gdkevent.state & gtk.gdk.CONTROL_MASK:
+				objs = self.layer.visible_objs				# bottom to top layer
+			else:
+				objs = reversed(self.layer.visible_objs)	# top to bottom layer
+			for obj in objs:
 				if obj.obj_hit_detect(lat_lon, gdkevent):
 					self.fire_done(obj)
 					break

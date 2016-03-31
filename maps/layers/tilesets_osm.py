@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tilesets_osm.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 29 October 2014
+# Copyright 2013--2016 Trinity College
+# Last modified: 29 January 2016
 #
 # Openstreetmap.org raster tile sets
 # This is imported by builder.py.
@@ -55,7 +55,7 @@ for i in ("toner", "toner-hybrid", "toner-lite", "toner-background", "toner-labe
 # Topographic map with hill shading
 for i in ("terrain", "terrain-background", "terrain-labels", "terrain-lines"):
 	tilesets.append(MapTilesetRaster('stamen-%s' % i,
-		url_template='http://tile.stamen.com/%s/{z}/{x}/{y}.png' % i,
+		url_template='http://tile.stamen.com/%s/{z}/{x}/{y}.jpg' % i,
 		attribution=u"Map tiles by Stamen Design, under CC BY 3.0, data © OpenStreetMap contributors",
 		zoom_min=4,
 		zoom_max=18
@@ -73,21 +73,18 @@ tilesets.append(MapTilesetRaster('mapbox-streets',
 #-----------------------------------------------------------------------------
 # Wikimedia's Toolserver
 #-----------------------------------------------------------------------------
-for i in ("osm-no-labels", "osm-labels-en", "osm-labels-ru", "bw-mapnik"):
+for i in ("osm-no-labels", "hillshading", "hikebike"):	#, "osm-labels-en", "osm-labels-ru", "bw-mapnik"):
 	tilesets.append(MapTilesetRaster('toolserver-%s' % i,
-		url_template='http://a.www.toolserver.org/tiles/%s/{z}/{x}/{y}.png' % i,
+		url_template='http://a.tiles.wmflabs.org/%s/{z}/{x}/{y}.png' % i,
 		attribution=u"Map Data: © OpenStreetMap contributors",
-	))
-tilesets.append(MapTilesetRaster('toolserver-shadows',
-	url_template='http://toolserver.org/~cmarqu/hill/{z}/{x}/{y}.png'
 	))
 
 #-----------------------------------------------------------------------------
 # Other OSM
 #-----------------------------------------------------------------------------
 
-# http://www.openmapsurfer.uni-hd.de/
-# http://www.openmapsurfer.uni-hd.de/contact.html
+# http://korona.geog.uni-heidelberg.de/
+# http://korona.geog.uni-heidelberg.de/contact.html
 # Better colors and style than in osm-default
 # roads--color roads layer
 # roadsg--grayscale roads layer
@@ -95,8 +92,7 @@ tilesets.append(MapTilesetRaster('toolserver-shadows',
 # adminb--administrative borders
 for i in ("roads", "roadsg", "adminb", "hybrid"):
 	tilesets.append(MapTilesetRaster('openmapsurfer-%s' % i,
-		#url_template='http://openmapsurfer.uni-hd.de/tiles/%s/x={x}&y={y}&z={z}' % i,
-		url_template='http://129.206.74.245/tiles/%s/x={x}&y={y}&z={z}' % i,
+		url_template='http://korona.geog.uni-heidelberg.de/tiles/%s/x={x}&y={y}&z={z}' % i,
 		attribution=u"Map Data: © OpenStreetMap contributors, Rendering: GIScience Heidelberg",
 		# This is the background color of openmapsurfer-roads at zoom level 13 and above.
 		#transparent_color=(246,242,240),

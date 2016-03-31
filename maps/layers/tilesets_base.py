@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tilesets_base.py
 # Copyright 2013, 2014, 2015, Trinity College
-# Last modified: 3 February 2015
+# Last modified: 13 October 2015
 
 import time
 import urllib
@@ -39,18 +39,16 @@ class MapTileset(object):
 			overzoom=True,				# enlarge tiles if lower layer allows more zoom
 			attribution=None,			# string or Cairo surface with logo or credit statement
 			max_age_in_days=30,			# how long to use files from cache
+			api_key=None,				# what to substitute for "{api_key}"
 			):
 		self.key = key
-		if url_template:
-			self.set_url_template(url_template)
-		else:
-			self.hostname_template = None
-			self.path_template = None
+		self.set_url_template(url_template)
 		self.zoom_min = zoom_min
 		self.zoom_max = zoom_max
 		self.overzoom = overzoom
 		self.attribution = attribution
 		self.max_age_in_days = max_age_in_days
+		self.api_key = api_key
 
 		self.renderer = None
 		self.layer_cache_enabled = False
@@ -64,7 +62,11 @@ class MapTileset(object):
 		self.server_number = int(time.time()) % 4
 
 	def set_url_template(self, url_template):
-		self.hostname_template, self.path_template = simple_url_split(url_template)
+		if url_template:
+			self.hostname_template, self.path_template = simple_url_split(url_template)
+		else:
+			self.hostname_template = None
+			self.path_template = None
 
 	# Override this if the tile layer requires the downloading of metadata
 	# before tiles may be requested.
@@ -86,6 +88,9 @@ class MapTileset(object):
 	# derived classes in order to support other schemes.
 	def get_path(self, zoom, x, y):
 		path = self.path_template
+
+		if self.api_key:
+			path = path.replace("{api_key}", self.api_key)
 
 		# Basic (x, y) and zoom, Leaflet-style
 		path = path.replace('{z}', str(zoom)).replace('{x}', str(x)).replace('{y}', str(y))
@@ -136,7 +141,7 @@ class MapTilesetWMS(MapTilesetRaster):
 			transparent=False,			# pass to WMS server
 			**kwargs
 			):
-		MapTileset.__init__(self, key, **kwargs)
+		MapTilesetRaster.__init__(self, key, **kwargs)
 		self.wms_params = {
 			'service':'WMS',
 			'request':'GetMap',

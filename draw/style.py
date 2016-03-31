@@ -1,6 +1,6 @@
 # pykarta/draw/style.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 18 December 2014
+# Copyright 2013--2016, Trinity College
+# Last modified: 29 January 2016
 #
 # This module has functions to stroke lines and fill polygons using style
 # attributes borrowed from Cascadenik. See:
@@ -20,7 +20,7 @@ line_join = {
 	}
 
 # Stroke the path in the specified style. This was inspired by Cascadenik.
-def stroke_with_style(ctx, style, preserve=False):
+def stroke_with_style(ctx, style, preserve=False, width_scale=1.0):
 	# Nobody should be using the old keys
 	assert not "color" in style			# color -> line-color
 	assert not "dash-pattern" in style	# dash-pattern -> line-dash
@@ -33,7 +33,7 @@ def stroke_with_style(ctx, style, preserve=False):
 	# a border around the main stroke or the dash pattern can be used
 	# to give it wiskers.
 	if 'underline-width' in style:
-		ctx.set_line_width(style['underline-width'])
+		ctx.set_line_width(style['underline-width'] * width_scale)
 		ctx.set_source_rgba(*style['underline-color'])
 		ctx.set_dash(style.get('underline-dasharray', ()))
 		ctx.set_line_join(line_join[style.get('underline-join', 'miter')])
@@ -42,7 +42,7 @@ def stroke_with_style(ctx, style, preserve=False):
 
 	# This is the main stroke.
 	if 'line-width' in style:
-		ctx.set_line_width(style['line-width'])
+		ctx.set_line_width(style['line-width'] * width_scale)
 		ctx.set_source_rgba(*style.get('line-color', (0.0, 0.0, 0.0)))
 		ctx.set_dash(style.get('line-dasharray', ()))
 		ctx.set_line_join(line_join[style.get('line-join', 'miter')])
@@ -52,7 +52,7 @@ def stroke_with_style(ctx, style, preserve=False):
 	# This stroke goes over the main stroke. We can use it to run a solid
 	# or dashed line down the center of the main stroke.
 	if 'overline-width' in style:
-		ctx.set_line_width(style['overline-width'])
+		ctx.set_line_width(style['overline-width'] * width_scale)
 		ctx.set_source_rgba(*style['overline-color'])
 		ctx.set_dash(style.get('overline-dasharray', ()))
 		ctx.set_line_join(line_join[style.get('overline-join', 'miter')])

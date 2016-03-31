@@ -1,7 +1,7 @@
 # pykarta/maps/layers/mapquest.py
 # Mapquest layers
-# Copyright 2013, 2014, Trinity College
-# Last modified: 4 September 2014
+# Copyright 2013, 2014, 2015, Trinity College
+# Last modified: 13 October 2015
 
 import gtk
 import urllib
@@ -21,7 +21,7 @@ from pykarta.draw import poi_label
 # This is only a proof-of-concept implementation.
 # A proper implementation would:
 # * download in a separate thread
-# * download for a somewhat large area so as not to have to redownload
+# * download for a somewhat larger area so as not to have to redownload
 #   every time the user moved the map
 # * automatically redownload every 10 minutes or so
 #=============================================================================

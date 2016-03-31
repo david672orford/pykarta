@@ -1,6 +1,6 @@
-# pykarta/maps/layers/tilesets_osm.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 3 September 2014
+# pykarta/maps/layers/tilesets_bing.py
+# Copyright 2013, 2014, 2015, Trinity College
+# Last modified: 13 October 2015
 
 from tilesets_base import tilesets, MapTilesetRaster
 import json
@@ -32,12 +32,13 @@ class MapTilesetBing(MapTilesetRaster):
 		#print "Bing zoom levels: %d thru %d" % (self.zoom_min, self.zoom_max)
 		self.attribution = surface_from_file_data(simple_urlopen(metadata['brandLogoUri']).read())
 
-for key, bing_key in (
+for our_layer_key, bing_layer_key in (
 	('road', 'Road'),
 	('aerial', 'Aerial'),
 	('aerial-with-labels', 'AerialWithLabels')
 	):
-	tilesets.append(MapTilesetBing('bing-%s' % key,
-		metadata_url='http://dev.virtualearth.net/REST/v1/Imagery/Metadata/%s?key={api_key}' % bing_key,
+	tilesets.append(MapTilesetBing('bing-%s' % our_layer_key,
+		metadata_url='http://dev.virtualearth.net/REST/v1/Imagery/Metadata/%s?key={api_key}' % bing_layer_key,
 		attribution="Bing"
 		))
+
