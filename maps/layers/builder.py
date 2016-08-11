@@ -1,11 +1,10 @@
 # pykarta/maps/layers/builder.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 1 October 2014
+# Copyright 2013--2016, Trinity College
+# Last modified: 27 July 2016
 
 from tilesets_base import tilesets
 import tilesets_osm
 import tilesets_bing
-import tilesets_mapquest
 import tilesets_arcgis
 import tilesets_massgis
 import tilesets_modestmaps

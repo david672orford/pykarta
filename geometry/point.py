@@ -1,6 +1,6 @@
 # encoding=utf-8
 # pykarta/geometry/point.py
-# Last modified: 4 September 2014
+# Last modified: 28 April 2016
 
 import re
 
@@ -14,8 +14,12 @@ class Point(object):
 			self.lat = None
 			self.lon = None
 		elif len(args) == 1:		# Point(point)
-			self.lat = args[0][0]
-			self.lon = args[0][1]
+			if isinstance(args[0], Point):
+				self.lat = args[0].lat
+				self.lon = args[0].lon
+			else:
+				self.lat = args[0][0]
+				self.lon = args[0][1]
 		elif len(args) == 2:		# Point(lat, lon)
 			self.lat = args[0]
 			self.lon = args[1]

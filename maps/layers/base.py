@@ -321,17 +321,10 @@ class MapRasterTile(object):
 		# Convert pixbuf to a Cairo image surface.
 		self.tile_surface = surface_from_pixbuf(pixbuf)
 
-	# Draw a 265x265 unit tile at position (xpixoff, ypixoff).
+	# Draw a 256x256 unit tile at position (xpixoff, ypixoff).
 	def draw(self, ctx, scale, draw_pass):
 		ctx.scale(scale, scale)
-
-		# This is blurry in PDF output
 		ctx.set_source_surface(self.tile_surface, 0, 0)
-		# But this does not help.
-		#imgpat = cairo.SurfacePattern(self.tile_surface)
-		#imgpat.set_filter(cairo.FILTER_NEAREST)
-		#ctx.set_source(imgpat)
-
 		ctx.paint_with_alpha(self.opacity)
 
 # Used for vector tiles

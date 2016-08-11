@@ -1,12 +1,12 @@
 # pykarta/draw/shapes.py
-# Copyright 2013, 2014, Trinity College
+# Copyright 2013--2016, Trinity College
 # Last modified: 21 August 2014
 
 import cairo
 
 # Add a rectangle with rounded corners to the path.
 def rounded_rectangle(cr, x, y, w, h, r=20):
-    # This is just one of the samples from 
+    # This is "Method C" from:
     # http://www.cairographics.org/cookbook/roundedrectangles/
     #   A****BQ
     #  H      C
