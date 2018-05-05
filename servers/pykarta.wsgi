@@ -4,6 +4,7 @@
 import re, os
 
 from pykarta.servers.modules.not_found import application as app_not_found
+from pykarta.servers.modules.not_found import application as app_hello
 
 from pykarta.servers.modules.geocoder_parcel import application as app_geocoder_parcel
 from pykarta.servers.modules.geocoder_openaddresses import application as app_geocoder_openaddresses
@@ -16,6 +17,7 @@ routes = {
 		'geocoders/openaddresses': app_geocoder_openaddresses,
 		'tiles/parcels': app_tiles_parcels,
 		'tiles': app_tiles_osm_vec,
+		'hello': app_hello,
 		}
 
 def application(environ, start_response):
