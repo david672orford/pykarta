@@ -3,13 +3,13 @@
 
 import re, os
 
-from modules.not_found import application as app_not_found
+from pykarta.servers.modules.not_found import application as app_not_found
 
-from modules.geocoder_parcel import application as app_geocoder_parcel
-from modules.geocoder_openaddresses import application as app_geocoder_openaddresses
+from pykarta.servers.modules.geocoder_parcel import application as app_geocoder_parcel
+from pykarta.servers.modules.geocoder_openaddresses import application as app_geocoder_openaddresses
 
-from modules.tiles_parcels import application as app_tiles_parcels
-from modules.tiles_osm_vec import application as app_tiles_osm_vec
+from pykarta.servers.modules.tiles_parcels import application as app_tiles_parcels
+from pykarta.servers.modules.tiles_osm_vec import application as app_tiles_osm_vec
 
 routes = {
 		'geocoders/parcel': app_geocoder_parcel,
