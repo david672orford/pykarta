@@ -1,6 +1,6 @@
 # pykarta/servers/modules/tiles_osm_vec.py
 # Produce GeoJSON tiles from OSM data stored in a Spatialite database
-# Last modified: 4 May 2018
+# Last modified: 5 May 2018
 
 # References:
 # https://docs.python.org/2/library/sqlite3.html
@@ -10,7 +10,8 @@
 # https://github.com/TileStache/TileStache/blob/master/TileStache/Goodies/VecTiles/server.py
 # http://northredoubt.com/n/2012/01/18/spatialite-and-spatial-indexes/
 
-import json, re, gzip, io
+import os, json, re, gzip, io
+from email.utils import formatdate
 from pyspatialite import dbapi2 as db
 from pykarta.geometry.projection import unproject_from_tilespace
 import threading
@@ -257,6 +258,7 @@ def application(environ, start_response):
 	cursor = getattr(thread_data, 'cursor', None)
 	if cursor is None:
 		db_filename = environ["DATADIR"] + "/osm_map.sqlite"
+		thread_data.last_modified = formatdate(os.path.getmtime(db_filename), usegmt=True)
 		conn = db.connect(db_filename)
 		conn.row_factory = db.Row
 		cursor = conn.cursor()
@@ -293,7 +295,8 @@ def application(environ, start_response):
 
 	start_response("200 OK", [
 		('Content-Type', 'application/json'),
-		('Content-Encoding', 'gzip')
+		('Content-Encoding', 'gzip'),
+		('Last-Modified', thread_data.last_modified,
 		])
 	return [geojson]
 
