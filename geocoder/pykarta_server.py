@@ -1,23 +1,31 @@
-# pykarta/geocoder/parcel.py
-# Copyright 2013, 2014, 2015, Trinity College Computing Center
-# Last modified: 7 Feburary 2015
+# pykarta/geocoder/pykarta.py
+# Copyright 2013--2018, Trinity College Computing Center
+# Last modified: 26 April 2018
 
 import json
 import urllib
 
+import pykarta
 from geocoder_base import GeocoderBase, GeocoderResult
+from pykarta.misc.http import simple_url_split
 
-class GeocoderParcel(GeocoderBase):
-	url_server = "geocoders.osm.trincoll.edu"
-	url_path = "/parcel1"
+class GeocoderPykartaBase(GeocoderBase):
 	delay = 0.1
+	name = "Openaddress"
+	filename = "openaddress1"
+
+	def __init__(self, **kwargs):
+		GeocoderBase.__init__(self, **kwargs)
+		url = "%s/geocoders/%s" (pykarta.server_url, self.filename)
+		self.url_method, self.url_server, self.url_path = simple_url_split(url)
 
 	# Given a street address, try to find the latitude and longitude.
 	def FindAddr(self, address, countrycode=None):
-		result = GeocoderResult(address, "Parcel")
+		result = GeocoderResult(address, self.name)
 
 		query = json.dumps([
 			address[self.f_house_number],
+			address[self.f_apartment_number],
 			address[self.f_street],
 			address[self.f_town],
 			address[self.f_state],
@@ -43,17 +51,18 @@ class GeocoderParcel(GeocoderBase):
 	def should_cache(self):
 		return True
 
+class GeocoderParcel(GeocoderPykartaBase):
+	name = "Parcel"
+	filename = "parcel1"
+
+class GeocoderOpenaddress(GeocoderPykartaBase):
+	name = "Openaddress"
+	filename = "openaddress1"
+
 if __name__ == "__main__":
 	import time
 	gc = GeocoderParcel()
 	gc.debug_enabled = True
-	print gc.FindAddr(["61","Steiger Drive","","Westfield","MA","01085"])
-	print gc.FindAddr(["61","Steiger Drive","","Westfield","MA","01085"])
-	print gc.FindAddr(["61","Steiger Drive","","Westfield","MA","01085"])
-	print gc.FindAddr(["61","Steiger Drive","","Westfield","MA","01085"])
-	print gc.FindAddr(["61","Steiger Drive","","Westfield","MA","01085"])
-	#time.sleep(4.9)
-	#print gc.FindAddr(["63","Steiger Drive","","Westfield","MA","01085"])
-	#print gc.FindAddr(["65","Steiger Drive","","Westfield","MA","01085"])
+	print gc.FindAddr(["6","Elm Street","","Westfield","MA","01085"])
 
 
