@@ -296,7 +296,7 @@ def application(environ, start_response):
 	start_response("200 OK", [
 		('Content-Type', 'application/json'),
 		('Content-Encoding', 'gzip'),
-		('Last-Modified', thread_data.last_modified,
+		('Last-Modified', thread_data.last_modified),
 		])
 	return [geojson]
 
