@@ -4,7 +4,7 @@
 import re, os
 
 from pykarta.servers.modules.not_found import application as app_not_found
-from pykarta.servers.modules.not_found import application as app_hello
+from pykarta.servers.modules.hello import application as app_hello
 
 from pykarta.servers.modules.geocoder_parcel import application as app_geocoder_parcel
 from pykarta.servers.modules.geocoder_openaddresses import application as app_geocoder_openaddresses
@@ -31,6 +31,7 @@ def application(environ, start_response):
 		stderr.write("Parse failed: %s\n" % environ['PATH_INFO'])
 		app = app_not_found
 	else:
+		stderr.write("groups: %s %s %s\n" % m.groups())
 		app = routes.get("%s/%s" % (m.group(1), m.group(2)))
 		if app is not None:
 			environ['SCRIPT_NAME'] += ("/%s/%s" % (m.group(1), m.group(2)))
