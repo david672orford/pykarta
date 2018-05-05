@@ -1,8 +1,8 @@
 #! /usr/bin/python
-# Copyright 2013, 2014, Trinity College Computing Center
+# Copyright 2013--2017, Trinity College Computing Center
 # Reader and writer for OSM XML files
 # Written by David Chappell
-# Last modified: 10 October 2014
+# Last modified: 11 May 2017
 
 from osm_objs import OsmNode, OsmWay
 
@@ -97,16 +97,16 @@ class OsmWriter:
 	def new_way(self, coordinates, osm_tags=None):
 		nodes = []
 		for coordinate in coordinates:
-			node = self.new_node_deduper(coordinates[0], coordinates[1])
+			node = self.new_node_deduper(coordinate[0], coordinate[1])
 			nodes.append(node)
 		return self.append_way(OsmWay(nodes, osm_tags))
 
 if __name__ == "__main__":
 	import sys
 	osm = OsmWriter(sys.stdout, "OsmWriter test")
-	osm.add_node(42.0, -72.0, {'name':'smith'})
-	osm.add_node(42.0, -72.0, {'addr:housenumber':'12'})
-	osm.add_way([
+	osm.new_node(42.0, -72.0, {'name':'smith'})
+	osm.new_node(42.0, -72.0, {'addr:housenumber':'12'})
+	osm.new_way([
 		[42.0, -72.0],
 		[43.0, -72.0],
 		[43.0, -71.0],

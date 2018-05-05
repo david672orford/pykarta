@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/multi.py
-# Copyright 2013, 2014, 2015, Trinity College Computing Center
-# Last modified: 6 February 2015
+# Copyright 2013--2018, Trinity College Computing Center
+# Last modified: 23 April 2018
 
 import os
 from pykarta.misc import file_age_in_days, get_cachedir
@@ -10,11 +10,11 @@ from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 # Import the geocoders
 from spreadsheet import GeocoderSpreadsheet
 from nominatim import GeocoderNominatim
-from parcel import GeocoderParcel
+from pykarta_server import GeocoderParcel, GeocoderOpenAddresses
 from google import GeocoderGoogle
 from bing import GeocoderBing
-from massgis import GeocoderMassGIS
-from datasciencetoolkit import GeocoderDataScienceToolKit
+#from massgis import GeocoderMassGIS
+from uscensus import GeocoderUsCensus
 
 #=============================================================================
 # This geocoder is a wrapper for a list of actual geocoders. It calls them
@@ -29,11 +29,12 @@ class GeocoderMulti(GeocoderBase):
 		self.geocoders = [
 			(GeocoderSpreadsheet(**kwargs), True),
 			(GeocoderNominatim(**kwargs), False),
+			(GeocoderOpenAddresses(**kwargs), False),
 			(GeocoderParcel(**kwargs), False),
 			(GeocoderBing(**kwargs), False),
-			(GeocoderGoogle(**kwargs), False),
-			(GeocoderMassGIS(**kwargs), True),
-			#(GeocoderDataScienceToolKit(**kwargs), True),
+			#(GeocoderGoogle(**kwargs), False),
+			#(GeocoderMassGIS(**kwargs), True),
+			(GeocoderUsCensus(**kwargs), True),
 			]
 
 	# Query the geocoders and cache the answers

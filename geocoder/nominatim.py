@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/nominatim.py
-# Copyright 2013, 2014, 2015, Trinity College Computing Center
-# Last modified: 30 January 2015
+# Copyright 2013--2018, Trinity College Computing Center
+# Last modified: 26 April 2018
 
 import xml.etree.cElementTree as ET
 import json
@@ -67,8 +67,8 @@ class GeocoderNominatim(GeocoderBase):
 		# Examine the condidate matches
 		for place in tree.findall("place"):
 			self.debug("  Candidate: %s" % place.get("display_name"))
-			osm_type = place.get("osm_type")
-			self.debug("    osm_type: %s" % osm_type)
+			osm_type = (place.get("osm_type"), place.get("class"), place.get("type"))
+			self.debug("    osm_type: %s" % str(osm_type))
 
 			found_address_list = []
 			found_address_dict = {}
@@ -85,9 +85,9 @@ class GeocoderNominatim(GeocoderBase):
 			if self.result_truly_matches(address, found_address_list):
 				self.debug("  Match")
 				result.coordinates = (float(place.get('lat')), float(place.get('lon')))
-				if osm_type == "node":			# FIXME: distinguish between ROOF and ENTRANCE
-					result.precision = "ROOF"
-				elif osm_type == "way":			# Building outline?
+				if osm_type == ("node","place","house"):
+					result.precision = "ENTRANCE"
+				elif osm_type == ("way","building","yes"):
 					result.precision = "ROOF"
 				else:							# TIGER interpolation?
 					result.precision = "INTERPOLATED"
@@ -276,5 +276,8 @@ if __name__ == "__main__":
 		print result
 
 	else:
-		print "Unsupported action:", action
+		print nominatim.FindAddr(["300","Summit Street","","Hartford","CT","06106"])		# amenity point
+		print nominatim.FindAddr(["15","Steiger Drive","","Westfield","MA","01085"])		# non-existent address
+		print nominatim.FindAddr(["151","Steiger Drive","","Westfield","MA","01085"])		# address on building outline
+		print nominatim.FindAddr(["11","Steiger Drive","","Westfield","MA","01085"])		# address on building entrance
 

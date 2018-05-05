@@ -1,22 +1,22 @@
 # encoding=utf-8
 # pykarta/maps/layers/tilesets_osm.py
-# Copyright 2013--2016 Trinity College
-# Last modified: 29 January 2016
+# Copyright 2013--2018 Trinity College
+# Last modified: 26 April 2018
 #
-# Openstreetmap.org raster tile sets
+# Tile sets based on free data from Openstreetmap.org
 # This is imported by builder.py.
 #
-# See http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Tile_servers
+# http://wiki.openstreetmap.org/wiki/Tile_servers
 # See http://wiki.openstreetmap.org/wiki/TMS
-# See http://www.openstreetmap.org/copyright
+# See http://www.openstreetmap.org/copyright (attribution requirements)
 #
 
 from tilesets_base import tilesets, MapTilesetRaster
 
 #-----------------------------------------------------------------------------
-# On Openstreetmap.org
-# osm-mapquest-open is defined in tilsets_mapquest.py.
+# Default rendering from Openstreetmap.org
 #-----------------------------------------------------------------------------
+
 tilesets.append(MapTilesetRaster('osm-default',
 	url_template='http://tile.openstreetmap.org/{z}/{x}/{y}.png',
 	attribution=u"Map Data: © OpenStreetMap contributors",
@@ -24,18 +24,29 @@ tilesets.append(MapTilesetRaster('osm-default',
 	transparent_color=(241,238,232),
 	saturation=1.2,
 	))
-tilesets.append(MapTilesetRaster('osm-cycle',
-	url_template='http://tile.opencyclemap.org/cycle/{z}/{x}/{y}.png',
-	attribution=u"Map Data: © OpenStreetMap contributors",
+
+# https://osm.rrze.fau.de/
+# Double-resolution rendering of the default style
+tilesets.append(MapTilesetRaster('osm-default-hd', 
+	url_template='http://a.osm.rrze.fau.de/osmhd/{z}/{x}/{y}.png',
+	attribution=u"© OpenStreetMap contributors",
+	zoom_max=19,
+	transparent_color=(242,239,233),
+	saturation=1.2,
 	))
-tilesets.append(MapTilesetRaster('osm-transport',
-	url_template='http://tile2.opencyclemap.org/transport/{z}/{x}/{y}.png',
-	attribution=u"Map Data: © OpenStreetMap contributors",
-	))
-tilesets.append(MapTilesetRaster('osm-humanitarian',
-	url_template='http://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-	attribution=u"Map Data: © OpenStreetMap contributors",
-	))
+
+#-----------------------------------------------------------------------------
+# Renders of OSM data from Thunderforest
+# Tiles are free, but styles are closed-source.
+# Styles "cycle" and "transport" featured on Openstreetmap.org
+#-----------------------------------------------------------------------------
+
+for style in ("cycle","transport","landscape","outdoors","transport-dark","pioneer","mobile-atlas","neighbourhood"):
+	tilesets.append(MapTilesetRaster('osm-thunderforest-%s' % style,
+		url_template='https://{s}.tile.thunderforest.com/%s/{z}/{x}/{y}@2x.png?apikey={api_key}' % style,
+		attribution=u"Map: © Thunderforest, Data: © OpenStreetMap contributors",
+		api_key_name="thunderforest",
+		))
 
 #-----------------------------------------------------------------------------
 # Stamen's OSM maps
@@ -44,8 +55,9 @@ tilesets.append(MapTilesetRaster('osm-humanitarian',
 
 # B&W map which uses pure black and halftoning
 for i in ("toner", "toner-hybrid", "toner-lite", "toner-background", "toner-labels", "toner-lines"):
-	tilesets.append(MapTilesetRaster('stamen-%s' % i,
-		url_template='http://tile.stamen.com/%s/{z}/{x}/{y}.png' % i,
+	tilesets.append(MapTilesetRaster('osm-stamen-%s' % i,
+		url_template='http://{s}.tile.stamen.com/%s/{z}/{x}/{y}.png' % i,
+		subdomains="abcd",
 		attribution=u"Map tiles by Stamen Design, under CC BY 3.0, data © OpenStreetMap contributors",
 		zoom_min=0,
 		zoom_max=20,
@@ -53,63 +65,78 @@ for i in ("toner", "toner-hybrid", "toner-lite", "toner-background", "toner-labe
 		))
 
 # Topographic map with hill shading
-for i in ("terrain", "terrain-background", "terrain-labels", "terrain-lines"):
-	tilesets.append(MapTilesetRaster('stamen-%s' % i,
-		url_template='http://tile.stamen.com/%s/{z}/{x}/{y}.jpg' % i,
+for i in ("terrain", "terrain-background", "terrain-labels", "terrain-lines", "terrain-classic"):
+	tilesets.append(MapTilesetRaster('osm-stamen-%s' % i,
+		url_template='http://{s}.tile.stamen.com/%s/{z}/{x}/{y}.png' % i,
+		subdomains="abcd",
 		attribution=u"Map tiles by Stamen Design, under CC BY 3.0, data © OpenStreetMap contributors",
 		zoom_min=4,
 		zoom_max=18
 		))
 
-#-----------------------------------------------------------------------------
-# Mapbox
-#-----------------------------------------------------------------------------
-tilesets.append(MapTilesetRaster('mapbox-streets',
-	url_template='http://a.tiles.mapbox.com/v3/david672orford.map-tyhg017g/{z}/{x}/{y}.png',
-	attribution=u"MapBox Tiles, data © OpenStreetMap contributors",
-	zoom_max=19,
-	))
-
-#-----------------------------------------------------------------------------
-# Wikimedia's Toolserver
-#-----------------------------------------------------------------------------
-for i in ("osm-no-labels", "hillshading", "hikebike"):	#, "osm-labels-en", "osm-labels-ru", "bw-mapnik"):
-	tilesets.append(MapTilesetRaster('toolserver-%s' % i,
-		url_template='http://a.tiles.wmflabs.org/%s/{z}/{x}/{y}.png' % i,
+# http://wiki.openstreetmap.org/wiki/TopOSM
+# Now run on Stamen servers
+for name, ext in (("color-relief", "jpg"), ("contours", "png"), ("features", "png")):
+	tilesets.append(MapTilesetRaster('osm-toposm-%s' % name,
+		url_template='http://{s}.tile.stamen.com/toposm-%s/{z}/{x}/{y}.%s' % (name, ext),
 		attribution=u"Map Data: © OpenStreetMap contributors",
+		))
+
+#-----------------------------------------------------------------------------
+# Other renderings of OSM data
+#-----------------------------------------------------------------------------
+
+# http://layers.openstreetmap.fr
+# Featured on Openstreetmap.org as the "Humanitarian" layer
+tilesets.append(MapTilesetRaster('osm-humanitarian',
+	url_template='http://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+	attribution=u"Map Data: © OpenStreetMap contributors",
 	))
 
-#-----------------------------------------------------------------------------
-# Other OSM
-#-----------------------------------------------------------------------------
-
-# http://korona.geog.uni-heidelberg.de/
-# http://korona.geog.uni-heidelberg.de/contact.html
+# OpenMapSurfer
+# http://korona.geog.uni-heidelberg.de/ (slippy map)
+# http://korona.geog.uni-heidelberg.de/contact.html (terms of use)
 # Better colors and style than in osm-default
 # roads--color roads layer
 # roadsg--grayscale roads layer
 # hybrid--semi-transparent layer
 # adminb--administrative borders
+# NOTE: not updated since 2016; kept for sake of aerial view
 for i in ("roads", "roadsg", "adminb", "hybrid"):
-	tilesets.append(MapTilesetRaster('openmapsurfer-%s' % i,
+	tilesets.append(MapTilesetRaster('osm-openmapsurfer-%s' % i,
 		url_template='http://korona.geog.uni-heidelberg.de/tiles/%s/x={x}&y={y}&z={z}' % i,
 		attribution=u"Map Data: © OpenStreetMap contributors, Rendering: GIScience Heidelberg",
 		# This is the background color of openmapsurfer-roads at zoom level 13 and above.
 		#transparent_color=(246,242,240),
 		))
 
-# See: http://lists.openstreetmap.org/pipermail/talk/2011-June/058892.html
-tilesets.append(MapTilesetRaster('geoiq-acetate',
-	url_template='http://a3.acetate.geoiq.com/tiles/acetate-roads/{z}/{x}/{y}.png',
-	attribution=u"Map Data: © OpenStreetMap contributors",
-	zoom_max=17,
-	overzoom=True,
+# https://opentopomap.org/about
+tilesets.append(MapTilesetRaster('osm-opentopomap',
+	url_template='https://a.tile.opentopomap.org/{z}/{x}/{y}.png',
+	attribution=u"Kartendaten: © OpenStreetMap-Mitwirkende, SRTM | Kartendarstellung: © OpenTopoMap (CC-BY-SA)",
 	))
 
-# See http://wiki.openstreetmap.org/wiki/TopOSM
-for i in (("color-relief", "contours", "features")):
-	tilesets.append(MapTilesetRaster('toposm-%s' % i,
-		url_template='http://a.tile.stamen.com/toposm-%s/{z}/{x}/{y}.png' % i,
+# http://www.waymarkedtrails.org/
+for i in ("hiking","cycling"):
+	tilesets.append(MapTilesetRaster('osm-waymarkedtrails-%s' % i,
+		url_template='http://tile.waymarkedtrails.org/%s/{z}/{x}/{y}.png' % i,
 		attribution=u"Map Data: © OpenStreetMap contributors",
 		))
+
+# https://wiki.openstreetmap.org/wiki/Carto_(Company)
+# https://carto.com/location-data-services/basemaps/
+# URLs from:
+#  https://wiki.openstreetmap.org/wiki/Tile_servers
+for i in ("light","dark"):
+	tilesets.append(MapTilesetRaster('osm-carto-%s' % i,
+		url_template='https://cartodb-basemaps-{s}.global.ssl.fastly.net/%s_all/{z}/{x}/{y}.png' % i,
+		attribution=u"Map tiles by Carto, under CC BY 3.0. Data by OpenStreetMap, under ODbL.",
+		))
+
+# Mapbox
+tilesets.append(MapTilesetRaster('osm-mapbox-streets',
+	url_template='http://a.tiles.mapbox.com/v3/david672orford.map-tyhg017g/{z}/{x}/{y}.png',
+	attribution=u"MapBox Tiles, data © OpenStreetMap contributors",
+	zoom_max=19,
+	))
 

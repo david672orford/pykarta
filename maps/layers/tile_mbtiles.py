@@ -1,9 +1,9 @@
 # encoding=utf-8
 # pykarta/maps/layers/tile_mbtiles.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 5 September 2014
+# Copyright 2013--2018, Trinity College
+# Last modified: 4 May 2018
 
-from pykarta.maps.layers.base import MapTileLayer, MapRasterTile
+from pykarta.maps.layers.base import MapTileLayer, MapRasterTile, MapTileError
 from pykarta.maps.layers.tilesets_base import MapTilesetRaster
 
 #=============================================================================
@@ -12,7 +12,8 @@ from pykarta.maps.layers.tilesets_base import MapTilesetRaster
 #=============================================================================
 class MapTileLayerMbtiles(MapTileLayer):
 	def __init__(self, mbtiles_filename):
-		MapTileLayer.__init__(self)
+		MapTileLayer.__init__(self, MapRasterTile)
+
 		import sqlite3
 		self.conn = sqlite3.connect(mbtiles_filename)
 		self.cursor = self.conn.cursor()
@@ -23,9 +24,9 @@ class MapTileLayerMbtiles(MapTileLayer):
 			attribution = self.fetch_metadata_item('attribution', ''),
 			)
 
-		self.zoom_min = self.tileset.zoom_min
-		self.zoom_max = self.tileset.zoom_max
-		self.attribution = self.tileset.attribution
+		self.opts.zoom_min = self.tileset.zoom_min
+		self.opts.zoom_max = self.tileset.zoom_max
+		self.opts.attribution = self.tileset.attribution
 
 	def fetch_metadata_item(self, name, default):
 		self.cursor.execute("select value from metadata where name = ?", (name,))
@@ -42,12 +43,9 @@ class MapTileLayerMbtiles(MapTileLayer):
 		self.cursor.execute("select tile_data from tiles where zoom_level = ? and tile_column = ? and tile_row = ?", (zoom, x, y))
 		result = self.cursor.fetchone()
 		if result is not None:
-			if self.renderer:
-				raise AssertionError("Not yet implemented")
-			else:
-				try:
-					return MapRasterTile(self, data=result[0])
-				except:
-					pass
+			try:
+				return self.tile_class(self, None, zoom, x, y, data=result[0])
+			except MapTileError as e:
+				self.feedback.debug(1, " %s" % str(e))
 		return None
 

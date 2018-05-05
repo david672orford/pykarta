@@ -1,6 +1,6 @@
 # pykarta/geocoder/bing.py
-# Copyright 2013, 2014, 2015, Trinity College Computing Center
-# Last modified: 30 January 2014
+# Copyright 2013--2017, Trinity College Computing Center
+# Last modified: 10 December 2017
 
 import json
 import pykarta
@@ -38,7 +38,7 @@ class GeocoderBing(GeocoderBase):
 		query['key'] = self.api_key
 
 		response = json.loads(self.get(self.url_path, query=query))
-		#self.debug_indented(json.dumps(response, indent=4, separators=(',', ': ')))
+		self.debug_indented(json.dumps(response, indent=4, separators=(',', ': ')))
 
 		# FIXME: can there be more than one "resource"?
 		try:
@@ -47,7 +47,7 @@ class GeocoderBing(GeocoderBase):
 			response = None
 		self.debug_indented(json.dumps(response, indent=4, separators=(',', ': ')))
 
-		if response and response['confidence'] == 'High' and response['matchCodes'] == ['Good']:
+		if response and response['entityType'] == 'Address' and response['confidence'] == 'High' and response['matchCodes'] == ['Good']:
 			address1 = split_house_street_apt(response['address']['addressLine'])
 			if address1 is not None:
 				found_addr_list = []
@@ -67,4 +67,10 @@ class GeocoderBing(GeocoderBase):
 		if result.coordinates is None:
 			self.debug("  No match")
 		return result
+
+if __name__ == "__main__":
+	#pykarta.api_keys["bing"] = 
+	gc = GeocoderBing()
+	gc.debug_enabled = True
+	print gc.FindAddr(["300","Summit Street","","Hartford","CT","06106"])
 

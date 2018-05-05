@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/osd.py
-# Copyright 2013, 2014, 2015, Trinity College
-# Last modified: 3 February 2015
+# Copyright 2013--2018, Trinity College
+# Last modified: 4 May 2018
 
 import cairo
 import math
@@ -151,7 +151,7 @@ class MapLayerAttribution(MapLayer):
 		ctx.set_source_rgb(0.0, 0.0, 0.0)
 		printed = set([])		# deduplicate
 		for layer in self.containing_map.layers_ordered:
-			attribution = layer.attribution
+			attribution = layer.opts.attribution
 			if attribution and attribution not in printed:
 				if isinstance(attribution, cairo.ImageSurface):
 					height = attribution.get_height()

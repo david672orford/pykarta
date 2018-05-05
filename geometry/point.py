@@ -1,6 +1,7 @@
 # encoding=utf-8
 # pykarta/geometry/point.py
-# Last modified: 28 April 2016
+# Copyright 2014--2017, Trinity College
+# Last modified: 25 May 2017
 
 import re
 
@@ -111,7 +112,7 @@ def PointFromText(coords_text):
 	coords_text = coords_text.upper()
 	coords_text = coords_text.replace(u"(", u"")
 	coords_text = coords_text.replace(u")", u"")
-	coords_text = coords_text.replace(u" ", u"")				# remove spaces
+	
 	coords_text = coords_text.replace(u"'", u"\u2032")		# ASCII single quote (apostroph) to prime
 	coords_text = coords_text.replace(u"\u2019", u"\u2032")	# right single quote to prime
 	coords_text = coords_text.replace(u'"', u'\u2033')		# ASCII double quote to double prime
@@ -123,6 +124,10 @@ def PointFromText(coords_text):
 	return Point(lat, lon)
 
 def _split_coords_text(coords_text):
+	m = re.match('^(\S+)\s+(\S+)$', coords_text)
+	if m:
+		return (m.group(1), m.group(2))
+
 	m = re.match('^([^,]+),([^,]+)$', coords_text)
 	if m:
 		return (m.group(1), m.group(2))
@@ -138,6 +143,8 @@ def _split_coords_text(coords_text):
 	raise Exception("Two coordinates required")
 
 def _parse_degrees(degrees_string, directions):
+	degrees_string = degrees_string.replace(u" ", u"")			# remove spaces
+
 	sign = 1.0
 	if directions[0] in degrees_string:		# N or E
 		degrees_string = degrees_string.replace(directions[0], "")

@@ -1,6 +1,6 @@
 # pykarta/misc/http.py
-# Copyright 2013, Trinity College
-# Last modified: 22 February 2013
+# Copyright 2013--2018 Trinity College
+# Last modified: 21 April 2018
 
 import os
 import re
@@ -10,14 +10,19 @@ import time
 # Quick and dirty function to extract the hostname (possibly with port)
 # and path (including query string) from a URL. 
 def simple_url_split(url):
-	m = re.match('^http://([^/]+)(.*)$', url, re.IGNORECASE)
-	return (m.group(1), m.group(2))
+	m = re.match('^(https?)://([^/]+)(.*)$', url, re.IGNORECASE)
+	assert m
+	return (m.groups())
 
 # Retrieve a file using httplib. Return a handle.
 # For use in cases where urllib2.openurl() would be overkill.
+# NOTE: this does not support redirects
 def simple_urlopen(url, extra_headers={}):
-	hostname, path = simple_url_split(url)
-	conn = httplib.HTTPConnection(hostname, timeout=30)
+	method, hostname, path = simple_url_split(url)
+	if method == "https":
+		conn = httplib.HTTPSConnection(hostname, timeout=30)
+	else:
+		conn = httplib.HTTPConnection(hostname, timeout=30)
 	#print "GET %s" % path
 	conn.request("GET", path, None, extra_headers)
 	response = conn.getresponse()

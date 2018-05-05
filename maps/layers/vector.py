@@ -1,7 +1,7 @@
 # pykarta/maps/layers/vector.py
 # An editable vector layer
-# Copyright 2013--2016, Trinity College
-# Last modified: 28 April 2016
+# Copyright 2013--2017, Trinity College
+# Last modified: 2 February 2017
 
 import gtk
 import cairo
@@ -213,6 +213,7 @@ class MapVectorObj(object):
 		self.properties = {}
 		if properties is not None:
 			self.properties.update(properties)
+		self.projected_points = []
 
 	def set_editable(self, editable):
 		self._editable = editable

@@ -1,8 +1,8 @@
 # encoding=utf-8
-# pykarta/maps/layers/tile_geojson.py
+# pykarta/maps/layers/tile_rndr_geojson.py
 # Base class for GeoJSON vector tile renderers
-# Copyright 2013, 2014, 2015, Trinity College
-# Last modified: 13 October 2015
+# Copyright 2013--2018, Trinity College
+# Last modified: 4 May 2018
 
 try:
 	import simplejson as json
@@ -17,31 +17,38 @@ from pykarta.geometry.projection import project_to_tilespace_pixel
 from pykarta.geometry import Points, Polygon
 import pykarta.draw
 
-class RenderGeoJSON(object):
+def json_loader(filename):
+	try:
+		f = gzip.GzipFile(filename, "rb")
+		parsed_json = json.load(f)
+	except IOError:
+		f = open(filename, "r")
+		parsed_json = json.load(f)
+	return parsed_json
+
+# Base class for a tile which renders GeoJSON
+class MapGeoJSONTile(object):
+	draw_passes = 1										# draw1(), override for draw2(), etc.
 	clip = None
 	sort_key = None
-	draw_passes = 1
 	label_polygons = False
-	def __init__(self, layer, filename, zoom, x, y):
-		self.timing = False
+	def __init__(self, layer, filename, zoom, x, y, data=None):
+		self.timing = False								# Time the drawing routes and print the results
 		self.tileset = layer.tileset					# Note that we do not keep a reference to layer
 		self.containing_map = layer.containing_map		# itself since that would be circular.
 		self.dedup = layer.dedup
 		self.zoom = zoom
 		self.x = x
 		self.y = y
-		self.labels = None
+		self.labels = {}								# labels indexed by zoom level
 
-		self.elapsed_start("Parsing %s %d %d %d..." % (layer.tileset.key, zoom, x, y))
+		self._elapsed_start("Parsing %s %d %d %d..." % (layer.tileset.key, zoom, x, y))
+		if data is not None:
+			parsed_json = data
+		else:
+			parsed_json = json_loader(filename)
 
-		try:
-			f = gzip.GzipFile(filename, "rb")
-			parsed_json = json.load(f)
-		except IOError:
-			f = open(filename, "r")
-			parsed_json = json.load(f)
-
-		self.load_features(parsed_json)
+		self._load_features(parsed_json)
 
 		if self.label_polygons:
 			polygon_labels = self.polygon_labels = []
@@ -54,9 +61,10 @@ class RenderGeoJSON(object):
 						center = polygon_obj.choose_label_center()
 						polygon_labels.append((id, area, center, name))
 
-		self.elapsed()
+		self._elapsed()
 
-	def load_features(self, geojson):
+	# This code is broken out of __init__() strictly for the sake of readability.
+	def _load_features(self, geojson):
 		assert geojson['type'] == 'FeatureCollection'
 
 		points = self.points = []
@@ -72,75 +80,69 @@ class RenderGeoJSON(object):
 			id = feature.get('id', None)
 			properties = feature['properties']
 			geometry = feature['geometry']
+			geometry_type = geometry['type']
+
+			if geometry_type == 'GeometryCollection':
+				print "Warning: GeometryCollection not implemented:", properties
+				continue
+
 			try:
 				coordinates = geometry['coordinates']
 			except KeyError:
-				print "Warning: broken geometry:", geometry
+				print "Warning: broken geometry:", feature
 
-			if geometry['type'] == 'Point':
+			if geometry_type == 'Point':
 				style = self.choose_point_style(properties)
 				if style is not None:
 					point = project_to_tilespace_pixel(coordinates[1], coordinates[0], self.zoom, self.x, self.y)
 					points.append((id, point, properties, style))
+				continue
 
-			elif geometry['type'] == 'LineString':
+			if geometry_type == 'LineString':
 				style = self.choose_line_style(properties)
 				if style is not None:
 					line = map(lambda p: project_to_tilespace_pixel(p[1], p[0], self.zoom, self.x, self.y), coordinates)
 					lines.append((id, line, properties, style))
+				continue
 
-			elif geometry['type'] == 'MultiLineString':
+			if geometry_type == 'MultiLineString':
 				style = self.choose_line_style(properties)
 				if style is not None:
 					for coordinates2 in coordinates:
 						line = map(lambda p: project_to_tilespace_pixel(p[1], p[0], self.zoom, self.x, self.y), coordinates2)
 						lines.append((id, line, properties, style))
+				continue
 
-			elif geometry['type'] == 'Polygon':
+			if geometry_type == 'Polygon':
 				style = self.choose_polygon_style(properties)
 				if style is not None:
 					for coordinates2 in coordinates:
 						polygon = map(lambda p: project_to_tilespace_pixel(p[1], p[0], self.zoom, self.x, self.y), coordinates2)
 						polygons.append((id, polygon, properties, style))
+				continue
 
-			elif geometry['type'] == 'MultiPolygon':
+			if geometry_type == 'MultiPolygon':
 				style = self.choose_polygon_style(properties)
 				if style is not None:
 					for coordinates2 in coordinates:
 						for coordinates3 in coordinates2:
 							polygon = map(lambda p: project_to_tilespace_pixel(p[1], p[0], self.zoom, self.x, self.y), coordinates3)
 							polygons.append((id, polygon, properties, style))
+				continue
 
-			else:
-				print "Warning: unimplemented geometry:", geometry['type'], properties
+			print "Warning: unimplemented geometry type:", feature
 
-	def elapsed_start(self, message):
+	# Performance timer
+	def _elapsed_start(self, message):
 		if self.timing:
 			print message
 			self.start_time = time.time()
 
-	def elapsed(self):
+	def _elapsed(self):
 		if self.timing:
 			stop_time = time.time()
 			elapsed_time = int((stop_time - self.start_time) * 1000 + 0.5)
 			print " %d ms" % elapsed_time
-
-	@staticmethod
-	def scale_point(point, scale):
-		return (point[0] * scale, point[1] * scale)
-
-	@staticmethod
-	def scale_points(points, scale):
-		return map(lambda point: (point[0]*scale,point[1]*scale), points)
-
-	def zoom_feature(self, rule, scale=None):
-		zoom = self.zoom
-		if scale is not None:
-			zoom += math.log(scale, 2.0)
-		start_zoom, start_width, end_zoom, end_width = rule
-		position = float(zoom - start_zoom) / float(end_zoom - start_zoom)
-		width = start_width + position * (end_width - start_width)
-		return width
 
 	# Override these to return something other than None for those objects
 	# which you wish to render. It will be stored with the object so that
@@ -157,25 +159,17 @@ class RenderGeoJSON(object):
 		print "Warning: renderer %s did not expect polygons in tile %d %d %d" % (str(type(self)), self.zoom, self.x, self.y)
 		return None
 
-	# Draw and redraw
+	# The layer calls this when it is time to draw the tile. If .draw_passes is
+	# more than one, then it will be called once for each pass. All tiles
+	# are drawn at each pass before any tile is draw at the next pass.
 	def draw(self, ctx, scale, draw_pass):
-		self.elapsed_start("Drawing %s %d %d %d, pass %d..." % (self.tileset.key, self.zoom, self.x, self.y, draw_pass))
+		self._elapsed_start("Drawing %s %d %d %d, pass %d..." % (self.tileset.key, self.zoom, self.x, self.y, draw_pass))
 		start_time = time.time()
 		getattr(self,"draw%d" % (draw_pass+1))(ctx, scale)
-		self.elapsed()
+		self._elapsed()
 
-	# draw1(), draw2(), etc. should call this if they want their drawing
-	# commands to be clipped to the tile borders.
-	def start_clipping(self, ctx, scale):
-		if self.clip is not None:
-			pad = self.clip
-			ctx.new_path()
-			start = 0 - pad						# slightly up and to the left
-			size = 256.0 * scale + pad * 2		# width and height of clipping rectangle
-			ctx.rectangle(start, start, size, size)
-			ctx.clip()
-
-	# Override to draw the bottom layer.
+	# Very simply implementation of drawing. Override in derived classes
+	# if you want something fancier.
 	def draw1(self, ctx, scale):
 		self.start_clipping(ctx, scale)
 		for id, polygon, properties, style in self.polygons:
@@ -188,4 +182,37 @@ class RenderGeoJSON(object):
 			pykarta.draw.stroke_with_style(ctx, style)
 		for id, point, properties, style in self.points:
 			pykarta.draw.node_dots(ctx, [point], style=style)
+
+	# draw1(), draw2(), etc. should call this if they want their drawing
+	# commands to be clipped to the tile borders.
+	def start_clipping(self, ctx, scale):
+		if self.clip is not None:
+			pad = self.clip
+			ctx.new_path()
+			start = 0 - pad						# slightly up and to the left
+			size = 256.0 * scale + pad * 2		# width and height of clipping rectangle
+			ctx.rectangle(start, start, size, size)
+			ctx.clip()
+
+	@staticmethod
+	def scale_point(point, scale):
+		return (point[0] * scale, point[1] * scale)
+
+	@staticmethod
+	def scale_points(points, scale):
+		return map(lambda point: (point[0]*scale,point[1]*scale), points)
+
+	# Use the supplied rule to determine the width of a feature
+	# at the current zoom level.
+	def zoom_feature(self, rule, scale=None):
+		zoom = self.zoom
+		if scale is not None:
+			zoom += math.log(scale, 2.0)
+		start_zoom, start_width, end_zoom, end_width = rule
+		position = float(zoom - start_zoom) / float(end_zoom - start_zoom)
+		width = start_width + position * (end_width - start_width)
+		if width < 0.1:
+			print "Warning: rules %s yields width of %f at zoom %f" % (str(rule), width, zoom)
+		return width
+
 

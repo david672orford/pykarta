@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/osm_svg.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 15 October 2014
+# Copyright 2013--2018, Trinity College
+# Last modified: 22 October 2018
 
 import os
 import math
@@ -22,7 +22,7 @@ import pykarta.fallback.rsvg as rsvg
 # This is intended for printing.
 #=============================================================================
 class MapLayerSVG(MapLayer):
-	url_template = "http://render.openstreetmap.org/cgi-bin/export?bbox=%f,%f,%f,%f&scale=%d&format=svg"
+	url_template = "https://render.openstreetmap.org/cgi-bin/export?bbox=%f,%f,%f,%f&scale=%d&format=svg"
 
 	xlate = {
 		# Brown Buildings
@@ -96,7 +96,7 @@ class MapLayerSVG(MapLayer):
 			# FIXME: gzip compression not supported
 			# See: http://love-python.blogspot.com/2008/07/accept-encoding-gzip-to-make-your.html?m=1
 			url = self.url_template % (bbox.min_lon, bbox.min_lat, bbox.max_lon, bbox.max_lat, scale)
-			response = simple_urlopen(url)	#, {"Accept-Encoding":"gzip"})
+			response = simple_urlopen(url, extra_headers={'Cookie':'_osm_totp_token=384781'})
 
 			content_type = response.getheader("content-type")
 			if content_type != "image/svg+xml":
@@ -125,9 +125,13 @@ class MapLayerSVG(MapLayer):
 		#ifh = gzip.GzipFile(cachefile, "r")	
 		ifh = open(cachefile, "r")	
 		for line in ifh:
-			if line.startswith("<rect"):	# remove background color
+			# remove background color
+			if line.startswith("<rect"):
 				continue
+
+			# Alter colors
 			line = self.rgb_pattern.sub(lambda m: self.xlate.get(m.group(0),m.group(0)), line)
+
 			self.svg.write(line)			# FIXME: error checking is missing
 		if not self.svg.close():
 			raise AssertionError("Failed to load SVG file: %s" % cachefile)

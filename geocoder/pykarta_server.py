@@ -1,4 +1,4 @@
-# pykarta/geocoder/pykarta.py
+# pykarta/geocoder/pykarta_server.py
 # Copyright 2013--2018, Trinity College Computing Center
 # Last modified: 26 April 2018
 
@@ -11,21 +11,21 @@ from pykarta.misc.http import simple_url_split
 
 class GeocoderPykartaBase(GeocoderBase):
 	delay = 0.1
-	name = "Openaddress"
-	filename = "openaddress1"
+	geocoder_source_name = None
+	geocoder_basename = None
 
 	def __init__(self, **kwargs):
 		GeocoderBase.__init__(self, **kwargs)
-		url = "%s/geocoders/%s" (pykarta.server_url, self.filename)
+		url = "%s/geocoders/%s" % (pykarta.server_url, self.geocoder_basename)
 		self.url_method, self.url_server, self.url_path = simple_url_split(url)
 
 	# Given a street address, try to find the latitude and longitude.
 	def FindAddr(self, address, countrycode=None):
-		result = GeocoderResult(address, self.name)
+		result = GeocoderResult(address, self.geocoder_source_name)
 
 		query = json.dumps([
 			address[self.f_house_number],
-			address[self.f_apartment_number],
+			address[self.f_apartment],
 			address[self.f_street],
 			address[self.f_town],
 			address[self.f_state],
@@ -52,16 +52,17 @@ class GeocoderPykartaBase(GeocoderBase):
 		return True
 
 class GeocoderParcel(GeocoderPykartaBase):
-	name = "Parcel"
-	filename = "parcel1"
+	geocoder_source_name = "Parcel"
+	geocoder_basename = "parcel"
 
-class GeocoderOpenaddress(GeocoderPykartaBase):
-	name = "Openaddress"
-	filename = "openaddress1"
+class GeocoderOpenAddresses(GeocoderPykartaBase):
+	geocoder_source_name = "OpenAddresses"
+	geocoder_basename = "openaddresses"
 
 if __name__ == "__main__":
 	import time
-	gc = GeocoderParcel()
+	#gc = GeocoderParcel()
+	gc = GeocoderOpenAddresses()
 	gc.debug_enabled = True
 	print gc.FindAddr(["6","Elm Street","","Westfield","MA","01085"])
 

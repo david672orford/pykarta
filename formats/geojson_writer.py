@@ -1,10 +1,10 @@
 # pykarta/format/geojson_writer.py
-# Copyright 2011, 2014, David Chappell
-# Last modified: 10 October 2014
+# Copyright 2011--2017, David Chappell
+# Last modified: 11 May 2017
 
 import json
 
-class GeojsonWriter:
+class GeojsonWriter(object):
 	def __init__(self, writable_object):
 		self.writable_object = writable_object
 		self.features = []

@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/base.py
-# Copyright 2013--2016, Trinity College
-# Last modified: 31 March 2016
+# Copyright 2013--2018, Trinity College
+# Last modified: 21 April 2018
 
 import math
 import cairo
@@ -15,19 +15,36 @@ except ImportError:
 from pykarta.maps.image_loaders import surface_from_pixbuf, pixbuf_from_file, pixbuf_from_file_data
 from pykarta.geometry.projection import project_to_tilespace
 
+class MapTileError(Exception):
+	pass
+
+#=============================================================================
+# Options for all map layers
+#=============================================================================
+class MapLayerOpts(object):
+	def __init__(self):
+		self.zoom_min = 0
+		self.zoom_max = 99
+		self.overzoom = False
+		self.zoom_substitutions = None
+		self.attribution = None
+		self.cache_enabled = False
+		self.saturation = None
+		self.transparent_color = None
+		self.opacity = 1.0
+
 #=============================================================================
 # Base of all map layers
 #=============================================================================
 class MapLayer(object):
 	def __init__(self):
 		self.name = None
+		self.opts = MapLayerOpts()
+
 		self.containing_map = None
 		self.feedback = None
 		self.stale = False
-		self.attribution = None
-		self.cache_enabled = False
 		self.cache_surface = None
-		self.zoom_substitutions = None
 
 	# Called automatically when the layer is added to the container.
 	# It is called again if offline mode is entered or left so that the layer
@@ -64,7 +81,7 @@ class MapLayer(object):
 
 	# MapWidget actually calls this instead of calling do_draw() directly.
 	def do_draw_cached(self, ctx):
-		if self.cache_enabled:
+		if self.opts.cache_enabled:
 			if self.cache_surface is None:
 				self.cache_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.containing_map.width, self.containing_map.height)
 				cache_ctx = cairo.Context(self.cache_surface)
@@ -94,15 +111,12 @@ class MapLayer(object):
 #=============================================================================
 # Base of all tile layers
 #=============================================================================
+
 class MapTileLayer(MapLayer):
-	def __init__(self):
+	def __init__(self, tile_class):
 		MapLayer.__init__(self)
-		self.zoom_min = 0
-		self.zoom_max = 99
-		self.ram_cache_max = 1000
-		self.renderer = None
-		self.overzoom = False
-		self.draw_passes = 1
+		self.tile_class = tile_class
+		self.ram_cache_max = 1000		# number of tiles to keep in RAM
 
 		self.ram_cache = OrderedDict()
 		self.tiles = []
@@ -133,17 +147,17 @@ class MapTileLayer(MapLayer):
 		# and this map is in print mode (which means higher resolution is needed)
 		# and tiles are available at a higher zoom level so we can scale them
 		# down and double the resolution.
-		if self.renderer is None and self.containing_map.print_mode and self.int_zoom < self.zoom_max:
+		if self.tile_class is MapRasterTile and self.containing_map.print_mode and self.int_zoom < self.opts.zoom_max:
 			use_zoom += 1
 
 		# If the map is zoomed in furthur than this layer goes (which can happen if it
 		# is not the first layer), then use the highest zoom level tiles available.
-		if self.overzoom:
-			use_zoom = min(self.int_zoom, self.zoom_max)
+		if self.opts.overzoom:
+			use_zoom = min(self.int_zoom, self.opts.zoom_max)
 
 		# If the tileset definition includes a mapping, use it.
-		if self.zoom_substitutions is not None:
-			use_zoom = self.zoom_substitutions.get(use_zoom, use_zoom)
+		if self.opts.zoom_substitutions is not None:
+			use_zoom = self.opts.zoom_substitutions.get(use_zoom, use_zoom)
 
 		# If the requested zoom level and the zoom level which we have decided
 		# to use are different, make adjustments.
@@ -165,7 +179,7 @@ class MapTileLayer(MapLayer):
 		# Make a list of the tiles to use used and their positions on the screen.
 		self.tiles = []
 		self.tile_ranges = None
-		if self.int_zoom >= self.zoom_min and self.int_zoom <= self.zoom_max:
+		if self.int_zoom >= self.opts.zoom_min and self.int_zoom <= self.opts.zoom_max:
 			center_tile_x, center_tile_y = project_to_tilespace(lat, lon, self.int_zoom)
 
 			half_width_in_pixels = self.containing_map.width / 2.0
@@ -228,7 +242,7 @@ class MapTileLayer(MapLayer):
 
 			# Tile not loaded? Search for a lower zoom tile which will do.
 			if tile_obj[0] is None:
-				for lower_zoom in range(zoom-1, self.zoom_min-1, -1):
+				for lower_zoom in range(zoom-1, self.opts.zoom_min-1, -1):
 					zoom_diff = zoom - lower_zoom
 					bigger_tile = self.load_tile_cached(lower_zoom, x >> zoom_diff, y >> zoom_diff, False)
 					if bigger_tile is not None:
@@ -244,7 +258,7 @@ class MapTileLayer(MapLayer):
 
 		# Draw tiles
 		self.dedup.clear()
-		for draw_pass in range(self.draw_passes):
+		for draw_pass in range(self.tile_class.draw_passes):
 			i = 0
 			for zoom, x, y, xpixoff, ypixoff in self.tiles:
 				#print zoom, x, y, xpixoff, ypixoff
@@ -299,38 +313,39 @@ class MapTileLayer(MapLayer):
 
 # Used for raster image tiles
 class MapRasterTile(object):
-	def __init__(self, layer, filename=None, data=None):
-		if filename is not None:
-			pixbuf = pixbuf_from_file(filename)
-		elif data is not None:
-			pixbuf = pixbuf_from_file_data(data)
-		else:
-			raise AssertionError
+	draw_passes = 1
+	def __init__(self, layer, filename, zoom, x, y, data=None):
+		self.layer = layer
 
-		self.opacity = layer.tileset.opacity
+		if filename is not None:
+			try:
+				pixbuf = pixbuf_from_file(filename)
+			except Exception as e:
+				raise MapTileError("defective tile file: %s, %s" % (filename, str(e)))
+		elif data is not None:
+			try:
+				pixbuf = pixbuf_from_file_data(data)
+			except Exception as e:
+				raise MapTileError("defective tile data: %s, %d %d %d, %s" % (layer.name, zoom, x, y, str(e)))
+		else:
+			raise MapTileError("neither filename nor data given")
 
 		# See http://www.pygtk.org/pygtk2reference/class-gdkpixbuf.html
-		transparent_color = layer.tileset.transparent_color
+		transparent_color = layer.opts.transparent_color
 		if transparent_color is not None:
 			pixbuf = pixbuf.add_alpha(True, *transparent_color)
 
-		saturation = layer.tileset.saturation
+		saturation = layer.opts.saturation
 		if saturation is not None:
 			pixbuf.saturate_and_pixelate(pixbuf, saturation, False)
 
 		# Convert pixbuf to a Cairo image surface.
 		self.tile_surface = surface_from_pixbuf(pixbuf)
 
-	# Draw a 256x256 unit tile at position (xpixoff, ypixoff).
+	# Draw a tile so that it covers an area of 256x256 units multiplied by scale.
 	def draw(self, ctx, scale, draw_pass):
+		scale *= (256.0 / self.tile_surface.get_width())	# support retina tiles
 		ctx.scale(scale, scale)
 		ctx.set_source_surface(self.tile_surface, 0, 0)
-		ctx.paint_with_alpha(self.opacity)
-
-# Used for vector tiles
-class MapCustomTile(object):
-	def __init__(self, layer, filename, zoom, x, y):
-		self.renderer = layer.renderer(layer, filename, zoom, x, y)
-	def draw(self, ctx, scale, draw_pass):
-		self.renderer.draw(ctx, scale, draw_pass)
+		ctx.paint_with_alpha(self.layer.opts.opacity)
 

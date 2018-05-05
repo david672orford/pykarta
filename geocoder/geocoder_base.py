@@ -1,6 +1,6 @@
 # pykarta/geocoder/geocoder_base.py
-# Copyright 2013, 2014, 2015, Trinity College Computing Center
-# Last modified: 6 February 2015
+# Copyright 2013--2018, Trinity College Computing Center
+# Last modified: 23 April 2018
 
 import threading
 import httplib
@@ -38,6 +38,7 @@ class GeocoderBase:
 	f_state = 4
 	f_postal_code = 5
 
+	url_method = "http"
 	url_server = None
 	url_path = None
 	conn = None					# HTTP connexion to server
@@ -127,7 +128,10 @@ class GeocoderBase:
 			for attempt in (1, 2):
 				if self.conn is None:
 					self.debug("  Opening HTTP connexion to %s..." % self.url_server)
-					self.conn = httplib.HTTPConnection(self.url_server, timeout=self.timeout)
+					if self.url_method == "https":
+						self.conn = httplib.HTTPSConnection(self.url_server, timeout=self.timeout)
+					else:
+						self.conn = httplib.HTTPConnection(self.url_server, timeout=self.timeout)
 
 				# Send the HTTP request
 				# We could use self.conn.request() here, but then we would have

@@ -1,7 +1,8 @@
 # pykarta/address/__init__.py
-# Copyright 2013, 2014, 2015, Trinity College
-# Last modified: 5 February 2015
+# Copyright 2013--2018, Trinity College
+# Last modified: 27 April 2018
 
+from __future__ import print_function
 import string
 import re
 
@@ -23,7 +24,7 @@ import re
 #  }
 #
 def split_address(address):
-	#print "split_address(\"%s\")" % address
+	#print("split_address(\"%s\")" % address)
 
 	# Break the address into lines, remove leading and trailing
 	# whitespace from each line.
@@ -32,7 +33,7 @@ def split_address(address):
 		line = re.sub('^\s+', '', line)
 		line = re.sub('\s+$', '', line)
 		if line:	# if not left empty,
-			#print "  \"%s\"" % line
+			#print("  \"%s\"" % line)
 			lines.append(line)
 
 	# Place to store address components
@@ -62,9 +63,13 @@ def split_address(address):
 
 # Split a person's name into its component parts.
 def split_name(name):
-	components = {}
+	if re.search(r'[A-Z]', name) and not re.search(r'[a-z]', name):
+		name = name.title()
+
 	name = re.sub(r'^((Mr\.?)|(Mrs\.)|(Ms\.)) ', '', name, re.IGNORECASE)
 	name = re.sub(r' ((Jr)|(Sr)|(II)|(III))$', '', name, re.IGNORECASE)
+
+	components = {}
 	match = re.match('^([^,]+), ?(.*)', name)
 	if match:
 		components['Last Name'] = match.group(1)
@@ -157,7 +162,7 @@ directional_prefix_table = {
 	'W':'West',
 	'Nw':'Northwest',
 	}
-for i in directional_prefix_table.values():
+for i in list(directional_prefix_table.values()):
 	directional_prefix_table[i] = i
 
 # Suffixes of street names
@@ -169,7 +174,7 @@ directional_suffix_table = {
 	'E':'East',
 	'W':'West',
 	}
-for i in directional_suffix_table.values():		# add unabbreviated versions
+for i in list(directional_suffix_table.values()):		# add unabbreviated versions
 	directional_suffix_table[i] = i
 
 # Street type, recommended abbreviation, followed by other abbreviations
@@ -442,13 +447,13 @@ def disabbreviate_street(street, phonebook_format=False):
 	# Use prefix table to disabbreviate words starting from the left until we 
 	# hit a word that his not a prefix (whether abbreviated or not).
 	prefixes = []
-	while words and directional_prefix_table.has_key(words[0]):
+	while words and words[0] in directional_prefix_table:
 		prefixes.append(directional_prefix_table[words.pop(0)])
 
 	# Use suffix table to disabbreviate words starting from the right until we 
 	# hit a word that his not a prefix (whether abbreviated or not).
 	suffixes = []
-	while words and directional_suffix_table.has_key(words[-1]):
+	while words and words[-1] in directional_suffix_table:
 		suffixes.insert(0, directional_suffix_table[words.pop(-1)])
 
 	# "St" at the beginning of the street name means "Saint". (At the
@@ -467,7 +472,7 @@ def disabbreviate_street(street, phonebook_format=False):
 	# "Park Drive" remains the same
 	# "City Arcade" remains the same (since "Arcade" is a street suffix), but
 	# "Arcade" becomes "Arcade Street"
-	if phonebook_format and ( len(words) < 2 or not street_words_table.has_key(words[-1]) ):
+	if phonebook_format and ( len(words) < 2 or not words[-1] in street_words_table ):
 		words.append("Street")
 
 	words.extend(suffixes)
@@ -507,7 +512,7 @@ states_table = {
 	}
 
 def abbreviate_state(state):
-	if states_table.has_key(state):
+	if state in states_table:
 		return states_table[state]
 	else:
 		return state
@@ -515,19 +520,19 @@ def abbreviate_state(state):
 if __name__ == "__main__":
 	import sys
 	if len(sys.argv) == 3 and sys.argv[1] == 'parse':
-		print split_address(sys.argv[2])
+		print(split_address(sys.argv[2]))
 	elif len(sys.argv) == 3 and sys.argv[1] == 'street':
-		print disabbreviate_street(sys.argv[2], True)
+		print(disabbreviate_street(sys.argv[2], True))
 	elif len(sys.argv) == 3 and sys.argv[1] == 'town':
-		print disabbreviate_town(sys.argv[2])
+		print(disabbreviate_town(sys.argv[2]))
 	elif len(sys.argv) == 2 and sys.argv[1] == 'test1':
-		print split_address("""
+		print(split_address("""
 			Mr. John Smith
 			123 Main St, Apt 15
 			Anytown, ST 00000
-			""")
+			"""))
 	elif len(sys.argv) == 2 and sys.argv[1] == 'test2':
-		print split_house_street_apt("19 Princeton St, Apt 1")
+		print(split_house_street_apt("19 Princeton St, Apt 1"))
 	else:
 		raise Exception
 

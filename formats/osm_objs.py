@@ -32,8 +32,8 @@ class OsmObj(object):
 class OsmNode(OsmObj):
 	def __init__(self, lat, lon, osm_tags):
 		OsmObj.__init__(self, osm_tags)
-		assert type(lat) == float
-		assert type(lon) == float
+		assert type(lat) == float, lat
+		assert type(lon) == float, lon
 		self.lat = lat
 		self.lon = lon
 

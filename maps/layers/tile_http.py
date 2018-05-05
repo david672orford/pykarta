@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tile_http.py
-# Copyright 2013, 2014, 2015, Trinity College
-# Last modified: 15 January 2015
+# Copyright 2013--2018, Trinity College
+# Last modified: 4 May 2018
 
 import os
 import errno
@@ -13,7 +13,7 @@ import socket
 import gobject
 
 from pykarta.misc.http import http_date
-from pykarta.maps.layers.base import MapTileLayer, MapRasterTile, MapCustomTile
+from pykarta.maps.layers.base import MapTileLayer, MapTileError
 from pykarta.misc import file_age_in_days, BoundMethodProxy, NoInet, tile_count, SaveAtomically
 
 #=============================================================================
@@ -21,18 +21,18 @@ from pykarta.misc import file_age_in_days, BoundMethodProxy, NoInet, tile_count,
 #=============================================================================
 class MapTileLayerHTTP(MapTileLayer):
 	def __init__(self, tileset, options={}):
-		MapTileLayer.__init__(self)
+		MapTileLayer.__init__(self, tileset.tile_class)
 		self.tileset = tileset
-		self.cache_enabled = tileset.layer_cache_enabled
-		self.zoom_substitutions = tileset.zoom_substitutions
 		self.tileset_online_init_called = False
 
-		# For vector tiles, set up renderer.
-		self.renderer = tileset.renderer
-		if "renderer" in options:
-			self.renderer = tileset.renderers[options["renderer"]]
-		if self.renderer:
-			self.draw_passes = self.renderer.draw_passes
+		# Take saturation and opacity from the tileset, but allow
+		# the user to override them with options.
+		self.opts.saturation = tileset.saturation
+		if "saturation" in options:
+			self.opts.saturation = float(options["saturation"])
+		self.opts.opacity = tileset.opacity
+		if "opacity" in options:
+			self.opts.opacity = float(options["opacity"])
 
 		# How long (in milliseconds) to wait after receiving a tile
 		# for the next one to arrive before redrawing
@@ -47,9 +47,11 @@ class MapTileLayerHTTP(MapTileLayer):
 	# Hook set_map() so that when this layer is added to the map it
 	# can create a tile downloader and set it to either syncronous mode or 
 	# asyncronous mode depending on whether we are doing this for print
-	# or for the screen (where lazy tile loading is disirable).
+	# or for the screen (where lazy tile loading is desirable).
 	def set_map(self, containing_map):
 		MapTileLayer.set_map(self, containing_map)
+
+		self.tileset.late_init()
 
 		# If this tileset has not yet had a chance to download metadata and
 		# we are currently online, give it that chance now.
@@ -58,10 +60,12 @@ class MapTileLayerHTTP(MapTileLayer):
 			self.tileset_online_init_called = True
 
 		# Copy metadata from the tileset to the layer.
-		self.zoom_min = self.tileset.zoom_min
-		self.zoom_max = self.tileset.zoom_max
-		self.overzoom = self.tileset.overzoom
-		self.attribution = self.tileset.attribution
+		self.opts.zoom_min = self.tileset.zoom_min
+		self.opts.zoom_max = self.tileset.zoom_max
+		self.opts.overzoom = self.tileset.overzoom
+		self.opts.attribution = self.tileset.attribution
+		self.opts.cache_enabled = self.tileset.layer_cache_enabled
+		self.opts.zoom_substitutions = self.tileset.zoom_substitutions
 
 		# If we are offline, create an object which can only find tiles in the cache.
 		# If we are online, create an object which can also download tiles.
@@ -89,13 +93,10 @@ class MapTileLayerHTTP(MapTileLayer):
 		if pending:
 			self.missing_tiles[zoom] = self.missing_tiles.get(zoom, 0) + 1
 		if filename is not None:
-			if self.renderer is not None:
-				return MapCustomTile(self, filename, zoom, x, y)
-			else:
-				try:
-					return MapRasterTile(self, filename=filename)
-				except Exception as e:
-					self.feedback.debug(1, " defective tile file: %s, %s" % (filename, str(e)))
+			try:
+				return self.tile_class(self, filename, zoom, x, y)
+			except MapTileError as e:
+				self.feedback.debug(1, " %s" % str(e))
 		return None
 
 	# The tile downloader calls this when the tile has been received
@@ -248,7 +249,7 @@ class MapTileDownloader(object):
 	#  pending--True if a callback is to be expected	
 	def load_tile(self, zoom, x, y, may_download):
 		debug_args = (self.tileset.key, zoom, x, y)
-		self.feedback.debug(2, "Load tile %s %d/%d/%d" % debug_args)
+		self.feedback.debug(1, "Load tile %s %d/%d/%d" % debug_args)
 		local_filename = "%s/%s/%d/%d/%d" % (self.tile_cache_basedir, self.tileset.key, zoom, x, y)
 		result = None
 
@@ -329,6 +330,7 @@ class MapTileDownloaderThread(threading.Thread):
 		self.queue = parent.queue
 		self.tileset = parent.tileset
 		self.done_callback = parent.done_callback
+		self.hostname = self.tileset.get_hostname()
 
 	def run(self):
 		while True:
@@ -352,6 +354,9 @@ class MapTileDownloaderThread(threading.Thread):
 			self.conn.close()
 		self.feedback.debug(2, " Thread %s exiting..." % self.name)
 
+	def url(self, remote_filename):
+		return "%s://%s%s" % (self.tileset.url_template.scheme, self.hostname, remote_filename)
+
 	def download_tile_worker(self, zoom, x, y, local_filename, remote_filename, statbuf):
 		debug_args = (self.tileset.key, zoom, x, y)
 		self.feedback.debug(2, "Thread %s downloading tile %s %d/%d/%d" % ((self.name,) + debug_args))
@@ -360,10 +365,13 @@ class MapTileDownloaderThread(threading.Thread):
 		try:
 			# Connect if we are not connected already.
 			if self.conn is None:
-				hostname = self.tileset.get_hostname()
-				self.feedback.debug(3, " Thread %s opening HTTP connexion to %s..." % (self.name, hostname))
-				self.conn = httplib.HTTPConnection(hostname, timeout=30)
+				self.feedback.debug(3, " Thread %s opening HTTP connexion to %s..." % (self.name, self.hostname))
+				if self.tileset.url_template.scheme == "https":
+					self.conn = httplib.HTTPSConnection(self.hostname, timeout=30)
+				else:
+					self.conn = httplib.HTTPConnection(self.hostname, timeout=30)
 
+			# Build the HTTP request headers
 			hdrs = {}
 			hdrs.update(self.tileset.extra_headers)
 			if statbuf is not None:
@@ -393,7 +401,7 @@ class MapTileDownloaderThread(threading.Thread):
 				remote_filename = location
 
 		except socket.gaierror, msg:
-			self.feedback.error(_("Tile %s/%d/%d/%d: Address lookup error: %s") % (debug_args + (msg,)))
+			self.feedback.error(_("Tile %s/%d/%d/%d: Address lookup error: %s: %s") % (debug_args + (self.hostname, msg)))
 			raise NoInet
 		except socket.error, msg:
 			self.feedback.error(_("Tile %s/%d/%d/%d: socket error: %s") % (debug_args + (msg,)))
@@ -421,9 +429,9 @@ class MapTileDownloaderThread(threading.Thread):
 
 		else:
 			if response.status != 200:
-				self.feedback.debug(1, "  %s/%d/%d/%d: unacceptable response status: %d %s" % (debug_args + (response.status, response.reason)))
+				self.feedback.debug(1, "  %s/%d/%d/%d: %s: unacceptable response status: %d %s" % (debug_args + (self.url(remote_filename), response.status, response.reason)))
 				response_body = response.read()
-				if response_body != "" and content_type.startswith("text/"):
+				if response_body != "" and content_type is not None and content_type.startswith("text/"):
 					self.feedback.debug(1, "%s" % response_body.strip())
 				return True	 				# give up on tile
 

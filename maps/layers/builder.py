@@ -1,6 +1,6 @@
 # pykarta/maps/layers/builder.py
-# Copyright 2013--2016, Trinity College
-# Last modified: 27 July 2016
+# Copyright 2013--2018, Trinity College
+# Last modified: 29 April 2018
 
 from tilesets_base import tilesets
 import tilesets_osm
@@ -8,9 +8,8 @@ import tilesets_bing
 import tilesets_arcgis
 import tilesets_massgis
 import tilesets_modestmaps
-import tilesets_vec_osmus
-import tilesets_vec_tc
-import tilesets_vec_mapzen
+import tilesets_osm_vec
+import tilesets_parcels
 
 def MapLayerBuilder(layer_name):
 	if layer_name == "osm-default-svg":

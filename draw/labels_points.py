@@ -1,6 +1,6 @@
 # pykarta/draw/labels_points.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 7 October 2014
+# Copyright 2013--2018, Trinity College
+# Last modified: 4 May 2018
 
 import cairo
 from shapes import rounded_rectangle
@@ -70,11 +70,12 @@ def generic_shield(ctx, x, y, text, fontsize=12):
 	xbearing, ybearing, width, height, xadvance, yadvance = extents
 	x -= width / 2
 	y -= height / 2
-	padding = fontsize / 4
+	padding_left_right = fontsize / 4
+	padding_top_bottom = fontsize / 3
 	# White shield with black edging
 	rounded_rectangle(ctx,
-		x - padding, y - padding,
-		width + 2*padding, height + 2*padding,
+		x - padding_left_right, y - padding_top_bottom,
+		width + 2*padding_left_right, height + 2*padding_top_bottom,
 		5		# <-- corner radius
 		)
 	ctx.set_line_width(1)

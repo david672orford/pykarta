@@ -1,5 +1,5 @@
 # pykarta/maps/tilegen.py
-# Copyright 2013, 2014, 2015, Trinity College
+# Copyright 2013--2017, Trinity College
 # Last modified: 3 February 2015
 
 import cairo
@@ -15,7 +15,7 @@ from pykarta.geometry.projection import project_to_tilespace, unproject_from_til
 
 # This is a Pykarta map object which produces map tiles as its output.
 # But rather than stitch them together on a Cairo surface, it saves
-# them to a tile store using an a tile store object which is pased to it.
+# them to a tile store using a tile store object provided by the caller.
 class MapTilegen(MapBase):
 	def __init__(self, writer, **kwargs):
 		kwargs['tile_source'] = None

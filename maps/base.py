@@ -462,7 +462,7 @@ class MapBase(object):
 		if isinstance(tile_source, basestring):
 			tile_source = [tile_source]
 
-		# Accept shortcuts for whole sets of layers.
+		# Expand layer sets into their component layers.
 		temp = []
 		for layer_name in tile_source:
 			if layer_name in map_layer_sets:
