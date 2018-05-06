@@ -37,14 +37,14 @@ def application(environ, start_response):
 
 	# If the apartment number is specified in the address, try a search with the exact house number and apartment number.
 	if apartment_number:
-		cursor.execute(query_template.replace("{house}", "apartment_number=? and house_number=?"), (apartment_number, house_number,) + address_base)
+		cursor.execute(query_template.replace("{house}", "apartment_number=? and house_number=?"), [apartment_number, house_number] + address_base)
 		row = cursor.fetchone()
 
 	# If the previous search was not performed or did not produce anything, try without the apartment number.
 	if row is None:
 		# Try for an exact match 
 		#start_time = time.time()
-		cursor.execute(query_template.replace("{house}", "house_number=?"), (house_number,) + address_base)
+		cursor.execute(query_template.replace("{house}", "house_number=?"), [house_number] + address_base)
 		#stderr.write("elapsed: %f\n" % (time.time() - start_time))
 		row = cursor.fetchone()
 
@@ -52,7 +52,7 @@ def application(environ, start_response):
 	if row is None and re.match(r'^\d+$', house_number):
 		house_number = int(house_number)
 		address = [house_number, house_number] + address[1:]
-		cursor.execute(query_template.replace("{house}", "house_number_start <= ? and house_number_end >= ?"), (house_number, house_number) + address_base)
+		cursor.execute(query_template.replace("{house}", "house_number_start <= ? and house_number_end >= ?"), [house_number, house_number] + address_base)
 		row = cursor.fetchone()
 
 	# If we got a match, insert the latitude and longitude into a GeoJSON point object.
