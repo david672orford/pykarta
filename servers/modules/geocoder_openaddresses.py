@@ -37,7 +37,7 @@ def application(environ, start_response):
 
 	# If the apartment number is specified in the address, try a search with the exact house number and apartment number.
 	if apartment_number:
-		cursor.execute(query_template.replace("{house}" "apartment_number=? and house_number=?"), (apartment_number, house_number,) + address_base)
+		cursor.execute(query_template.replace("{house}", "apartment_number=? and house_number=?"), (apartment_number, house_number,) + address_base)
 		row = cursor.fetchone()
 
 	# If the previous search was not performed or did not produce anything, try without the apartment number.
