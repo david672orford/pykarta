@@ -51,7 +51,6 @@ def application(environ, start_response):
 	# If nothing found, look for an entry which gives a range of house numbers which includes this one.
 	if row is None and re.match(r'^\d+$', house_number):
 		house_number = int(house_number)
-		address = [house_number, house_number] + address[1:]
 		cursor.execute(query_template.replace("{house}", "house_number_start <= ? and house_number_end >= ?"), [house_number, house_number] + address_base)
 		row = cursor.fetchone()
 
