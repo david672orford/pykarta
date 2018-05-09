@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tilesets_osm.py
 # Copyright 2013--2018 Trinity College
-# Last modified: 26 April 2018
+# Last modified: 5 May 2018
 #
 # Tile sets based on free data from Openstreetmap.org
 # This is imported by builder.py.
@@ -28,7 +28,8 @@ tilesets.append(MapTilesetRaster('osm-default',
 # https://osm.rrze.fau.de/
 # Double-resolution rendering of the default style
 tilesets.append(MapTilesetRaster('osm-default-hd', 
-	url_template='http://a.osm.rrze.fau.de/osmhd/{z}/{x}/{y}.png',
+	#url_template='http://a.osm.rrze.fau.de/osmhd/{z}/{x}/{y}.png',
+	url_template='tiles/osm-default-hd/{z}/{x}/{y}.png',
 	attribution=u"© OpenStreetMap contributors",
 	zoom_max=19,
 	transparent_color=(242,239,233),

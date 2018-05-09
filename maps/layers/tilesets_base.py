@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tilesets_base.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 4 May 2018
+# Last modified: 8 May 2018
 
 import time
 from urllib import urlencode
@@ -78,10 +78,14 @@ class MapTileset(object):
 
 		if self.url_template is not None and self.url_template.netloc == "":
 			server_url = urlparse(pykarta.server_url)
-			self.url_template = self.url_template._replace(
-				scheme=server_url.scheme,
-				netloc = server_url.netloc,
+			if server_url.path.endswith("/"):
+				path = (server_url.path + self.url_template.path)
+			else:
 				path = (server_url.path + "/" + self.url_template.path)
+			self.url_template = self.url_template._replace(
+				scheme = server_url.scheme,
+				netloc = server_url.netloc,
+				path = path
 				)
 
 	# Override this if the layer needs Internet access to complete initialization.

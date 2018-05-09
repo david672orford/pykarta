@@ -2,7 +2,7 @@
 # pykarta/maps/layers/tilesets_osm_vec.py
 # Vector tile sets and renderers for them
 # Copyright 2013--2018, Trinity College
-# Last modified: 4 May 2018
+# Last modified: 8 May 2018
 
 # http://colorbrewer2.org/ is helpful for picking color palates
 
@@ -147,12 +147,14 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 		}
 	styles = {
 		'motorway':{
-			'line-color':(0.2, 0.3, 0.9),			# blue
+			#'line-color':(0.2, 0.3, 0.9),			# blue
+			'line-color':(0.3, 0.45, 1.0),			# blue
 			'line-width':(6,0.25, 14,10.0),
 			'line-cap':'round',
 			},
 		'major_road':{
-			'line-color':(0.8, 0.2, 0.2),			# dark red
+			#'line-color':(0.8, 0.2, 0.2),			# dark red
+			'line-color':(0.9, 0.3, 0.3),			# dark red
 			'line-width':(6,0.2, 14,6.0),
 			'line-cap':'round',
 			},

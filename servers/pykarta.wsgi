@@ -31,7 +31,7 @@ def application(environ, start_response):
 		stderr.write("Parse failed: %s\n" % environ['PATH_INFO'])
 		app = app_not_found
 	else:
-		stderr.write("groups: %s %s %s\n" % m.groups())
+		#stderr.write("groups: %s %s %s\n" % m.groups())
 		app = routes.get("%s/%s" % (m.group(1), m.group(2)))
 		if app is not None:
 			environ['SCRIPT_NAME'] += ("/%s/%s" % (m.group(1), m.group(2)))
@@ -51,5 +51,5 @@ if __name__ == "__main__":
 	#print("Serving HTTP on port 8000...")
 	#httpd.serve_forever()
 	from werkzeug.serving import run_simple
-	run_simple('localhost', 8000, application, threaded=True)
+	run_simple('localhost', 8000, application, threaded=False)
 

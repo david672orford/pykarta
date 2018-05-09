@@ -1,6 +1,6 @@
 # pykarta/servers/modules/tiles_osm_vec.py
 # Produce GeoJSON tiles from OSM data stored in a Spatialite database
-# Last modified: 5 May 2018
+# Last modified: 8 May 2018
 
 # References:
 # https://docs.python.org/2/library/sqlite3.html
@@ -10,13 +10,10 @@
 # https://github.com/TileStache/TileStache/blob/master/TileStache/Goodies/VecTiles/server.py
 # http://northredoubt.com/n/2012/01/18/spatialite-and-spatial-indexes/
 
+from __future__ import print_function
 import os, json, re, gzip, io
-from email.utils import formatdate
-from pyspatialite import dbapi2 as db
 from pykarta.geometry.projection import unproject_from_tilespace
-import threading
-
-thread_data = threading.local()
+from pykarta.servers.dbopen import dbopen
 
 # Sets of map layers for use together
 map_layer_sets = {
@@ -255,15 +252,6 @@ def get_tile(stderr, cursor, layer_name, bbox, zoom):
 def application(environ, start_response):
 	stderr = environ['wsgi.errors']
 
-	cursor = getattr(thread_data, 'cursor', None)
-	if cursor is None:
-		db_filename = environ["DATADIR"] + "/osm_map.sqlite"
-		thread_data.last_modified = formatdate(os.path.getmtime(db_filename), usegmt=True)
-		conn = db.connect(db_filename)
-		conn.row_factory = db.Row
-		cursor = conn.cursor()
-		thread_data.cursor = cursor
-
 	m = re.match(r'^/([^/]+)/(\d+)/(\d+)/(\d+)\.geojson$', environ['PATH_INFO'])
 	assert m, environ['PATH_INFO']
 	layer_name = m.group(1)
@@ -272,6 +260,11 @@ def application(environ, start_response):
 	y = int(m.group(4))
 	stderr.write("%s tile (%d, %d) at zoom %d...\n" % (layer_name, x, y, zoom))
 	assert zoom <= 16
+
+	cursor, response_headers = dbopen(environ, "osm_map.sqlite")
+	if cursor is None:
+		start_response("304 Not Modified", response_headers)
+		return []
 
 	p1 = unproject_from_tilespace(x - 0.05, y - 0.05, zoom)
 	p2 = unproject_from_tilespace(x + 1.05, y + 1.05, zoom)
@@ -293,17 +286,16 @@ def application(environ, start_response):
 		json.dump(geojson, fo)
 	geojson = out.getvalue()
 
-	start_response("200 OK", [
+	start_response("200 OK", response_headers + [
 		('Content-Type', 'application/json'),
 		('Content-Encoding', 'gzip'),
-		('Last-Modified', thread_data.last_modified),
 		])
 	return [geojson]
 
 if __name__ == "__main__":
 	import sys
 	def dummy_start_response(code, headers):
-		print code, headers
+		print(code, headers)
 	application({
 		'PATH_INFO': "/osm-vector-roads/16/19528/24304.geojson",
 		'wsgi.errors': sys.stderr,

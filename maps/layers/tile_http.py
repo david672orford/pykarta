@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tile_http.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 4 May 2018
+# Last modified: 8 May 2018
 
 import os
 import errno
@@ -201,6 +201,7 @@ class MapTileLayerHTTP(MapTileLayer):
 			for x in range(x_range_start, x_range_end+1):
 				for y in range(y_range_start, y_range_end+1):
 					self.ram_cache_invalidate(zoom, x, y)
+					# FIXME: should instead queue for revalidation
 					local_filename = "%s/%s/%d/%d/%d" % (self.containing_map.tile_cache_basedir, self.tileset.key, zoom, x, y)
 					try:
 						os.unlink(local_filename)

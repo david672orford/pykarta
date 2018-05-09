@@ -1,26 +1,13 @@
 # Produce GeoJSON tiles from parcel boundaries stored in a Spatialite database
-# Last modified: 4 May 2018
+# Last modified: 8 May 2018
 
 from __future__ import print_function
 import os, json, re, gzip, io
-from email.utils import formatdate
-from pyspatialite import dbapi2 as db
 from pykarta.geometry.projection import unproject_from_tilespace
-import threading
-
-thread_data = threading.local()
+from pykarta.servers.dbopen import dbopen
 
 def application(environ, start_response):
 	stderr = environ['wsgi.errors']
-
-	cursor = getattr(thread_data, 'cursor', None)
-	if cursor is None:
-		db_filename = environ["DATADIR"] + "/parcels.sqlite"
-		thread_data.last_modified = formatdate(os.path.getmtime(db_filename), usegmt=True)
-		conn = db.connect(db_filename)
-		conn.row_factory = db.Row
-		cursor = conn.cursor()
-		thread_data.cursor = cursor
 
 	m = re.match(r'^/(\d+)/(\d+)/(\d+)\.geojson$', environ['PATH_INFO'])
 	assert m, environ['PATH_INFO']
@@ -29,6 +16,11 @@ def application(environ, start_response):
 	y = int(m.group(3))
 	stderr.write("Parcel tile (%d, %d) at zoom %d...\n" % (x, y, zoom))
 	assert zoom <= 16
+
+	cursor, response_headers = dbopen(environ, "parcels.sqlite")
+	if cursor is None:
+		start_response("304 Not Modified", response_headers)
+		return []
 
 	p1 = unproject_from_tilespace(x - 0.05, y - 0.05, zoom)
 	p2 = unproject_from_tilespace(x + 1.05, y + 1.05, zoom)
@@ -76,10 +68,9 @@ def application(environ, start_response):
 		json.dump(geojson, fo)
 	geojson = out.getvalue()
 
-	start_response("200 OK", [
+	start_response("200 OK", response_headers + [
 		('Content-Type', 'application/json'),
 		('Content-Encoding', 'gzip'),
-		('Last-Modified', thread_data.last_modified),
 		])
 	return [geojson]
 
