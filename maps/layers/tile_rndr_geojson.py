@@ -2,7 +2,7 @@
 # pykarta/maps/layers/tile_rndr_geojson.py
 # Base class for GeoJSON vector tile renderers
 # Copyright 2013--2018, Trinity College
-# Last modified: 4 May 2018
+# Last modified: 9 May 2018
 
 try:
 	import simplejson as json
@@ -54,14 +54,20 @@ class MapGeoJSONTile(object):
 			polygon_labels = self.polygon_labels = []
 			if zoom >= 13:
 				for id, polygon, properties, style in self.polygons:
-					name = properties.get("name")
-					if name is not None:
-						polygon_obj = Polygon(Points(polygon))
-						area = polygon_obj.area()
-						center = polygon_obj.choose_label_center()
-						polygon_labels.append((id, area, center, name))
+					if not id in self.dedup:
+						label_text = self.choose_polygon_label_text(properties)
+						if label_text is not None:
+							polygon_obj = Polygon(Points(polygon))
+							area = polygon_obj.area()
+							center = polygon_obj.choose_label_center()
+							label_text = "%s(%s)" % (label_text, id)
+							polygon_labels.append((id, area, center, label_text))
+						self.dedup.add(id)
 
 		self._elapsed()
+
+	def choose_polygon_label_text(self, properties):
+		return properties.get('name')
 
 	# This code is broken out of __init__() strictly for the sake of readability.
 	def _load_features(self, geojson):

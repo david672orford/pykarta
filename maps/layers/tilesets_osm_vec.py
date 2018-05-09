@@ -2,7 +2,7 @@
 # pykarta/maps/layers/tilesets_osm_vec.py
 # Vector tile sets and renderers for them
 # Copyright 2013--2018, Trinity College
-# Last modified: 8 May 2018
+# Last modified: 9 May 2018
 
 # http://colorbrewer2.org/ is helpful for picking color palates
 
@@ -40,19 +40,15 @@ class MapOsmLanduseTile(MapGeoJSONTile):
 	draw_passes = 2	# set to 2 to enable labels, 1 to disable
 	label_polygons = True
 	def choose_polygon_style(self, properties):
-		kind = properties.get("kind", "?")
-		style = self.styles.get(kind)
-		if style is None:
-			style = { 'fill-color': (0.90, 0.90, 0.90) }
+		landuse = properties.get("landuse", "?")
+		style = self.styles.get(landuse, { 'fill-color': (0.90, 0.90, 0.90) })
 		return style
 	def draw2(self, ctx, scale):
 		for id, area, center, text in self.polygon_labels:
-			if not id in self.dedup:
-				area = area * scale * scale
-				if area > 10000:	# equivalent of 100 pixel square
-					center = self.scale_point(center, scale)
-					pykarta.draw.centered_label(ctx, center[0], center[1], text, style=self.label_style)
-					self.dedup.add(id)
+			area = area * scale * scale
+			if area > 10000:	# equivalent of 100 pixel square
+				center = self.scale_point(center, scale)
+				pykarta.draw.centered_label(ctx, center[0], center[1], text, style=self.label_style)
 
 tilesets.append(MapTilesetVector('osm-vector-landuse',
 	tile_class=MapOsmLanduseTile,
@@ -108,8 +104,22 @@ tilesets.append(MapTilesetVector('osm-vector-water',
 
 # These vector tiles do not include any building properties.
 class MapOsmBuildingsTile(MapGeoJSONTile):
+	label_polygons = True
+	draw_passes = 2
+	label_style = {
+		'font-size':8,
+		'font-weight':'normal',
+		'halo':False,
+		'color':(0.5, 0.5, 0.5),
+		}
 	def choose_polygon_style(self, properties):
 		return  { 'fill-color': (0.8, 0.7, 0.7) }
+	def choose_polygon_label_text(self, properties):
+		return properties.get('addr:housenumber')
+	def draw2(self, ctx, scale):
+		for id, area, center, text in self.polygon_labels:
+			center = self.scale_point(center, scale)
+			pykarta.draw.centered_label(ctx, center[0], center[1], text, style=self.label_style)
 
 tilesets.append(MapTilesetVector('osm-vector-buildings',
 	tile_class=MapOsmBuildingsTile,
@@ -149,18 +159,18 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 		'motorway':{
 			#'line-color':(0.2, 0.3, 0.9),			# blue
 			'line-color':(0.3, 0.45, 1.0),			# blue
-			'line-width':(6,0.25, 14,10.0),
+			'line-width':(6,0.25, 14,8.0),
 			'line-cap':'round',
 			},
 		'major_road':{
 			#'line-color':(0.8, 0.2, 0.2),			# dark red
 			'line-color':(0.9, 0.3, 0.3),			# dark red
-			'line-width':(6,0.2, 14,6.0),
+			'line-width':(6,0.15, 14,5.0),
 			'line-cap':'round',
 			},
 		'minor_road':{								# appear at z12
 			'line-color':(0.4, 0.4, 0.4),			# grey
-			'line-width':(12,0.75, 14,3.0),
+			'line-width':(12,0.2, 14,2.0),
 			'line-cap':'round',
 			},
 		'railway':{
@@ -187,76 +197,78 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 			},
 		'trunk':{
 			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,8.0, 18,16.0),
+			'line-width':(14,7.0, 18,16.0),
 			'line-cap':'round',
-			'overline-color':(0.7, 0.0, 0.0),		# dark red
-			'overline-width':(14,7.0, 18,14.0),
+			#'overline-color':(0.7, 0.0, 0.0),		# dark red
+			'overline-color':(0.8, 0.0, 0.0),		# dark red
+			'overline-width':(14,6.0, 18,14.0),
 			'overline-cap':'round',
 			},
 		'primary':{
 			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,7.0, 18,13.0),
+			'line-width':(14,6.0, 18,13.0),
 			'line-cap':'round',
-			'overline-color':(0.7, 0.0, 0.0),		# dark red
-			'overline-width':(14,6.0, 18,11.0),
+			#'overline-color':(0.7, 0.0, 0.0),		# dark red
+			'overline-color':(0.8, 0.0, 0.0),		# dark red
+			'overline-width':(14,5.0, 18,11.0),
 			'overline-cap':'round',
 			},
 		'secondary':{
 			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,6.0, 18,12.0),
+			'line-width':(14,5.0, 18,12.0),
 			'line-cap':'round',
 			'overline-color':(0.9, 0.3, 0.2),		# lighter red
-			'overline-width':(14,5.0, 18,10.0),
+			'overline-width':(14,4.0, 18,10.0),
 			'overline-cap':'round',
 			},
 		'tertiary':{
 			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,5.0, 18,11.0),
+			'line-width':(14,4.0, 18,11.0),
 			'line-cap':'round',
 			'overline-color':(0.998, 0.55, 0.35),	# orange
-			'overline-width':(14,4.0, 18,9.0),
+			'overline-width':(14,3.5, 18,9.0),
 			'overline-cap':'round',
 			},
 		'road':{	# FIXME: make different
 			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,4.0, 18,10.0),
+			'line-width':(14,3.0, 18,10.0),
 			'line-cap':'round',
 			'overline-color':(1.0, 1.0, 1.0),		# white fill
-			'overline-width':(14,3.0, 18,8.0),
+			'overline-width':(14,2.5, 18,8.0),
 			'overline-cap':'round',
 			},
 		'unclassified':{
 			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,4.0, 18,10.0),
+			'line-width':(14,3.0, 18,10.0),
 			'line-cap':'round',
 			'overline-color':(0.99, 0.94, 0.85),	# tan fill
-			'overline-width':(14,3.0, 18,8.0),
+			'overline-width':(14,2.5, 18,8.0),
 			'overline-cap':'round',
 			},
 		'residential':{
 			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,4.0, 18,10.0),
+			'line-width':(14,3.0, 18,10.0),
 			'line-cap':'round',
 			'overline-color':(1.0, 1.0, 1.0),		# white fill
-			'overline-width':(14,3.0, 18,8.0),
+			'overline-width':(14,2.5, 18,8.0),
 			'overline-cap':'round',
 			},
 		'living_street':{
 			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,4.0, 18,10.0),
+			'line-width':(14,3.0, 18,10.0),
 			'line-cap':'round',
 			'line-dasharray':(2,10),
 			'overline-color':(1.0, 1.0, 1.0),		# white fill
-			'overline-width':(14,3.0, 18,8.0),
+			'overline-width':(14,2.5, 18,8.0),
 			'overline-cap':'round',
 			},
 		'pedestrian':{
 			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,4.0, 18,10.0),
+			'line-width':(14,3.0, 18,10.0),
 			'line-cap':'round',
 			'line-dasharray':(4,10),
 			'overline-color':(1.0, 1.0, 1.0),		# white fill
-			'overline-width':(14,3.0, 18,8.0),
+			'overline-width':(14,2.5, 18,8.0),
 			'overline-cap':'round',
 			},
 		'service':{
@@ -264,16 +276,16 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 			'line-width':(14,2.0, 18,6.0),
 			'line-cap':'round',
 			'overline-color':(1.0, 1.0, 1.0),		# white fill
-			'overline-width':(14,1.5, 18,5.0),
+			'overline-width':(14,1.75, 18,5.0),
 			'overline-cap':'round',
 			},
 		'abandoned':{
 			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,4.0, 18,10.0),
+			'line-width':(14,3.0, 18,10.0),
 			'line-cap':'round',
 			'line-dasharray':(2,8),
 			'overline-color':(1.0, 1.0, 1.0),		# white fill
-			'overline-width':(14,3.0, 18,8.0),
+			'overline-width':(14,2.5, 18,8.0),
 			'overline-cap':'round',
 			},
 		'track':{
@@ -393,7 +405,7 @@ class MapOsmRoadLabelsTile(MapGeoJSONTile):
 
 		# Place the highway shields
 		self.shields = []
-		dedup = set()
+		dedup = set()		# dedup only within tile
 		for id, line, properties, style in self.lines:
 			ref = properties.get('ref')
 			if ref is not None:
@@ -413,15 +425,18 @@ class MapOsmRoadLabelsTile(MapGeoJSONTile):
 
 	def draw1(self, ctx, scale):
 
-		# Place the road labels for the current zoom level
+		# Place the road labels for the current zoom level (if it has not been done yet)
 		zoom = int(self.zoom + math.log(scale, 2.0) + 0.5)
 		if not zoom in self.labels:
 			labels = self.labels[zoom] = []
 			for id, line, properties, style in self.lines:
-				fontsize = self.zoom_feature(style, scale)
-				placement = pykarta.draw.place_line_label(ctx, line, properties['name'], fontsize=fontsize, tilesize=256)
-				if placement is not None:
-					labels.append(placement)
+				name = properties['name']
+				if not name in self.dedup:
+					fontsize = self.zoom_feature(style, scale)
+					placement = pykarta.draw.place_line_label(ctx, line, name, fontsize=fontsize, tilesize=256)
+					if placement is not None:
+						labels.append(placement)
+					self.dedup.add(name)
 
 		# Draw road names
 		offset = self.zoom_feature((12,2.0, 16,8.0), scale)
@@ -525,12 +540,12 @@ class MapOsmPoisTile(MapGeoJSONTile):
 				layer.tileset.symbols.add_symbol(symbol)
 		MapGeoJSONTile.__init__(self, layer, filename, zoom, x, y, data)
 	def choose_point_style(self, properties):
-		name = properties.get("name")
 		amenity = properties.get("amenity")
 		symbol = self.tileset.symbols.get_symbol(amenity)
 		if symbol is not None:
 			renderer = symbol.get_renderer(self.containing_map)
-			return (renderer, name)
+			label_text = properties.get("name") if self.zoom >= 16 else None
+			return (renderer, label_text)
 		print "Warning: no symbol for POI:", properties
 		return None
 	def draw1(self, ctx, scale):
@@ -592,7 +607,7 @@ tilesets.append(MapTilesetVector('osm-vector-places',
 #-----------------------------------------------------------------------------
 
 class MapOsmTile(object):
-	draw_passes = 11
+	draw_passes = 12
 	tile_classes = (
 		("landuse", MapOsmLanduseTile),
 		("waterways", MapOsmWaterwaysTile),

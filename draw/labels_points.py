@@ -1,11 +1,12 @@
 # pykarta/draw/labels_points.py
+# Draw POI labels
 # Copyright 2013--2018, Trinity College
-# Last modified: 4 May 2018
+# Last modified: 9 May 2018
 
 import cairo
-from shapes import rounded_rectangle
 
-font_family = "ubuntu"
+#font_family = "ubuntu"
+font_family = "sans-serif"
 
 font_weights = {
 	'normal':cairo.FONT_WEIGHT_NORMAL,
@@ -59,35 +60,6 @@ def centered_label(ctx, x, y, text, style=None, fontsize=None):
 		ctx.set_line_cap(cairo.LINE_CAP_ROUND)
 		ctx.stroke_preserve()
 	ctx.set_source_rgba(*color)					# fill text
-	ctx.fill()
-
-# Draw the text inside a generic highway shield.
-def generic_shield(ctx, x, y, text, fontsize=12):
-	ctx.select_font_face(font_family, cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-	ctx.set_font_size(fontsize)
-	ctx.new_path()
-	extents = ctx.text_extents(text)
-	xbearing, ybearing, width, height, xadvance, yadvance = extents
-	x -= width / 2
-	y -= height / 2
-	padding_left_right = fontsize / 4
-	padding_top_bottom = fontsize / 3
-	# White shield with black edging
-	rounded_rectangle(ctx,
-		x - padding_left_right, y - padding_top_bottom,
-		width + 2*padding_left_right, height + 2*padding_top_bottom,
-		5		# <-- corner radius
-		)
-	ctx.set_line_width(1)
-	ctx.set_dash(())
-	ctx.set_source_rgb(0.0, 0.0, 0.0)
-	ctx.stroke_preserve()
-	ctx.set_source_rgb(1.0, 1.0, 1.0)
-	ctx.fill()
-	# Text
-	ctx.move_to(x - xbearing, y - ybearing)
-	ctx.text_path(text)
-	ctx.set_source_rgb(0.0, 0.0, 0.0)
 	ctx.fill()
 
 # Draw a red X with its center at the indicated point. Stroke.

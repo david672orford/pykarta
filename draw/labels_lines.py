@@ -1,22 +1,26 @@
 # pykarta/draw/labels_lines.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 8 October 2014
+# Copyright 2013--2018, Trinity College
+# Last modified: 9 May 2018
 
 import cairo
 import math
 
 from pykarta.geometry.simplify import line_simplify
+from shapes import rounded_rectangle
 
-font = "Ubuntu"
+#font_family = "Ubuntu"
+font_family = "sans-serif"
 
+# Find a place to place the label of a line feature such as a road.
+# TODO: slide the label looking for better placement
 def place_line_label(ctx, line, label_text, fontsize=8, tilesize=None):
 	assert len(line) >= 2
 
-	ctx.select_font_face(font)
+	ctx.select_font_face(font_family)
 	ctx.set_font_size(fontsize)
 	xbearing, ybearing, width, height, xadvance, yadvance = ctx.text_extents(label_text)
 
-	# Find the length of each line segment
+	# Find the length of each line segment and the total length
 	distances = []
 	total_distance = 0
 	for i in range(len(line)-1):
@@ -32,7 +36,7 @@ def place_line_label(ctx, line, label_text, fontsize=8, tilesize=None):
 	if total_distance < width:
 		return None
 
-	# Find the middle segment
+	# Find the middle segment (in terms of distance)
 	countdown = total_distance / 2
 	i = 0
 	for distance in distances:
@@ -64,9 +68,10 @@ def place_line_label(ctx, line, label_text, fontsize=8, tilesize=None):
 
 	return (label_text, fontsize, width, middle, angle)
 
+# Draw a line feature label at a previously selected postion.
 def draw_line_label(ctx, placement, scale, offset):
 	label_text, fontsize, width, middle, angle = placement
-	ctx.select_font_face(font)
+	ctx.select_font_face(font_family)
 	ctx.set_font_size(fontsize)
 	ctx.save()
 	ctx.translate(middle[0]*scale, middle[1]*scale)
@@ -87,6 +92,7 @@ def draw_line_label(ctx, placement, scale, offset):
 		ctx.show_text(label_text)
 	ctx.restore()
 
+# Find a place along a road for the highway shield
 def place_line_shield(line):
 	line = line_simplify(line, 5.0)
 	longest_distance = 0.0
@@ -104,4 +110,42 @@ def place_line_shield(line):
 				longest_distance = distance
 				longest_distance_center = center
 	return longest_distance_center
+
+# Draw the text inside a generic highway shield.
+def generic_shield(ctx, x, y, text, fontsize=12):
+	ctx.select_font_face(font_family, cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+	ctx.set_font_size(fontsize)
+	extents = ctx.text_extents(text)
+	xbearing, ybearing, width, height, xadvance, yadvance = extents
+
+	x -= width / 2
+	y -= height / 2
+	padding_left_right = fontsize / 4
+	padding_top_bottom = fontsize / 2
+
+	# White shield with black edging
+	ctx.new_path()
+	rounded_rectangle(ctx,
+		x - padding_left_right, y - padding_top_bottom,
+		width + 2*padding_left_right, height + 2*padding_top_bottom,
+		r=fontsize		# <-- corner radius
+		)
+
+	#ctx.set_line_width(3)
+	#ctx.set_dash(())
+	#ctx.set_source_rgb(1.0, 1.0, 1.0)
+	#ctx.stroke_preserve()
+
+	ctx.set_line_width(1)						# black border
+	ctx.set_dash(())
+	ctx.set_source_rgb(0.0, 0.0, 0.0)
+	ctx.stroke_preserve()
+
+	ctx.set_source_rgb(1.0, 1.0, 1.0)
+	ctx.fill()
+	# Text
+	ctx.move_to(x - xbearing, y - ybearing)
+	ctx.text_path(text)
+	ctx.set_source_rgb(0.0, 0.0, 0.0)
+	ctx.fill()
 

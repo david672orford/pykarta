@@ -37,8 +37,7 @@ layers = {
 		'columns': ('name', 'landuse'),
 		'zoom_min': 10,
 		'where_expressions': [
-			#'landuse IS NOT NULL AND Area(Geometry) > {four_pixels}'
-			'landuse IS NOT NULL'
+			'landuse IS NOT NULL AND Area(Geometry) > {four_pixels}'
 			]
 		},
 	'osm-vector-roads': {
@@ -93,6 +92,7 @@ layers = {
 	'osm-vector-buildings': {
 		'table': 'multipolygons',
 		'columns': ('name',),
+		'other_tags': ('addr:housenumber', 'addr:street'),
 		'zoom_min': 13,
 		'where_expressions': [
 			"building IS NOT NULL and Area(Geometry) > {four_pixels}",	# z13
@@ -170,7 +170,8 @@ def get_tile(stderr, cursor, layer_name, bbox, zoom):
 	if where_index < 0:
 		return None
 	where = where_expressions[where_index if where_index < len(where_expressions) else -1]
-	four_pixels = 360.0 / (2.0 ** zoom) / 256.0 * 4.0
+	pixel_in_degrees = 360.0 / (2.0 ** zoom) / 256.0
+	four_pixels = (pixel_in_degrees * pixel_in_degrees) * 4.0
 	where = where.replace("{four_pixels}", str(four_pixels))
 	stderr.write("where: %s\n" % where)
 
@@ -181,7 +182,7 @@ def get_tile(stderr, cursor, layer_name, bbox, zoom):
 		)
 
 	# Query to find what we want and do preliminary filtering using the spatial index.
-	query = "SELECT osm_id as __id__, Geometry as __geometry__, {columns} FROM {table} WHERE ( {where} ) AND {spatial_test}".format(
+	query = "SELECT ogc_fid as __id__, Geometry as __geometry__, {columns} FROM {table} WHERE ( {where} ) AND {spatial_test}".format(
 		columns=(",".join(columns)),
 		table=layer['table'],
 		where=where,
@@ -190,6 +191,7 @@ def get_tile(stderr, cursor, layer_name, bbox, zoom):
 
 	# Enclose above query in another query which does more precision spatial
 	# filtering and converts the geometry to GeoJSON.
+	stderr.write("query: %s\n" % query)
 	query = """SELECT AsGeoJSON({geometry}) as __geometry__, *
 				FROM ( {query} ) AS q
 				WHERE Intersects({bbox}, q.__geometry__)
