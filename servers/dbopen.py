@@ -10,7 +10,7 @@ class Databases(threading.local):
 	def __init__(self):
 		self.databases = {}
 
-databases = Databases
+databases = Databases()
 
 def dbopen(environ, db_basename):
 	stderr = environ['wsgi.errors']
