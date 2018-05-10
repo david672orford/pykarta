@@ -51,5 +51,5 @@ if __name__ == "__main__":
 	#print("Serving HTTP on port 8000...")
 	#httpd.serve_forever()
 	from werkzeug.serving import run_simple
-	run_simple('localhost', 8000, application, threaded=False)
+	run_simple('localhost', 8000, application, threaded=True)
 

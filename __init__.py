@@ -1,5 +1,5 @@
 # Pykarta version number
-version = "0.91"
+version = "0.92"
 
 # For Bing, Google, Mapquest, etc.
 api_keys = {}

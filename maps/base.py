@@ -395,7 +395,7 @@ class MapBase(object):
 
 		# This layer has not yet been drawn
 		layer_obj.set_stale()
-		layer_obj.redraw()
+		layer_obj.redraw()			# FIXME: may be redundant
 
 		return layer_obj
 

@@ -1,6 +1,6 @@
 # pykarta/address/__init__.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 27 April 2018
+# Last modified: 9 May 2018
 
 from __future__ import print_function
 import string
@@ -444,6 +444,13 @@ def disabbreviate_street(street, phonebook_format=False):
 	if len(words) == 0:
 		return ""
 
+	# "McKinney Street"
+	for i in range(len(words)):
+		if words[i].startswith("Mc"):
+			m = re.match(r'Mc(.)(.*)$', words[i])
+			if m:
+				words[i] = "Mc" + m.group(1).upper() + m.group(2)
+
 	# Use prefix table to disabbreviate words starting from the left until we 
 	# hit a word that his not a prefix (whether abbreviated or not).
 	prefixes = []
@@ -451,7 +458,7 @@ def disabbreviate_street(street, phonebook_format=False):
 		prefixes.append(directional_prefix_table[words.pop(0)])
 
 	# Use suffix table to disabbreviate words starting from the right until we 
-	# hit a word that his not a prefix (whether abbreviated or not).
+	# hit a word that is not a prefix (whether abbreviated or not).
 	suffixes = []
 	while words and words[-1] in directional_suffix_table:
 		suffixes.insert(0, directional_suffix_table[words.pop(-1)])

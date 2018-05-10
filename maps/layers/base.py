@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/base.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 21 April 2018
+# Last modified: 10 May 2018
 
 import math
 import cairo
