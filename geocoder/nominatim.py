@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/nominatim.py
 # Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 26 April 2018
+# Last modified: 11 May 2018
 
 import xml.etree.cElementTree as ET
 import json
@@ -13,26 +13,11 @@ from pykarta.geometry import Point, Polygon, BoundingBox
 # See http://wiki.openstreetmap.org/wiki/Nominatim
 class GeocoderNominatim(GeocoderBase):
 
-	def __init__(self, instance="osm", **kwargs):
-		GeocoderBase.__init__(self, **kwargs)
-
-		# OSM server is slow, but up-to-date.
-		if instance == "osm":
-			self.url_server = "nominatim.openstreetmap.org"
-			self.url_path = "/search"
-			self.url_path_reverse = "/reverse"
-			self.delay = 1.0	# one request per second
-
-		# Mapquest runs a much faster server, but it is not so up-to-date.
-		# See: http://open.mapquestapi.com/nominatim/
-		elif instance == "mapquest":
-			self.url_server = "open.mapquestapi.com"
-			self.url_path = "/nominatim/v1/search"
-			self.url_path_reverse = "/nominatim/v1/reverse"
-			self.delay = 0.5	# two requests per second
-
-		else:
-			raise ValueError
+	url_method = "https"
+	url_server = "nominatim.openstreetmap.org"
+	url_path = "/search"
+	url_path_reverse = "/reverse"
+	delay = 1.0	# one request per second
 
 	xlate = {
 		'road': 'street',
