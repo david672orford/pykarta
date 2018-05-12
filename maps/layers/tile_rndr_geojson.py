@@ -2,7 +2,7 @@
 # pykarta/maps/layers/tile_rndr_geojson.py
 # Base class for GeoJSON vector tile renderers
 # Copyright 2013--2018, Trinity College
-# Last modified: 9 May 2018
+# Last modified: 12 May 2018
 
 try:
 	import simplejson as json
@@ -60,7 +60,7 @@ class MapGeoJSONTile(object):
 							polygon_obj = Polygon(Points(polygon))
 							area = polygon_obj.area()
 							center = polygon_obj.choose_label_center()
-							label_text = "%s(%s)" % (label_text, id)
+							#label_text = "%s(%s)" % (label_text, id)		# for debugging
 							polygon_labels.append((id, area, center, label_text))
 						self.dedup.add(id)
 
