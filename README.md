@@ -6,10 +6,12 @@ a Gtk+ widget. It was inspired by OsmGpsMap and Leaflet.
 
 Features
  * Displays raster tile maps from Openstreetmap, Bing, etc.
- * Cairo renderer for OSM vector tiles
+ * Uses Cairo to renderer OSM maps from GeoJSON vector tiles
  * Fractional zoom
  * Marker layer with SVG symbols
- * Editable vector objects
+ * Layer with editable vector objects
+ * Geocoding using Nominatim, Google, Bing, US Census, etc.
+ * Server for vector tiles and geocoder which uses data from openaddresses.io.
 
 Requires:
  * Pycairo
