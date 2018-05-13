@@ -1,6 +1,6 @@
 # pykarta/geocoder/massgis.py
-# Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 20 October 2014
+# Copyright 2013--2018, Trinity College Computing Center
+# Last modified: 13 May 2018
 
 import lxml.etree as ET
 from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
@@ -43,7 +43,7 @@ class GeocoderMassGIS(GeocoderBase):
 		query_address.append(query_term)
 
 		query_term = ET.Element("City")
-		query_term.text = address[self.f_town]
+		query_term.text = address[self.f_city]
 		query_address.append(query_term)
 
 		query_term = ET.Element("State")

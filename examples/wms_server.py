@@ -1,7 +1,8 @@
 #! /usr/bin/python
-# Simple WMS server for PyKarta
-# Copyright 2014, Trinity College
-# Last modified: 8 October 2014
+# pykarta/examples/wms_server.py
+# Simple WMS server which uses PyKarta as its backend to render OSM tiles
+# Copyright 2014--2018, Trinity College
+# Last modified: 12 May 2018
 
 # References:
 # * https://github.com/mapnik/OGCServer

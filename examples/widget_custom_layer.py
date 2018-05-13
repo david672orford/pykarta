@@ -1,6 +1,6 @@
 #! /usr/bin/python
-# pykarta/maps/examples/widget_custom_layer.py
-# Last modified: 4 September 2014
+# pykarta/examples/widget_custom_layer.py
+# Last modified: 12 May 2018
 
 import sys
 sys.path.insert(1, "../..")
@@ -13,13 +13,16 @@ from pykarta.geometry import Point
 
 # A minimal geographic layer
 class TrivialLayer(MapLayer):
+
 	def do_viewport(self):
 		print "Test layer: new viewport:", self.containing_map.get_bbox()
+		# Project three points into tilespace
 		points = (Point(42.125,-72.75), Point(42.125,-72.70), Point(42.10,-72.70))
 		self.points_projected = self.containing_map.project_points(points)
 
 	def do_draw(self, ctx):
 		print "Test layer: redraw"
+		# Use Cairo to draw a line between the three points
 		ctx.set_source_rgb(0.0, 0.0, 0.0)
 		ctx.set_line_width(1)
 		ctx.move_to(*self.points_projected[0])

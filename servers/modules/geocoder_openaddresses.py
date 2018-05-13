@@ -1,6 +1,6 @@
 # pykarta/servers/modules/geocoder_openaddresses.py
-# Geocoder gets addresses from the MassGIS assessor's parcel map
-# Last modified: 5 May 2018
+# Geocoder gets addresses from the Openaddresses project.
+# Last modified: 13 May 2018
 
 import os, urllib, json, time, re
 from pyspatialite import dbapi2 as db
@@ -19,13 +19,13 @@ def application(environ, start_response):
 		thread_data.cursor = cursor
 
 	query_string = urllib.unquote_plus(environ['QUERY_STRING'])
-	house_number, apartment_number, street, town, state, postal_code = json.loads(query_string)
+	house_number, apartment_number, street, city, state, postal_code = json.loads(query_string)
 
 	# Build the query template
-	query_template = "SELECT longitude, latitude FROM addresses where {house} and street=? and town=? and state=?"
+	query_template = "SELECT longitude, latitude FROM addresses where {house} and street=? and city=? and region=?"
 	address_base = [
 		street,
-		town,
+		city,
 		state
 		]
 	if postal_code is not None and postal_code != "":

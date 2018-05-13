@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/spreadsheet.py
-# Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 9 September 2014
+# Copyright 2013--2018, Trinity College Computing Center
+# Last modified: 13 May 2018
 
 import csv
 import re
@@ -26,10 +26,10 @@ class GeocoderSpreadsheet(GeocoderBase):
 			return result
 
 		for row in reader:
-			# row: 0=state, 1=town, 2=street, 3=house, 4=apartment, 5=lat, 6=lon, 7=precision
+			# row: 0=state, 1=city, 2=street, 3=house number, 4=apartment number, 5=lat, 6=lon, 7=precision
 			if address[4] == row[0] \
 					and address[self.f_state] == row[0] \
-					and address[self.f_town] == row[1] \
+					and address[self.f_city] == row[1] \
 					and address[self.f_street] == row[2] \
 					and address[self.f_house_number] == row[3] \
 					and ( address[self.f_apartment] == row[4] or fnmatch(address[self.f_apartment], row[4])):

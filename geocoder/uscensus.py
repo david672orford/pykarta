@@ -7,7 +7,7 @@ import urllib
 import re
 
 from geocoder_base import GeocoderBase, GeocoderResult
-from pykarta.address import disabbreviate_street, disabbreviate_town
+from pykarta.address import disabbreviate_street, disabbreviate_placename
 
 # https://www.census.gov/geo/maps-data/data/geocoder.html
 # https://geocoding.geo.census.gov/geocoder/Geocoding_Services_API.pdf
@@ -22,7 +22,7 @@ class GeocoderUsCensus(GeocoderBase):
 
 		query = {
 			'street': "%s %s" % (address[self.f_house_number], address[self.f_street]),
-			'city': address[self.f_town],
+			'city': address[self.f_city],
 			'state': address[self.f_state],
 			'benchmark': 'Public_AR_Census2010',
 			'vintage': 'Census2010_Census2010',
@@ -48,7 +48,7 @@ class GeocoderUsCensus(GeocoderBase):
 				found_addr_list = (
 					('house_number', m.group(1)),
 					('street', disabbreviate_street(m.group(2))),
-					('town', disabbreviate_town(m.group(3))),
+					('city', disabbreviate_placename(m.group(3))),
 					('state', m.group(4)),
 					)
 				if self.result_truly_matches(address, found_addr_list):

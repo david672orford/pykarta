@@ -1,6 +1,6 @@
 # pykarta/servers/modules/geocoder_parcel.py
-# Geocoder gets addresses from the MassGIS assessor's parcel map
-# Last modified: 4 May 2018
+# Geocoder gets addresses from the assessor's parcel map
+# Last modified: 13 May 2018
 
 import os, urllib, json, time
 from pyspatialite import dbapi2 as db
@@ -13,7 +13,7 @@ def application(environ, start_response):
 
 	cursor = getattr(thread_data, 'cursor', None)
 	if cursor is None:
-		db_filename = environ["DATADIR"] + "/parcel_addresses.sqlite"
+		db_filename = environ["DATADIR"] + "/parcels.sqlite"
 		conn = db.connect(db_filename)
 		cursor = conn.cursor()
 		thread_data.cursor = cursor
@@ -23,7 +23,7 @@ def application(environ, start_response):
 	house_number, apartment_number, street, town, state, postal_code = json.loads(query_string)
 
 	# Build the query and the list of address elements to be inserted into it
-	query = "SELECT centroid FROM parcel_addresses where house_number=? and street=? and town=? and state=?"
+	query = "SELECT centroid FROM parcel_addresses where house_number=? and street=? and city=? and state=?"
 	address = [
 		house_number,
 		street,
@@ -31,7 +31,7 @@ def application(environ, start_response):
 		state
 		]
 	if postal_code != "":
-		query += " and (postal_code=? or postal_code='')"
+		query += " and (zip=? OR zip='' OR zip IS NULL)"
 		address.append(postal_code)
 
 	# Try for an exact match

@@ -1,6 +1,7 @@
 #! /usr/bin/python
-# pykarta/maps/examples/widget_basic.py
-# Last modified: 4 September 2014
+# pykarta/examples/widget_basic.py
+# How to display a simple map in Gtk widget
+# Last modified: 12 May 2018
 
 import sys
 sys.path.insert(1, "../..")

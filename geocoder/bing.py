@@ -1,6 +1,6 @@
 # pykarta/geocoder/bing.py
-# Copyright 2013--2017, Trinity College Computing Center
-# Last modified: 10 December 2017
+# Copyright 2013--2018, Trinity College Computing Center
+# Last modified: 13 May 2018
 
 import json
 import pykarta
@@ -29,7 +29,7 @@ class GeocoderBing(GeocoderBase):
 		query = {
 			'countryRegion': countrycode,
 			'adminDistrict': address[self.f_state],
-			'locality': address[self.f_town].encode("utf-8"),
+			'locality': address[self.f_city].encode("utf-8"),
 			'addressLine': (u"%s %s" % (address[self.f_house_number], address[self.f_street])).encode("utf-8"),
 			}
 		if address[self.f_postal_code] != "":
@@ -53,7 +53,7 @@ class GeocoderBing(GeocoderBase):
 				found_addr_list = []
 				found_addr_list.append(("house_number", address1['House Number']))
 				found_addr_list.append(("street", address1['Street']))
-				found_addr_list.append(("town", response['address']['locality']))
+				found_addr_list.append(("city", response['address']['locality']))
 				found_addr_list.append(("state", response['address']['adminDistrict']))
 				#print found_addr_list
 		

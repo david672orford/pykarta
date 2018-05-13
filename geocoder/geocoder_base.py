@@ -1,6 +1,6 @@
 # pykarta/geocoder/geocoder_base.py
 # Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 23 April 2018
+# Last modified: 13 May 2018
 
 import threading
 import httplib
@@ -28,13 +28,13 @@ class GetThread(threading.Thread):
 		except Exception as e:
 			self.exception = e
 
-class GeocoderBase:
+class GeocoderBase(object):
 
 	# Offsets into the address array passed to FindAddr()
 	f_house_number = 0
 	f_street = 1
 	f_apartment = 2
-	f_town = 3
+	f_city = 3
 	f_state = 4
 	f_postal_code = 5
 
@@ -188,7 +188,7 @@ class GeocoderBase:
 		to_find = (
 			('house_number', address[self.f_house_number]),
 			('street', address[self.f_street]),
-			(None, address[self.f_town]),
+			(None, address[self.f_city]),
 			('state', address[self.f_state]),
 			)
 		find_in = list(reply_address_components)[:]
@@ -204,9 +204,9 @@ class GeocoderBase:
 					break	
 		return True		
 
-	def result_town_matches(self, town, reply_address_components):
+	def result_city_matches(self, city, reply_address_components):
 		for name, value in reply_address_components:
-			if value == town:
+			if value == city:
 				return True
 		return False
 
@@ -217,10 +217,10 @@ class GeocoderBase:
 	def FindAddr(self, address, countrycode=None):
 		raise GeocoderUnimplemented
 
-	def FindStreet(self, street, town, state, countrycode=None):
+	def FindStreet(self, street, city, state, countrycode=None):
 		raise GeocoderUnimplemented
 
-	def FindTown(self, town, state, countrycode=None):
+	def FindCity(self, city, state, countrycode=None):
 		raise GeocoderUnimplemented
 
 	def Reverse(self, lat, lon, countrycode=None):

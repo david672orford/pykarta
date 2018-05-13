@@ -1,6 +1,7 @@
 #! /usr/bin/python
-# pykarta/maps/examples/widget_geojson.py
-# Last modified: 4 September 2014
+# pykarta/examples/widget_geojson.py
+# Simple GeoJSON editor
+# Last modified: 12 May 2018
 
 import os
 import sys

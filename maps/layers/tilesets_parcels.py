@@ -2,7 +2,7 @@
 # pykarta/maps/layers/tilesets_parcel.py
 # Vector tile sets and renderers for them
 # Copyright 2013--2018, Trinity College
-# Last modified: 4 May 2018
+# Last modified: 13 May 2018
 
 import math
 import json
@@ -25,7 +25,10 @@ class MapParcelsTile(MapGeoJSONTile):
 				center = project_to_tilespace_pixel(coordinates[1], coordinates[0], zoom, x, y)
 				# If the label center is within this tile, use it.
 				if center[0] >= 0 and center[0] < 256 and center[1] > 0 and center[1] < 256:
-					self.labels.append((center, properties.get("house_number","?"), properties.get("street","?")))
+					house_number = properties.get("house_number")
+					street = properties.get("street")
+					if house_number and street:				# not None and not blank
+						self.labels.append((center, house_number, street))
 	def choose_polygon_style(self, properties):
 		return { "line-color": (0.0, 0.0, 0.0), "line-width": 0.25 }
 	def draw2(self, ctx, scale):

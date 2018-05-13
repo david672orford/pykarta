@@ -1,6 +1,6 @@
 # pykarta/geocoder/google.py
-# Copyright 2013, 2014, 2015, Trinity College Computing Center
-# Last modified: 7 February 2015
+# Copyright 2013--2018, Trinity College Computing Center
+# Last modified: 13 May 2018
 
 import string
 import xml.etree.cElementTree as ET
@@ -64,7 +64,7 @@ class GeocoderGoogle(GeocoderBase):
 			'sensor': 'false',
 			'address': (u"%s %s, %s, %s" \
 				% (address[self.f_house_number], address[self.f_street],
-				  address[self.f_town], address[self.f_state])).encode("utf-8"),
+				  address[self.f_city], address[self.f_state])).encode("utf-8"),
 			}
 		components = []
 		if countrycode != None:
@@ -120,12 +120,12 @@ class GeocoderGoogle(GeocoderBase):
 		return result
 
 	#-------------------------------------------------------------------
-	# Given a town and state name, try to find information about it.
+	# Given a city and state name, try to find information about it.
 	#-------------------------------------------------------------------
-	def FindTown(self, town, state, countrycode=None):
+	def FindCity(self, city, state, countrycode=None):
 		query_hash = {
 			'sensor': 'false',
-			'address': "%s, %s" % (town, state)
+			'address': "%s, %s" % (city, state)
 			}
 		components = []
 		if countrycode is not None:

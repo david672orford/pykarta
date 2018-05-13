@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/nominatim.py
 # Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 11 May 2018
+# Last modified: 13 May 2018
 
 import xml.etree.cElementTree as ET
 import json
@@ -35,8 +35,8 @@ class GeocoderNominatim(GeocoderBase):
 			'addressdetails': '1',
 			'polygon': '1',
 			# For 2071 Riverdale Street, West Springfield, MA 01089 including the ZIP code makes the results worse.
-			#'q': "%s %s, %s, %s %s" % (address[self.f_house_number], address[self.f_street], address[self.f_town], address[self.f_state], address[self.f_postal_code])
-			'q': (u"%s %s, %s, %s" % (address[self.f_house_number], address[self.f_street], address[self.f_town], address[self.f_state])).encode("utf-8")
+			#'q': "%s %s, %s, %s %s" % (address[self.f_house_number], address[self.f_street], address[self.f_city], address[self.f_state], address[self.f_postal_code])
+			'q': (u"%s %s, %s, %s" % (address[self.f_house_number], address[self.f_street], address[self.f_city], address[self.f_state])).encode("utf-8")
 			}
 		if countrycode is not None:
 			query_hash['countrycodes'] = countrycode
@@ -90,14 +90,14 @@ class GeocoderNominatim(GeocoderBase):
 	# return a polygon which encloses it which can be used for
 	# highlighting it on a map.	
 	#-------------------------------------------------------------------
-	def FindStreet(self, street, town, state, countrycode=None):
-		self.debug("Search for: %s, %s, %s" % (street, town, state))
+	def FindStreet(self, street, city, state, countrycode=None):
+		self.debug("Search for: %s, %s, %s" % (street, city, state))
 
 		query_hash = {
 			'format': 'xml',
 			'polygon': '1',
 			'addressdetails': '1',
-			'q': "%s,%s,%s" % (street, town, state)
+			'q': "%s,%s,%s" % (street, city, state)
 			}
 		if countrycode != None:
 			query_hash['countrycodes'] = countrycode
@@ -121,7 +121,7 @@ class GeocoderNominatim(GeocoderBase):
 				self.debug("    %s: %s" % (i.tag, i.text))
 				found_address.append([i.tag, i.text])
 
-			if self.result_town_matches(town, found_address) and osm_type == "way" and osm_class == "highway":
+			if self.result_city_matches(city, found_address) and osm_type == "way" and osm_class == "highway":
 				self.debug("  Match")
 				bbox = self.place_bbox(place)
 				answer = {
@@ -138,16 +138,16 @@ class GeocoderNominatim(GeocoderBase):
 		return answer
 
 	#-------------------------------------------------------------------
-	# Given a town and state name, try to find information about it.
+	# Given a city and state name, try to find information about it.
 	#-------------------------------------------------------------------
-	def FindTown(self, town, state, countrycode=None):
-		self.debug("Search for: %s, %s" % (town, state))
+	def FindCity(self, city, state, countrycode=None):
+		self.debug("Search for: %s, %s" % (city, state))
 
 		query_hash = {
 			'format': 'xml',
 			'polygon': '1',
 			'addressdetails': '1',
-			'q': "%s,%s" % (town, state)
+			'q': "%s,%s" % (city, state)
 			}
 		if countrycode != None:
 			query_hash['countrycodes'] = countrycode
@@ -178,9 +178,9 @@ class GeocoderNominatim(GeocoderBase):
 				'bbox' : bbox,
 				'county': county
 				}
-			if place_class == 'boundary':		# town border
+			if place_class == 'boundary':		# city border
 				answer_boundary = answer
-			elif place_class == 'place':		# town center
+			elif place_class == 'place':		# city center
 				answer_place = answer	
 
 		if answer_boundary:

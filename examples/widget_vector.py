@@ -1,6 +1,6 @@
 #! /usr/bin/python
-# pykarta/maps/examples/widget_vector.py
-# Last modified: 4 September 2014
+# pykarta/examples/widget_vector.py
+# Last modified: 12 May 2018
 
 import sys
 sys.path.insert(1, "../..")

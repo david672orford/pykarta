@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/multi.py
 # Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 23 April 2018
+# Last modified: 13 May 2018
 
 import os
 from pykarta.misc import file_age_in_days, get_cachedir
@@ -116,7 +116,7 @@ class GeocoderCache(GeocoderBase):
 	def cachefile_name(self, address):
 		formated_address = "%s %s, %s, %s %s" \
 			% (address[self.f_house_number], address[self.f_street],
-			  address[self.f_town], address[self.f_state], address[self.f_postal_code]
+			  address[self.f_city], address[self.f_state], address[self.f_postal_code]
 			)
 		return "%s/%s" % (self.cachedir, formated_address.replace("/", "_"))
 

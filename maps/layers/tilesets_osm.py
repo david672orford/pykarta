@@ -141,3 +141,9 @@ tilesets.append(MapTilesetRaster('osm-mapbox-streets',
 	zoom_max=19,
 	))
 
+# Wikipedia
+tilesets.append(MapTilesetRaster('osm-wikipedia',
+	url_template='https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png',
+	attribution=u"Wikipedia maps beta, Map data © OpenStreetMap contributors",
+	))
+

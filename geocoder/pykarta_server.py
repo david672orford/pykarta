@@ -27,7 +27,7 @@ class GeocoderPykartaBase(GeocoderBase):
 			address[self.f_house_number],
 			address[self.f_apartment],
 			address[self.f_street],
-			address[self.f_town],
+			address[self.f_city],
 			address[self.f_state],
 			address[self.f_postal_code]
 			])
@@ -61,9 +61,10 @@ class GeocoderOpenAddresses(GeocoderPykartaBase):
 
 if __name__ == "__main__":
 	import time
-	#gc = GeocoderParcel()
-	gc = GeocoderOpenAddresses()
-	gc.debug_enabled = True
-	print gc.FindAddr(["6","Elm Street","","Westfield","MA","01085"])
+	for gc in (GeocoderParcel(), GeocoderOpenAddresses()):
+		gc.debug_enabled = True
+		print type(gc)
+		print gc.FindAddr(["6","Elm Street","","Westfield","MA","01085"])
+		print
 
 

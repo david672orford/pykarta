@@ -1,6 +1,6 @@
 # pykarta/address/__init__.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 9 May 2018
+# Last modified: 13 May 2018
 
 from __future__ import print_function
 import string
@@ -54,7 +54,7 @@ def split_address(address):
 
 	# Town
 	if lines:
-		temp = split_town_state_zip(lines[0])
+		temp = split_city_state_zip(lines[0])
 		if temp is not None:
 			components.update(temp)
 			lines.pop(0)
@@ -103,7 +103,7 @@ def split_house_street_apt(text):
 	else:
 		return None
 
-def split_town_state_zip(text):
+def split_city_state_zip(text):
 	# "Hartford"
 	# "Hartford, CT"
 	# "Hartford, CT  06106"
@@ -111,8 +111,8 @@ def split_town_state_zip(text):
 	match = re.match(r'^([^,]+)(?:, *(\w+)(?: (\d\d\d\d\d(?:-\d\d\d\d)?))?)?', text)
 	if match:
 		components = {}
-		town = match.group(1)
-		components['Town'] = disabbreviate_town(town)
+		city = match.group(1)
+		components['Town'] = disabbreviate_placename(city)
 		if match.group(2):
 			components['State'] = match.group(2)
 		if match.group(3):
@@ -137,7 +137,7 @@ def split_schema_person(item):
 		if temp is not None:
 			components.update(temp)
 	if 'addressLocality' in item:
-		components['Town'] = disabbreviate_town(item['addressLocality'])
+		components['Town'] = disabbreviate_city(item['addressLocality'])
 	if 'addressRegion' in item:
 		components['State'] = item['addressRegion']
 	if 'postalCode' in item:
@@ -150,7 +150,7 @@ def split_schema_person(item):
 # Abbreviate and disabbreviate address elements
 #=============================================================================
 
-# Directional prefixes of street and town names
+# Directional prefixes of street and city names
 # Applies only to a run of one or more words starting with the first
 directional_prefix_table = {
 	'N':'North',
@@ -406,9 +406,9 @@ for x in street_suffix_abbreviations:
 	if len(x) > 1:
 		street_abbreviator_table[x[0]] = x[1]
 
-# Some towns are called things other than "City" or "Town".
+# Some populated places are called things other than "City" or "Town".
 # Here are some abbreviations which we have encountered.
-town_suffix_table = [
+placename_suffix_table = [
 	["Beach", "Bch"],
 	["Center", "Ctr"],
 	["Depot", "Dpt"],
@@ -421,13 +421,13 @@ town_suffix_table = [
 	["Township", "Twp", "Tw"],
 	]
 
-# Create a table for disabbreviating town names. This might be used to
+# Create a table for disabbreviating city names. This might be used to
 # take "N Smith Bch" and turn it into "North Smith Beach".
-town_words_table = { }
-town_words_table.update(directional_prefix_table)
-for x in town_suffix_table:
+placename_words_table = { }
+placename_words_table.update(directional_prefix_table)
+for x in placename_suffix_table:
 	for y in x[1:]:
-		town_words_table[y] = x[0]
+		placename_words_table[y] = x[0]
 
 # Use the above tables to disabbreviate a street name.
 #
@@ -495,14 +495,15 @@ def abbreviate_street(street):
 		new_words.append(street_abbreviator_table.get(w, w))
 	return ' '.join(new_words)
 
-def disabbreviate_town(town):
-	town = re.sub('\s+', ' ', town)
-	town = re.sub('\. ', ' ', town)
-	town = string.capwords(town)
-	words = town.split(' ')
+def disabbreviate_placename(placename):
+	"Convert an abbreviated place name (city, town, etc.) to the full form"
+	placename = re.sub('\s+', ' ', placename)
+	placename = re.sub('\. ', ' ', placename)
+	placename = string.capwords(placename)
+	words = placename.split(' ')
 	new_words = []
 	for w in words:
-		new_words.append(town_words_table.get(w, w))
+		new_words.append(placename_words_table.get(w, w))
 	return ' '.join(new_words)
 
 states_table = {
@@ -530,8 +531,8 @@ if __name__ == "__main__":
 		print(split_address(sys.argv[2]))
 	elif len(sys.argv) == 3 and sys.argv[1] == 'street':
 		print(disabbreviate_street(sys.argv[2], True))
-	elif len(sys.argv) == 3 and sys.argv[1] == 'town':
-		print(disabbreviate_town(sys.argv[2]))
+	elif len(sys.argv) == 3 and sys.argv[1] == 'city':
+		print(disabbreviate_city(sys.argv[2]))
 	elif len(sys.argv) == 2 and sys.argv[1] == 'test1':
 		print(split_address("""
 			Mr. John Smith

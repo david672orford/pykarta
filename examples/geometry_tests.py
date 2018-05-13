@@ -62,5 +62,3 @@ print "Area:", poly.area()
 print "Area area (projected):", poly.area(project=True)
 print "Centroid:", poly.centroid()
 
-
-
