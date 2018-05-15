@@ -1,11 +1,10 @@
 # pykarta/draw/labels_lines.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 9 May 2018
+# Last modified: 15 May 2018
 
 import cairo
 import math
 
-from pykarta.geometry.simplify import line_simplify
 from shapes import rounded_rectangle
 
 #font_family = "Ubuntu"
@@ -94,7 +93,6 @@ def draw_line_label(ctx, placement, scale, offset):
 
 # Find a place along a road for the highway shield
 def place_line_shield(line):
-	line = line_simplify(line, 5.0)
 	longest_distance = 0.0
 	longest_distance_center = None
 	for i in range(len(line)-1):

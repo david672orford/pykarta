@@ -137,7 +137,7 @@ def split_schema_person(item):
 		if temp is not None:
 			components.update(temp)
 	if 'addressLocality' in item:
-		components['Town'] = disabbreviate_city(item['addressLocality'])
+		components['City'] = disabbreviate_placename(item['addressLocality'])
 	if 'addressRegion' in item:
 		components['State'] = item['addressRegion']
 	if 'postalCode' in item:

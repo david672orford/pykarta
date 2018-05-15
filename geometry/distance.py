@@ -1,6 +1,6 @@
 # encoding=utf-8
-# pykarta/geometry/util.py
-# Last modified: 8 October 2014
+# pykarta/geometry/distance.py
+# Last modified: 14 May 2018
 
 import math
 
@@ -9,8 +9,14 @@ import math
 # See: http://blog.csharphelper.com/2010/03/26/find-the-shortest-distance-between-a-point-and-a-line-segment-in-c.aspx
 #=============================================================================
 
-# Distance of a point to a line segment
+def plane_points_distance(p1, p2):
+	"Distance between two points on a plane"
+	dx = p1[0] - p2[0]
+	dy = p1[1] - p2[1]
+	return math.sqrt(dx * dx + dy * dy)
+
 def plane_lineseg_distance(pt, p1, p2):
+	"Distance of a point to a line segment on a plane"
 	dx = float(p2[0] - p1[0])
 	dy = float(p2[1] - p1[1])
 
@@ -31,12 +37,6 @@ def plane_lineseg_distance(pt, p1, p2):
 		closest = (p1[0] + t * dx, p1[1] + t * dy);
 		return plane_points_distance(closest, pt)
 
-# Distance between two points
-def plane_points_distance(p1, p2):
-	dx = p1[0] - p2[0]
-	dy = p1[1] - p2[1]
-	return math.sqrt(dx * dx + dy * dy)
-
 #=============================================================================
 # Distance and Bearing on the Globe
 #=============================================================================
@@ -44,9 +44,9 @@ def plane_points_distance(p1, p2):
 # Mean radius of earth in meters used in the Spherical Mercartor projection
 radius_of_earth = 6378137.0
 
-# Compute distance (approximate) in meters from p1 to p2
 # See: http://www.movable-type.co.uk/scripts/latlong.html
 def points_distance_pythagorian(p1, p2):
+	"Compute distance (approximate) in meters from p1 to p2"
 	lat1 = math.radians(p1[0])
 	lon1 = math.radians(p1[1])
 	lat2 = math.radians(p2[0])
@@ -56,9 +56,9 @@ def points_distance_pythagorian(p1, p2):
 	d = math.sqrt(x*x + y*y)						# Pythagerian theorem
 	return d * radius_of_earth						# radians to kilometers
 
-# Compute bearing in degress from north of p2 from p1
 # See: http://www.movable-type.co.uk/scripts/latlong.html
 def points_bearing(p1, p2):
+	"Compute bearing in degress from north of p2 from p1"
 	lat1 = math.radians(p1[0])
 	lon1 = math.radians(p1[1])
 	lat2 = math.radians(p2[0])

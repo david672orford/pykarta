@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/base.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 10 May 2018
+# Last modified: 14 May 2018
 
 import math
 import cairo
@@ -27,10 +27,10 @@ class MapLayerOpts(object):
 		self.zoom_max = 99
 		self.overzoom = False
 		self.zoom_substitutions = None
-		self.attribution = None
-		self.cache_enabled = False
+		self.attribution = None				# copyright notice and other credits
+		self.cache_enabled = False			# should we draw the layer to a raster Cairo surface first?
 		self.saturation = None
-		self.transparent_color = None
+		self.transparent_color = None		# which color of a raster tile should be made transparent (often white or gray)
 		self.opacity = 1.0
 
 #=============================================================================
@@ -44,7 +44,7 @@ class MapLayer(object):
 		self.containing_map = None
 		self.feedback = None
 		self.stale = False
-		self.cache_surface = None
+		self.cache_surface = None			# Cairo raster surface to which the layer is drawn first if the cache_enable option is enabled
 
 	# Called automatically when the layer is added to the container.
 	# It is called again if offline mode is entered or left so that the layer

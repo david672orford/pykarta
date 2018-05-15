@@ -1,5 +1,6 @@
 #! /usr/bin/python
 # pykarta/servers/pykarta.wsgi
+# Last modified: 15 May 2018
 
 import re, os
 
@@ -24,9 +25,7 @@ def application(environ, start_response):
 	stderr = environ['wsgi.errors']
 	stderr.write("\n")
 
-	if 'DATADIR' in os.environ:
-		environ['DATADIR'] = os.environ['DATADIR']
-	else:
+	if not 'DATADIR' in environ:
 		environ['DATADIR'] = os.environ['HOME'] + "/geo_data/processed"
 
 	m = re.match(r'^/([^/]+)/([^/]+)(.*)$', environ['PATH_INFO'])

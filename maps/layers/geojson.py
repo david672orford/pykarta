@@ -1,6 +1,6 @@
 # pykarta/maps/layers/geojson.py
-# Copyright 2014, Trinity College
-# Last modified: 9 September 2014
+# Copyright 2014--2018, Trinity College
+# Last modified: 14 May 2018
 #
 # Preliminary implementation of an extension to the vector layer which can
 # load GeoJSON data from file handles and save the whole layer to a file
@@ -17,9 +17,7 @@
 
 import json
 from pykarta.maps.layers.vector import MapLayerVector, MapVectorMarker, MapVectorLineString, MapVectorPolygon
-from pykarta.geometry.point import Point, PointFromGeoJSON
-from pykarta.geometry.line import LineStringFromGeoJSON
-from pykarta.geometry.polygon import PolygonFromGeoJSON
+from pykarta.geometry import Point, PointFromGeoJSON, LineStringFromGeoJSON, PolygonFromGeoJSON
 
 class MapLayerGeoJSON(MapLayerVector):
 	def __init__(self, filename=None):

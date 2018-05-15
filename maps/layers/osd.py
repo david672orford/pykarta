@@ -1,13 +1,14 @@
 # encoding=utf-8
 # pykarta/maps/layers/osd.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 4 May 2018
+# Last modified: 15 May 2018
 
 import cairo
 import math
 
 from pykarta.maps.layers.base import MapLayer
-from pykarta.geometry import Point, radius_of_earth
+from pykarta.geometry import Point
+from pykarta.geometry.projection import radius_of_earth
 
 #=============================================================================
 # On Screen Display layers

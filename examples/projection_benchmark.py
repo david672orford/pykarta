@@ -21,8 +21,9 @@ for i in range(10000):
 	points.append(point)
 
 # Benchmark projection
-# Started at 4.6 seconds
+# Hatter: 300000 points/second
 import timeit
 print "Starting..."
-print timeit.timeit('map_widget.project_points(points)', number=100, setup="from __main__ import map_widget, points")
+seconds = timeit.timeit('map_widget.project_points(points)', number=100, setup="from __main__ import map_widget, points")
+print "%d points/second" % (len(points) * 100 / seconds)
 

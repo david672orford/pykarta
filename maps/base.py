@@ -124,7 +124,7 @@ class MapBase(object):
 	#------------------------------------------------------------------------
 
 	# Convert a position in latitude and longitude into a pixel position measured
-	# from the top-left corner of the drawing area.
+	# from the top-left corner of the widget's current drawing area.
 	def project_point(self, point):
 		x, y = project_to_tilespace(point.lat, point.lon, self.zoom)
 		return (int((x - self.top_left_pixel[0]) * 256), int((y - self.top_left_pixel[1]) * 256))

@@ -1,14 +1,11 @@
 # pykarta/maps/symbols.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 25 August 2014
+# Copyright 2013--2018, Trinity College
+# Last modified: 15 May 2018
 
 import os
 import re
 import cairo
 
-#try:
-#	import rsvg
-#except:
 import pykarta.fallback.rsvg as rsvg
 from pykarta.maps.image_loaders import pixbuf_from_file, surface_from_pixbuf
 
@@ -113,6 +110,7 @@ class MapSymbol(object):
 		symbol_scale = self.scaler.scale(containing_map.get_zoom())
 		key = (containing_map.print_mode, symbol_scale)
 		if not key in self.renderers:
+			# FIXME: print render seems less fuzzy on screen.
 			if containing_map.print_mode:
 				self.renderers[key] = MapSymbolPrintRenderer(self, symbol_scale)
 			else:

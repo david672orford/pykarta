@@ -439,7 +439,7 @@ class MapOsmRoadLabelsTile(MapGeoJSONTile):
 					self.dedup.add(name)
 
 		# Draw road names
-		offset = self.zoom_feature((12,2.0, 16,8.0), scale)
+		offset = self.zoom_feature((10,2.0, 16,8.0), scale)
 		for placement in self.labels[zoom]:
 			pykarta.draw.draw_line_label(ctx, placement, scale, offset)
 

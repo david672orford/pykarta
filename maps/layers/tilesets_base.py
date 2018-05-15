@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tilesets_base.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 8 May 2018
+# Last modified: 14 May 2018
 
 import time
 from urllib import urlencode

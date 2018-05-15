@@ -1,6 +1,6 @@
 # pykarta/servers/modules/tiles_osm_vec.py
 # Produce GeoJSON tiles from OSM data stored in a Spatialite database
-# Last modified: 8 May 2018
+# Last modified: 15 May 2018
 
 # References:
 # https://docs.python.org/2/library/sqlite3.html
@@ -37,7 +37,7 @@ layers = {
 		'columns': ('name', 'landuse'),
 		'zoom_min': 10,
 		'where_expressions': [
-			'landuse IS NOT NULL AND Area(Geometry) > {four_pixels}'
+			'landuse IS NOT NULL AND Area(Geometry) > {a_speck}'
 			]
 		},
 	'osm-vector-roads': {
@@ -95,9 +95,9 @@ layers = {
 		'other_tags': ('addr:housenumber', 'addr:street'),
 		'zoom_min': 13,
 		'where_expressions': [
-			"building IS NOT NULL and Area(Geometry) > {four_pixels}",	# z13
-			"building IS NOT NULL and Area(Geometry) > {four_pixels}",	# z14
-			"building IS NOT NULL and Area(Geometry) > {four_pixels}",	# z15
+			"building IS NOT NULL and Area(Geometry) > {a_speck}",	# z13
+			"building IS NOT NULL and Area(Geometry) > {a_speck}",	# z14
+			"building IS NOT NULL and Area(Geometry) > {a_speck}",	# z15
 			"building IS NOT NULL"
 			],
 		'clip': False,
@@ -117,7 +117,7 @@ layers = {
 		'columns': ('name',),
 		'zoom_min': 4,
 		'where_expressions': [
-			"natural = 'water' and Area(Geometry) > {four_pixels}"
+			"natural = 'water' and Area(Geometry) > {a_speck}"
 			]
 		},
 	'osm-vector-places': {
@@ -154,7 +154,7 @@ def get_tile(stderr, cursor, layer_name, bbox, zoom):
 	geometry = "__geometry__"
 	if layer.get('clip',True):
 		geometry = "Intersection(%s,%s)" % (geometry, bbox)
-	simplify = layer.get('simplify',0.5)	# half a pixel
+	simplify = layer.get('simplify',1.0)		# one pixel
 	if simplify is not None and zoom < layer.get('simplify_until',16):
 		simplification = 360.0 / (2.0 ** zoom) / 256.0 * simplify
 		geometry = "SimplifyPreserveTopology(%s,%f)" % (geometry, simplification)
@@ -171,8 +171,8 @@ def get_tile(stderr, cursor, layer_name, bbox, zoom):
 		return None
 	where = where_expressions[where_index if where_index < len(where_expressions) else -1]
 	pixel_in_degrees = 360.0 / (2.0 ** zoom) / 256.0
-	four_pixels = (pixel_in_degrees * pixel_in_degrees) * 4.0
-	where = where.replace("{four_pixels}", str(four_pixels))
+	a_speck = (pixel_in_degrees * pixel_in_degrees) * 10.0	
+	where = where.replace("{a_speck}", str(a_speck))
 	stderr.write("where: %s\n" % where)
 
 	# In Spatialite we must join the spatial index table explicitly.
