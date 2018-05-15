@@ -1,5 +1,5 @@
 # Produce GeoJSON tiles from parcel boundaries stored in a Spatialite database
-# Last modified: 8 May 2018
+# Last modified: 15 May 2018
 
 from __future__ import print_function
 import os, json, re, gzip, io
@@ -30,10 +30,10 @@ def application(environ, start_response):
 	if zoom < 16:
 		geometry = "SimplifyPreserveTopology({geometry},{simplification})".format(
 			geometry=geometry,
-			simplification = 360.0 / (2.0 ** zoom) / 256.0
+			simplification = 360.0 / (2.0 ** zoom) / 256.0		# one pixel
 			)
 	else:
-		print("Not simplified")
+		stderr.write("Not simplified\n")
 
 	query = """SELECT rowid as __id__, AsGeoJSON({geometry}) as __geometry__, house_number, street, centroid
 		FROM parcels

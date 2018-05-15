@@ -331,6 +331,10 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 			},
 		}
 	def choose_line_style(self, properties):
+		style = self.style_cache.get((self.zoom, properties))
+		if style is not None:
+			return style	
+
 		way_type = properties.get('highway')
 		if way_type is None and 'railway' in properties:
 			way_type = 'railway'
@@ -357,6 +361,8 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 		# Show bridges if the zoom level is high enough that the roads have casings.
 		if properties.get('is_bridge') == 'yes' and 'overline-width' in style:
 			style['line-width'] *= 1.30
+		
+		self.style_cache[(self.zoom, properties)] = style
 		return style
 	def draw1(self, ctx, scale):
 		self.start_clipping(ctx, scale)

@@ -42,7 +42,7 @@ layers = {
 		},
 	'osm-vector-roads': {
 		'table': 'lines',
-		'columns': ('name', 'highway', 'z_order', 'railway', 'aeroway'),
+		'columns': ('highway', 'z_order', 'railway', 'aeroway'),
 		'other_tags': ('bridge', 'tunnel'),
 		'zoom_min': 6,
 		'where_expressions': [

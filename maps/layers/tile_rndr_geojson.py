@@ -59,6 +59,7 @@ class MapGeoJSONTile(object):
 		self.tileset = layer.tileset					# Note that we do not keep a reference to layer
 		self.containing_map = layer.containing_map		# itself since that would be circular.
 		self.dedup = layer.dedup
+		self.style_cache = layer.style_cache
 		self.zoom = zoom
 		self.x = x
 		self.y = y

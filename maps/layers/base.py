@@ -121,11 +121,12 @@ class MapTileLayer(MapLayer):
 		self.ram_cache = OrderedDict()
 		self.tiles = []
 		self.tile_scale_factor = None
-		self.zoom = None
-		self.int_zoom = None
+		self.zoom = None				# zoom level (possibly fractional)
+		self.int_zoom = None			# nearest integer zoom level (for fetching tiles)
 		self.tile_size = None
 		self.tile_ranges = None			# used for precaching
 		self.dedup = set()
+		self.style_cache = {}			# used by vector tiles
 
 	#def __del__(self):
 	#	print "Map: tile layer %s destroyed" % self.name
@@ -342,7 +343,8 @@ class MapRasterTile(object):
 		# Convert pixbuf to a Cairo image surface.
 		self.tile_surface = surface_from_pixbuf(pixbuf)
 
-	# Draw a tile so that it covers an area of 256x256 units multiplied by scale.
+	# Draw a tile so that it covers an area of 256x256 pixels multiplied by scale.
+	# Scale will be 1.0 when the zoom level is an integer and the tiles are not overzoomed.
 	def draw(self, ctx, scale, draw_pass):
 		scale *= (256.0 / self.tile_surface.get_width())	# support retina tiles
 		ctx.scale(scale, scale)
