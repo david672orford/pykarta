@@ -1,10 +1,11 @@
 # pykarta/geocoder/bing.py
 # Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 13 May 2018
+# Last modified: 15 May 2018
 
+from __future__ import print_function
 import json
 import pykarta
-from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
+from .geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 from pykarta.address import split_house_street_apt
 
 # See http://msdn.microsoft.com/en-us/library/ff701714.aspx
@@ -55,7 +56,7 @@ class GeocoderBing(GeocoderBase):
 				found_addr_list.append(("street", address1['Street']))
 				found_addr_list.append(("city", response['address']['locality']))
 				found_addr_list.append(("state", response['address']['adminDistrict']))
-				#print found_addr_list
+				#print(found_addr_list)
 		
 				if self.result_truly_matches(address, found_addr_list):
 					location_type = response['geocodePoints'][0]['calculationMethod']
@@ -72,5 +73,5 @@ if __name__ == "__main__":
 	#pykarta.api_keys["bing"] = 
 	gc = GeocoderBing()
 	gc.debug_enabled = True
-	print gc.FindAddr(["300","Summit Street","","Hartford","CT","06106"])
+	print(gc.FindAddr(["300","Summit Street","","Hartford","CT","06106"]))
 

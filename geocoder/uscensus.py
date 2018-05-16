@@ -1,12 +1,13 @@
 # pykarta/geocoder/uscensus.py
 # Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 23 April 2018
+# Last modified: 15 May 2018
 
+from __future__ import print_function
 import json
 import urllib
 import re
 
-from geocoder_base import GeocoderBase, GeocoderResult
+from .geocoder_base import GeocoderBase, GeocoderResult
 from pykarta.address import disabbreviate_street, disabbreviate_placename
 
 # https://www.census.gov/geo/maps-data/data/geocoder.html
@@ -66,6 +67,6 @@ class GeocoderUsCensus(GeocoderBase):
 if __name__ == "__main__":
 	gc = GeocoderUsCensus()
 	gc.debug_enabled = True
-	print gc.FindAddr(["300","Summit Street","","Hartford","CT","06106"])
+	print(gc.FindAddr(["300","Summit Street","","Hartford","CT","06106"]))
 
 

@@ -1,10 +1,13 @@
 # pykarta/misc/http.py
 # Copyright 2013--2018 Trinity College
-# Last modified: 21 April 2018
+# Last modified: 15 May 2018
 
 import os
 import re
-import httplib
+try:
+	import httplib
+except ImportError:
+	import http.client as httplib
 import time
 
 # Quick and dirty function to extract the hostname (possibly with port)

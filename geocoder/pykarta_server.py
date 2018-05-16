@@ -1,12 +1,16 @@
 # pykarta/geocoder/pykarta_server.py
 # Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 26 April 2018
+# Last modified: 15 May 2018
 
+from __future__ import print_function
 import json
-import urllib
+try:
+	from urllib import quote_plus
+except ImportError:
+	from urllib.parse import quote_plus
 
 import pykarta
-from geocoder_base import GeocoderBase, GeocoderResult
+from .geocoder_base import GeocoderBase, GeocoderResult
 from pykarta.misc.http import simple_url_split
 
 class GeocoderPykartaBase(GeocoderBase):
@@ -32,8 +36,8 @@ class GeocoderPykartaBase(GeocoderBase):
 			address[self.f_postal_code]
 			])
 
-		response_text = self.get("%s?%s" % (self.url_path, urllib.quote_plus(query)))
-		feature = json.loads(response_text)
+		response_text = self.get("%s?%s" % (self.url_path, quote_plus(query)))
+		feature = json.loads(response_text.decode("ASCII"))
 		self.debug_indented(json.dumps(feature, indent=4, separators=(',', ': ')))
 
 		if feature is not None and feature['type'] == 'Feature':
@@ -63,8 +67,8 @@ if __name__ == "__main__":
 	import time
 	for gc in (GeocoderParcel(), GeocoderOpenAddresses()):
 		gc.debug_enabled = True
-		print type(gc)
-		print gc.FindAddr(["6","Elm Street","","Westfield","MA","01085"])
-		print
+		print(type(gc))
+		print(gc.FindAddr(["6","Elm Street","","Westfield","MA","01085"]))
+		print()
 
 

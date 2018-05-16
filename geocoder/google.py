@@ -1,11 +1,12 @@
 # pykarta/geocoder/google.py
 # Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 13 May 2018
+# Last modified: 15 May 2018
 
+from __future__ import print_function
 import string
 import xml.etree.cElementTree as ET
 
-from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
+from .geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 
 # See http://code.google.com/apis/maps/documentation/geocoding/index.html
 class GeocoderGoogle(GeocoderBase):
@@ -21,7 +22,7 @@ class GeocoderGoogle(GeocoderBase):
 		while True:
 			#resp_text = self.get(self.url_path, query=query_hash)
 			resp_text = self.get_blocking(self.url_path, query=query_hash)
-			#print resp_text
+			#print(resp_text)
 			try:
 				tree = ET.XML(resp_text)
 			except:
@@ -29,7 +30,7 @@ class GeocoderGoogle(GeocoderBase):
 	
 			status = tree.find("status").text
 			if status == "OVER_QUERY_LIMIT":		# too fast
-				print "    error_message: %s" % tree.find("error_message").text
+				print("    error_message: %s" % tree.find("error_message").text)
 				retry_count += 1
 				self.delay += (retry_count * 0.2)	# slow down
 				if self.delay > 5.0:
@@ -172,5 +173,5 @@ class GeocoderGoogle(GeocoderBase):
 if __name__ == "__main__":
 	gc = GeocoderGoogle()
 	gc.debug_enabled = True
-	print gc.FindAddr(["300","Summit Street","","Hartford","CT","06106"])
+	print(gc.FindAddr(["300","Summit Street","","Hartford","CT","06106"]))
 
