@@ -1,6 +1,6 @@
-# pykarta/servers/modules/tiles_osm_vec.py
+# pykarta/server/modules/tiles_osm_vec.py
 # Produce GeoJSON tiles from OSM data stored in a Spatialite database
-# Last modified: 15 May 2018
+# Last modified: 16 May 2018
 
 # References:
 # https://docs.python.org/2/library/sqlite3.html
