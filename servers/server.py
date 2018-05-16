@@ -4,7 +4,9 @@
 
 import re, os
 
-if __name__ == "__main__":
+try:
+	import pykarta
+except ImportError:
 	import sys
 	sys.path.insert(1, "../..")
 
