@@ -1,9 +1,9 @@
 # pykarta/servers/dbopen.py
-# Last modified: 15 May 2018
+# Last modified: 16 May 2018
 
 from email.utils import formatdate, parsedate_tz, mktime_tz
 import os, time
-from pyspatialite import dbapi2 as db
+import sqlite3
 import threading
 
 class Databases(threading.local):
@@ -18,7 +18,10 @@ def dbopen(environ, db_basename):
 	if not db_basename in databases.databases:
 		db_filename = os.path.join(environ["DATADIR"], db_basename)
 		stderr.write("db_filename: %s\n" % db_filename)
-		conn = db.connect(db_filename)
+		conn = sqlite3.connect(db_filename)
+		conn.enable_load_extension(True)
+		conn.load_extension("mod_spatialite")
+		conn.enable_load_extension(False)
 		conn.row_factory = db.Row
 		databases.databases[db_basename] = (conn.cursor(), int(os.path.getmtime(db_filename)))
 	(cursor, last_modified) = databases.databases[db_basename]
