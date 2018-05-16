@@ -1,9 +1,9 @@
-# pykarta/servers/modules/geocoder_openaddresses.py
+# pykarta/server/modules/geocoder_openaddresses.py
 # Geocoder gets addresses from the Openaddresses project.
-# Last modified: 13 May 2018
+# Last modified: 16 May 2018
 
 import os, urllib, json, time, re
-from pyspatialite import dbapi2 as db
+from pykarta.server.dbopen import dbopen
 import threading
 
 thread_data = threading.local()
@@ -11,12 +11,10 @@ thread_data = threading.local()
 def application(environ, start_response):
 	stderr = environ['wsgi.errors']
 
-	cursor = getattr(thread_data, 'cursor', None)
+	cursor, response_headers = dbopen(environ, "openaddresses.sqlite")
 	if cursor is None:
-		db_filename = environ["DATADIR"] + "/openaddresses.sqlite"
-		conn = db.connect(db_filename)
-		cursor = conn.cursor()
-		thread_data.cursor = cursor
+		start_response("304 Not Modified", response_headers)
+		return []
 
 	query_string = urllib.unquote_plus(environ['QUERY_STRING'])
 	house_number, apartment_number, street, city, state, postal_code = json.loads(query_string)
@@ -64,7 +62,9 @@ def application(environ, start_response):
 	else:
 		feature = None
 
-	start_response("200 OK", [('Content-Type', 'application/json')])
+	start_response("200 OK", response_headers + [
+		('Content-Type', 'application/json')
+		])
 	stderr.write("Result: %s\n" % str(feature))
 	return [json.dumps(feature)]
 
