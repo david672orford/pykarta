@@ -2,7 +2,7 @@
 # pykarta/maps/layers/tilesets_osm_vec.py
 # Vector tile sets and renderers for them
 # Copyright 2013--2018, Trinity College
-# Last modified: 9 May 2018
+# Last modified: 15 May 2018
 
 # http://colorbrewer2.org/ is helpful for picking color palates
 
@@ -10,6 +10,7 @@ import os
 import glob
 import cairo
 import math
+import json
 
 from tilesets_base import tilesets, MapTilesetVector
 from pykarta.maps.layers.tile_rndr_geojson import MapGeoJSONTile, json_loader
@@ -165,7 +166,7 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 		'major_road':{
 			#'line-color':(0.8, 0.2, 0.2),			# dark red
 			'line-color':(0.9, 0.3, 0.3),			# dark red
-			'line-width':(6,0.15, 14,5.0),
+			'line-width':(6,0.05, 14,5.0),
 			'line-cap':'round',
 			},
 		'minor_road':{								# appear at z12
@@ -331,10 +332,10 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 			},
 		}
 	def choose_line_style(self, properties):
-		style = self.style_cache.get((self.zoom, properties))
+		cache_key = json.dumps([self.zoom,] + properties.items(), sort_keys=True)
+		style = self.style_cache.get(cache_key)
 		if style is not None:
-			return style	
-
+			return style
 		way_type = properties.get('highway')
 		if way_type is None and 'railway' in properties:
 			way_type = 'railway'
@@ -361,8 +362,7 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 		# Show bridges if the zoom level is high enough that the roads have casings.
 		if properties.get('is_bridge') == 'yes' and 'overline-width' in style:
 			style['line-width'] *= 1.30
-		
-		self.style_cache[(self.zoom, properties)] = style
+		self.style_cache[cache_key] = style
 		return style
 	def draw1(self, ctx, scale):
 		self.start_clipping(ctx, scale)

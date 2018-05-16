@@ -168,13 +168,13 @@ class MapGeoJSONTile(object):
 
 	# Performance timer
 	def _elapsed_start(self, message):
-		print(message, end="")
+		print(" %s" % message, end="")
 		self.start_time = time.time()
 
 	def _elapsed(self):
 		stop_time = time.time()
-		elapsed_time = int((stop_time - self.start_time) * 1000 + 0.5)
-		print(" (%d ms)" % elapsed_time)
+		elapsed_time = (stop_time - self.start_time) * 1000
+		print(" (%.3f ms)" % elapsed_time)
 
 	# Override these to return something other than None for those objects
 	# which you wish to render. It will be stored with the object so that

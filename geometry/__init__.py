@@ -28,7 +28,7 @@ def GeometryFromGeoJSON(geojson):
 		return MultiPolygon(geometry=geojson)
 	if geometry_type == "GeometryCollection":
 		return GeometryCollection(geometry=geojson)
-	raise TypeError, geometry_type
+	raise TypeError("Invalid GeoJSON geometry type: %s" % geometry_type)
 
 class GeometryCollection(object):
 	def __init__(self, geometry=None):
@@ -242,6 +242,7 @@ class Polygon(MultiPoint):
 		return math.fabs(area)	# is often negative
 
 	def centroid(self):
+		"Compute the centroid of the polygon"
 		x=0
 		y=0
 		j=len(self.points)-1;
@@ -344,6 +345,11 @@ class MultiPolygon(object):
 			for polygon in self.polygons:
 				self.bbox.add_bbox(polygon.get_bbox())
 		return self.bbox
+
+	def centroid(self):
+		"Compute the centroid of the set of polygons"
+		# FIXME: This is a placeholder
+		return self.polygons[0].centroid()
 
 	def as_geojson(self):
 		coordinates = []
