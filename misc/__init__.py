@@ -1,11 +1,9 @@
 # pykarta/misc/__init__.py
-# Copyright 2013, 2014, 2015, Trinity College
-# Last modified: 18 August 2015
+# Copyright 2013--2018, Trinity College
+# Last modified: 15 May 2018
 
 import os
 import time
-import weakref
-import new
 import sys
 
 # Exception raised when it seems the Internet connexion is down.
@@ -52,19 +50,22 @@ def file_age_in_days(filename):
 	return (float(time.time() - stat_result.st_mtime) / 86400.0)
 
 # The weakref module is unable to create a reference to a bound method. This can.
-class BoundMethodProxy(object):
-	def __init__(self, bound_method):
-		self.im_self_ref = weakref.ref(bound_method.im_self)
-		self.im_func = bound_method.im_func
-		self.im_class = bound_method.im_class
-	def __call__(self, *args, **kwargs):
-		obj = self.im_self_ref()
-		if obj is None:
-			raise ReferenceError
-		return new.instancemethod(self.im_func, obj, self.im_class)(*args, **kwargs)
+if sys.version_info < (3,0):		# FIXME: implement for Python3
+	import weakref
+	import new
+	class BoundMethodProxy(object):
+		def __init__(self, bound_method):
+			self.im_self_ref = weakref.ref(bound_method.im_self)
+			self.im_func = bound_method.im_func
+			self.im_class = bound_method.im_class
+		def __call__(self, *args, **kwargs):
+			obj = self.im_self_ref()
+			if obj is None:
+				raise ReferenceError
+			return new.instancemethod(self.im_func, obj, self.im_class)(*args, **kwargs)
 
 # How many tiles are covered by a rectangle of the indicated size (in tiles)
-# toaken to the indicated number of zoom levels?
+# taken to the indicated number of zoom levels?
 def tile_count(width, height, zoom_levels):
 	total = 0
 	for z in range(zoom_levels):

@@ -1,9 +1,13 @@
 # pykarta/geocoder/geocoder_base.py
 # Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 13 May 2018
+# Last modified: 15 May 2018
 
+from __future__ import print_function
 import threading
-import httplib
+try:
+	import httplib
+except ImportError:
+	import http.client as httplib
 import socket
 import errno
 import urllib
@@ -175,7 +179,7 @@ class GeocoderBase(object):
 			return resp_text
 
 		except socket.gaierror:		# address-related error
-			print "Lookup of %s failed." % self.url_server
+			print("Lookup of %s failed." % self.url_server)
 			raise NoInet
 
 		except socket.error as e:	# likely errno 104, connection reset by peer

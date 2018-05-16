@@ -1,20 +1,20 @@
 #! /usr/bin/python
 # pykarta/geocoder/multi.py
 # Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 13 May 2018
+# Last modified: 15 May 2018
 
 import os
 from pykarta.misc import file_age_in_days, get_cachedir
-from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
+from .geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 
 # Import the geocoders
-from spreadsheet import GeocoderSpreadsheet
-from nominatim import GeocoderNominatim
-from pykarta_server import GeocoderParcel, GeocoderOpenAddresses
-from google import GeocoderGoogle
-from bing import GeocoderBing
-#from massgis import GeocoderMassGIS
-from uscensus import GeocoderUsCensus
+from .spreadsheet import GeocoderSpreadsheet
+from .nominatim import GeocoderNominatim
+from .pykarta_server import GeocoderParcel, GeocoderOpenAddresses
+from .google import GeocoderGoogle
+from .bing import GeocoderBing
+#from .massgis import GeocoderMassGIS
+from .uscensus import GeocoderUsCensus
 
 #=============================================================================
 # This geocoder is a wrapper for a list of actual geocoders. It calls them

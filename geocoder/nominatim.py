@@ -1,12 +1,14 @@
 #! /usr/bin/python
 # pykarta/geocoder/nominatim.py
 # Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 13 May 2018
+# Last modified: 15 May 2018
+
+from __future__ import print_function
 
 import xml.etree.cElementTree as ET
 import json
 
-from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
+from .geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 from pykarta.address import abbreviate_state
 from pykarta.geometry import Point, Polygon, BoundingBox
 
@@ -42,7 +44,7 @@ class GeocoderNominatim(GeocoderBase):
 			query_hash['countrycodes'] = countrycode
 
 		resp_text = self.get(self.url_path, query=query_hash)
-		#print resp_text
+		#print(resp_text)
 		try:
 			tree = ET.XML(resp_text)
 		except:
@@ -103,7 +105,7 @@ class GeocoderNominatim(GeocoderBase):
 			query_hash['countrycodes'] = countrycode
 
 		resp_text = self.get(self.url_path, query=query_hash)
-		#print resp_text
+		#print(resp_text)
 		tree = ET.XML(resp_text)
 
 		# Examine the candidate matches
@@ -153,7 +155,7 @@ class GeocoderNominatim(GeocoderBase):
 			query_hash['countrycodes'] = countrycode
 
 		resp_text = self.get(self.url_path, query=query_hash)
-		#print resp_text
+		#print(resp_text)
 		tree = ET.XML(resp_text)
 
 		# Examine the candidate matches
@@ -202,7 +204,7 @@ class GeocoderNominatim(GeocoderBase):
 			'lat': repr(lat),
 			'lon': repr(lon),
 			})
-		#print resp_text
+		#print(resp_text)
 		tree = ET.XML(resp_text)
 
 		address = tree.find("addressparts")
@@ -250,19 +252,19 @@ if __name__ == "__main__":
 	if action == "FindStreet":
 		#result = nominatim.FindStreet("Falley Drive", "Westfield", "MA", countrycode="US")
 		result = nominatim.FindStreet("Union Street", "Westfield", "MA", countrycode="US")
-		print result
+		print(result)
 
 	elif action == "FindTown":
 		result = nominatim.FindTown("Feeding Hills", "MA", countrycode="US")
-		print result
+		print(result)
 
 	elif action == "Reverse":
 		result = nominatim.Reverse(42.103923797607422, -72.634140014648438)
-		print result
+		print(result)
 
 	else:
-		print nominatim.FindAddr(["300","Summit Street","","Hartford","CT","06106"])		# amenity point
-		print nominatim.FindAddr(["15","Steiger Drive","","Westfield","MA","01085"])		# non-existent address
-		print nominatim.FindAddr(["151","Steiger Drive","","Westfield","MA","01085"])		# address on building outline
-		print nominatim.FindAddr(["11","Steiger Drive","","Westfield","MA","01085"])		# address on building entrance
+		print(nominatim.FindAddr(["300","Summit Street","","Hartford","CT","06106"]))		# amenity point
+		print(nominatim.FindAddr(["15","Steiger Drive","","Westfield","MA","01085"]))		# non-existent address
+		print(nominatim.FindAddr(["151","Steiger Drive","","Westfield","MA","01085"]))		# address on building outline
+		print(nominatim.FindAddr(["11","Steiger Drive","","Westfield","MA","01085"]))		# address on building entrance
 

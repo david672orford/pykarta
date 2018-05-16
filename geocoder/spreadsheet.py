@@ -1,13 +1,13 @@
 #! /usr/bin/python
 # pykarta/geocoder/spreadsheet.py
 # Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 13 May 2018
+# Last modified: 15 May 2018
 
 import csv
 import re
 from fnmatch import fnmatch
 
-from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
+from .geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 
 # This geocoder searches a single (hopefully small) spreadsheet which
 # contains local overrides. It can be used to fix the geocoding of
