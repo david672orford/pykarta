@@ -22,7 +22,7 @@ def dbopen(environ, db_basename):
 		conn.enable_load_extension(True)
 		conn.load_extension("mod_spatialite")
 		conn.enable_load_extension(False)
-		conn.row_factory = db.Row
+		conn.row_factory = sqlite3.Row
 		databases.databases[db_basename] = (conn.cursor(), int(os.path.getmtime(db_filename)))
 	(cursor, last_modified) = databases.databases[db_basename]
 
