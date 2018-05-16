@@ -1,8 +1,14 @@
 #! /usr/bin/python
 # pykarta/servers/pykarta.wsgi
-# Last modified: 15 May 2018
+# Last modified: 16 May 2018
 
 import re, os
+
+try:
+	import pykarta
+except ImportError:
+	import sys
+	sys.path.insert(1, "../..")
 
 from pykarta.servers.modules.not_found import application as app_not_found
 from pykarta.servers.modules.hello import application as app_hello
@@ -48,6 +54,8 @@ def application(environ, start_response):
 	return app(environ, start_response)
 
 if __name__ == "__main__":
+	import sys
+	sys.path.insert(1, "../..")
 	#from wsgiref.simple_server import make_server
 	#httpd = make_server('', 8000, application)
 	#print("Serving HTTP on port 8000...")
