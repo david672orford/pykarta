@@ -63,6 +63,6 @@ def application(environ, start_response):
 	start_response("200 OK", response_headers + [
 		('Content-Type', 'application/json')
 		])
-	stderr.write("Result: %s\n" % str(feature))
-	return [json.dumps(feature)]
+	#stderr.write("Result: %s\n" % str(feature))
+	return [json.dumps(feature).encode("utf-8")]
 

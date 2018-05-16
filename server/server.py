@@ -1,5 +1,6 @@
 #! /usr/bin/python
-# pykarta/servers/pykarta.wsgi
+# pykarta/server/server.py
+# Server for use of PyKarta appliations. Provides geocoding and vector map tiles.
 # Last modified: 16 May 2018
 
 import re, os
@@ -29,7 +30,7 @@ routes = {
 
 def application(environ, start_response):
 	stderr = environ['wsgi.errors']
-	stderr.write("\n")
+	#stderr.write("\n")
 
 	if not 'DATADIR' in environ:
 		environ['DATADIR'] = os.environ['HOME'] + "/geo_data/processed"

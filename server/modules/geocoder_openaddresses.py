@@ -2,9 +2,13 @@
 # Geocoder gets addresses from the Openaddresses project.
 # Last modified: 16 May 2018
 
-import os, urllib, json, time, re
+import os, json, time, re
 from pykarta.server.dbopen import dbopen
 import threading
+try:
+	from urllib import unquote_plus
+except ImportError:
+	from urllib.parse import unquote_plus
 
 thread_data = threading.local()
 
@@ -16,7 +20,7 @@ def application(environ, start_response):
 		start_response("304 Not Modified", response_headers)
 		return []
 
-	query_string = urllib.unquote_plus(environ['QUERY_STRING'])
+	query_string = unquote_plus(environ['QUERY_STRING'])
 	house_number, apartment_number, street, city, state, postal_code = json.loads(query_string)
 
 	# Build the query template
@@ -65,6 +69,6 @@ def application(environ, start_response):
 	start_response("200 OK", response_headers + [
 		('Content-Type', 'application/json')
 		])
-	stderr.write("Result: %s\n" % str(feature))
-	return [json.dumps(feature)]
+	#stderr.write("Result: %s\n" % str(feature))
+	return [json.dumps(feature).encode("utf-8")]
 

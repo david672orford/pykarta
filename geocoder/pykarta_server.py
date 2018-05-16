@@ -37,7 +37,7 @@ class GeocoderPykartaBase(GeocoderBase):
 			])
 
 		response_text = self.get("%s?%s" % (self.url_path, quote_plus(query)))
-		feature = json.loads(response_text.decode("ASCII"))
+		feature = json.loads(response_text.decode("UTF-8"))
 		self.debug_indented(json.dumps(feature, indent=4, separators=(',', ': ')))
 
 		if feature is not None and feature['type'] == 'Feature':
