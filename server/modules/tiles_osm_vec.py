@@ -13,7 +13,7 @@
 from __future__ import print_function
 import os, json, re, gzip, io
 from pykarta.geometry.projection import unproject_from_tilespace
-from pykarta.servers.dbopen import dbopen
+from pykarta.server.dbopen import dbopen
 
 # Sets of map layers for use together
 map_layer_sets = {

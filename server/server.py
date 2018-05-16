@@ -10,14 +10,14 @@ except ImportError:
 	import sys
 	sys.path.insert(1, "../..")
 
-from pykarta.servers.modules.not_found import application as app_not_found
-from pykarta.servers.modules.hello import application as app_hello
+from pykarta.server.modules.not_found import application as app_not_found
+from pykarta.server.modules.hello import application as app_hello
 
-from pykarta.servers.modules.geocoder_parcel import application as app_geocoder_parcel
-from pykarta.servers.modules.geocoder_openaddresses import application as app_geocoder_openaddresses
+from pykarta.server.modules.geocoder_parcel import application as app_geocoder_parcel
+from pykarta.server.modules.geocoder_openaddresses import application as app_geocoder_openaddresses
 
-from pykarta.servers.modules.tiles_parcels import application as app_tiles_parcels
-from pykarta.servers.modules.tiles_osm_vec import application as app_tiles_osm_vec
+from pykarta.server.modules.tiles_parcels import application as app_tiles_parcels
+from pykarta.server.modules.tiles_osm_vec import application as app_tiles_osm_vec
 
 routes = {
 		'geocoders/parcel': app_geocoder_parcel,

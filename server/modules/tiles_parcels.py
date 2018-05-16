@@ -1,10 +1,10 @@
 # Produce GeoJSON tiles from parcel boundaries stored in a Spatialite database
-# Last modified: 15 May 2018
+# Last modified: 16 May 2018
 
 from __future__ import print_function
 import os, json, re, gzip, io
 from pykarta.geometry.projection import unproject_from_tilespace
-from pykarta.servers.dbopen import dbopen
+from pykarta.server.dbopen import dbopen
 
 def application(environ, start_response):
 	stderr = environ['wsgi.errors']
