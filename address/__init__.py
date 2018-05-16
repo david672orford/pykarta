@@ -1,6 +1,6 @@
 # pykarta/address/__init__.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 15 May 2018
+# Last modified: 16 May 2018
 
 from __future__ import print_function
 import string
@@ -80,24 +80,31 @@ def split_name(name):
 		components['First Name'] = ' '.join(name_words[0:-1])
 	return components
 
+number_words = {
+	"one": "1",
+	"two": "2",
+	"three": "3",
+	"four": "4",
+	}
+
 def split_house_street_apt(text):
 	# "123A Main St"
 	# "One Constitution Plaza"
-	m = re.search(r"^((?:\d+\S*)|one|two) (.+)$", text, re.I)
+	m = re.search(r"^((?:\d+\S*)|%s) (.+)$" % ("|".join(number_words.keys())), text, re.I)
 	if m:
 		components = {}
-		components['House Number'] = {"one":"1","two":"2"}.get(m.group(1).lower(), m.group(1))
+		components['House Number'] = number_words.get(m.group(1).lower(), m.group(1))
 		components['Street'] = m.group(2)
 		while True:
 			# "1 Main St #C"
 			m = re.search(r"^(.*) #([^#]+)$", components['Street'])
 			if not m:
 				# "1 Main St, Apt C"
-				m = re.search(r"^(.*),? Apt (.+)$", components['Street'])
+				m = re.search(r"^(.*),? (Apt|Ste)\.? (.+)$", components['Street'], re.I)
 			if not m:
 				break
 			components['Street'] = m.group(1)
-			components['Apartment Number'] = m.group(2)
+			components['Apartment Number'] = m.group(3)
 		components['Street'] = disabbreviate_street(components['Street'])
 		return components
 	else:
@@ -541,8 +548,8 @@ if __name__ == "__main__":
 			"""))
 	elif len(sys.argv) == 2 and sys.argv[1] == 'test2':
 		print(split_house_street_apt("19 Princeton St, Apt 1"))
-	elif len(sys.argv) == 2 and sys.argv[1] == 'test3':
 		print(split_house_street_apt("One Constitution Plaza"))
+		print(split_house_street_apt("Three Constitution Plaza"))
 	else:
 		raise Exception
 
