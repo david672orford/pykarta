@@ -1,7 +1,7 @@
 # pykarta/geometry/simplify.py
-# Last modified: 8 October 2014
+# Last modified: 15 May 2018
 
-from util import plane_lineseg_distance
+from .distance import plane_lineseg_distance
 
 #=============================================================================
 # Line simplification

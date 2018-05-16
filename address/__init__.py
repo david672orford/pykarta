@@ -1,6 +1,6 @@
 # pykarta/address/__init__.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 13 May 2018
+# Last modified: 15 May 2018
 
 from __future__ import print_function
 import string
@@ -80,13 +80,13 @@ def split_name(name):
 		components['First Name'] = ' '.join(name_words[0:-1])
 	return components
 
-
 def split_house_street_apt(text):
 	# "123A Main St"
-	m = re.search(r"^(\d+\S*) (.+)$", text)
+	# "One Constitution Plaza"
+	m = re.search(r"^((?:\d+\S*)|one|two) (.+)$", text, re.I)
 	if m:
 		components = {}
-		components['House Number'] = m.group(1)
+		components['House Number'] = {"one":"1","two":"2"}.get(m.group(1).lower(), m.group(1))
 		components['Street'] = m.group(2)
 		while True:
 			# "1 Main St #C"
@@ -541,6 +541,8 @@ if __name__ == "__main__":
 			"""))
 	elif len(sys.argv) == 2 and sys.argv[1] == 'test2':
 		print(split_house_street_apt("19 Princeton St, Apt 1"))
+	elif len(sys.argv) == 2 and sys.argv[1] == 'test3':
+		print(split_house_street_apt("One Constitution Plaza"))
 	else:
 		raise Exception
 
