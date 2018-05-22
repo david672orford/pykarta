@@ -1,14 +1,14 @@
 #! /usr/bin/python
 # pykarta/geocoder/nominatim.py
 # Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 15 May 2018
+# Last modified: 20 May 2018
 
 from __future__ import print_function
 
 import xml.etree.cElementTree as ET
 import json
 
-from .geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
+from pykarta.geocoder.geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 from pykarta.address import abbreviate_state
 from pykarta.geometry import Point, Polygon, BoundingBox
 
@@ -263,8 +263,9 @@ if __name__ == "__main__":
 		print(result)
 
 	else:
-		print(nominatim.FindAddr(["300","Summit Street","","Hartford","CT","06106"]))		# amenity point
-		print(nominatim.FindAddr(["15","Steiger Drive","","Westfield","MA","01085"]))		# non-existent address
-		print(nominatim.FindAddr(["151","Steiger Drive","","Westfield","MA","01085"]))		# address on building outline
-		print(nominatim.FindAddr(["11","Steiger Drive","","Westfield","MA","01085"]))		# address on building entrance
+		#print(nominatim.FindAddr(["300","Summit Street","","Hartford","CT","06106"]))		# amenity point
+		#print(nominatim.FindAddr(["15","Steiger Drive","","Westfield","MA","01085"]))		# non-existent address
+		#print(nominatim.FindAddr(["151","Steiger Drive","","Westfield","MA","01085"]))		# address on building outline
+		#print(nominatim.FindAddr(["11","Steiger Drive","","Westfield","MA","01085"]))		# address on building entrance
+		print(nominatim.FindAddr(["11","Steiger Street","","Westfield","MA","01085"]))		# street name incorrect
 

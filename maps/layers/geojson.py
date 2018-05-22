@@ -1,6 +1,6 @@
 # pykarta/maps/layers/geojson.py
 # Copyright 2014--2018, Trinity College
-# Last modified: 14 May 2018
+# Last modified: 21 May 2018
 #
 # Preliminary implementation of an extension to the vector layer which can
 # load GeoJSON data from file handles and save the whole layer to a file
@@ -17,7 +17,7 @@
 
 import json
 from pykarta.maps.layers.vector import MapLayerVector, MapVectorMarker, MapVectorLineString, MapVectorPolygon
-from pykarta.geometry import Point, PointFromGeoJSON, LineStringFromGeoJSON, PolygonFromGeoJSON
+from pykarta.geometry import GeometryFromGeoJSON
 
 class MapLayerGeoJSON(MapLayerVector):
 	def __init__(self, filename=None):
@@ -31,58 +31,44 @@ class MapLayerGeoJSON(MapLayerVector):
 	def load_geojson(self, fh):
 		geojson = json.load(fh)
 
-		assert geojson['type'] == 'FeatureCollection'
+		if geojson.get('type') != 'FeatureCollection':
+			raise TypeError("File is not in GeoJSON format")
 
 		self.style = geojson.get('properties',{}).get('style',{})
 
-		self.layer1 = []
-		self.layer2 = []
+		layer1 = []
+		layer2 = []
 
 		for feature in geojson['features']:
-			assert feature['type'] == "Feature"
+			if feature.get('type') != 'Feature':
+				raise TypeError("Member of GeoJSON FeatureCollection is not a Feature")
 			properties = feature['properties']
 			geometry = feature['geometry']
+			geometry_type = geometry['type']
 
-			if geometry['type'] == "GeometryCollection":
-				for sub_geometry in geometry['geometries']:
-					self._add_geojson_geometry(sub_geometry, properties)
-			else:
-				self._add_geojson_geometry(geometry, properties)
-
-		for obj in self.layer1 + self.layer2:
-			self.add_obj(obj)
-	
-	def _add_geojson_geometry(self, geometry, properties):
-		if geometry['type'] == 'Point':
-			point = PointFromGeoJSON(geometry)
-			style = {'label': properties.get('name','')}
-			marker = MapVectorMarker(point, properties=properties, style=style)
-			self.layer1.append(marker)
-		elif geometry['type'] == 'LineString':
-			linestring = LineStringFromGeoJSON(geometry)
-			obj = MapVectorLineString(linestring, properties=properties)
-			self.layer2.append(obj)
-		elif geometry['type'] == 'Polygon':
-			self._add_geojson_polygon(geometry, properties)
-		elif geometry['type'] == 'MultiPolygon':
-			for coordinates in geometry['coordinates']:
-				sub_geo = {
-					"type": "Polygon",
-					"coordinates": coordinates,
+			if geometry_type == 'Point':
+				point = GeometryFromGeoJSON(geometry)
+				style = {'label': properties.get('name','')}
+				obj = MapVectorMarker(point, properties=properties, style=style)
+				layer1.append(obj)
+			elif geometry_type == 'LineString':
+				linestring = GeometryFromGeoJSON(geometry)
+				obj = MapVectorLineString(linestring, properties=properties)
+				layer2.append(obj)
+			elif geometry_type == 'Polygon':
+				polygon = GeometryFromGeoJSON(geometry)
+				style = {
+					'label':properties.get('name',''),
+					'fill-color': None,
 					}
-				self._add_geojson_polygon(sub_geo, properties)
-		else:
-			raise ValueError("Geometries of type %s not supported" % geometry['type'])
+				style.update(self.style)
+				obj = MapVectorPolygon(polygon, properties=properties, style=style)
+				layer2.append(obj)
+			else:
+				raise ValueError("Geometries of type %s not supported" % geometry['type'])
 
-	def _add_geojson_polygon(self, geometry, properties):
-		polygon = PolygonFromGeoJSON(geometry)
-		style = {
-			'label':properties.get('name',''),
-			'fill-color': None,
-			}
-		style.update(self.style)
-		obj = MapVectorPolygon(polygon, properties=properties, style=style)
-		self.layer2.append(obj)
+		for obj in layer1 + layer2:
+			self.add_obj(obj)
 
 	def save_geojson(self, fh):
 		features = []
@@ -90,7 +76,7 @@ class MapLayerGeoJSON(MapLayerVector):
 		for obj in self.layer_objs:
 			features.append({
 				'type':'Feature',
-				'properties':obj.properties,
+				'properties': obj.properties,
 				'geometry': obj.geometry.as_geojson(),
 				})
 

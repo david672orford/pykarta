@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/examples/widget_geojson.py
 # Simple GeoJSON editor
-# Last modified: 12 May 2018
+# Last modified: 21 May 2018
 
 import os
 import sys
@@ -44,9 +44,8 @@ class DemoGUI(object):
 		self.map_widget.add_layer("vector", vector_layer)
 
 		if os.path.exists("test.geojson"):
-			fh = open("test.geojson", "r")
-			vector_layer.load_geojson(fh)
-			fh.close()
+			with open("test.geojson", "r") as fh:
+				vector_layer.load_geojson(fh)
 	
 		# Add some On Screen Display layers
 		self.map_widget.add_osd_layer(MapLayerScale())
@@ -102,9 +101,8 @@ class DemoGUI(object):
 	def on_save(self, widget):
 		print "Save!"
 		vector_layer = self.map_widget.get_layer("vector")
-		fh = open("test_saved.geojson", "w")
-		vector_layer.save_geojson(fh)
-		fh.close()
+		with open("test_saved.geojson", "w") as fh
+			vector_layer.save_geojson(fh)
 	
 #-----------------------------------
 # Startup

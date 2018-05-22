@@ -69,7 +69,7 @@ layers = {
 			"highway IN ('motorway','trunk','primary','secondary','tertiary')",	# z13
 			"highway IN ('motorway','trunk','primary','secondary','tertiary','unclassified','residential')",	# z14
 			],
-		'simplify': 5.0,
+		'simplification': 5.0,
 		'clip': False,
 		},
 	'osm-vector-admin-borders': {
@@ -135,7 +135,10 @@ layers = {
             "place IN ('city','town')",				# z11
             "place IN ('city','town')",				# z12
             "place IN ('city','town','village','hamlet','suburb','locality')", # z13
-			]
+			],
+		'clip': False,		# unnecessary
+		'simplification': None,
+		'pad-bbox': False,
 		},
 	'osm-vector-pois': {
 		'table': 'points',
@@ -143,20 +146,25 @@ layers = {
 		'zoom_min': 14,
 		'where_expressions': [
 			"amenity IS NOT NULL"
-			]
+			],
 		},
+		'clip': False,		# unnecessary
+		'simplification': None,
+		'pad-bbox': False,
 	}
 
-def get_tile(stderr, cursor, layer_name, bbox, zoom):
+def get_tile(stderr, cursor, layer_name, small_bbox, large_bbox, zoom):
 	layer = layers.get(layer_name)
 	assert layer is not None
+
+	bbox = large_bbox if layer.get('pad-bbox',True) else small_bbox
 
 	geometry = "__geometry__"
 	if layer.get('clip',True):
 		geometry = "Intersection(%s,%s)" % (geometry, bbox)
-	simplify = layer.get('simplify',1.0)		# one pixel
-	if simplify is not None and zoom < layer.get('simplify_until',16):
-		simplification = 360.0 / (2.0 ** zoom) / 256.0 * simplify
+	simplification = layer.get('simplification',1.0)		# one pixel
+	if simplification is not None and zoom < layer.get('simplify_until',16):
+		simplification = 360.0 / (2.0 ** zoom) / 256.0 * simplification
 		geometry = "SimplifyPreserveTopology(%s,%f)" % (geometry, simplification)
 
 	columns = layer['columns']
@@ -268,19 +276,23 @@ def application(environ, start_response):
 		start_response("304 Not Modified", response_headers)
 		return []
 
+	p1 = unproject_from_tilespace(x, y, zoom)
+	p2 = unproject_from_tilespace(x, y, zoom)
+	small_bbox = 'BuildMBR(%f,%f,%f,%f,4326)' % (p1[1], p1[0], p2[1], p2[0])
+
 	p1 = unproject_from_tilespace(x - 0.05, y - 0.05, zoom)
 	p2 = unproject_from_tilespace(x + 1.05, y + 1.05, zoom)
-	bbox = 'BuildMBR(%f,%f,%f,%f,4326)' % (p1[1], p1[0], p2[1], p2[0])
+	large_bbox = 'BuildMBR(%f,%f,%f,%f,4326)' % (p1[1], p1[0], p2[1], p2[0])
 
 	if layer_name in map_layer_sets:
 		layer_names = map_layer_sets[layer_name]
 		geojson = {}
 		for layer_name in layer_names:
-			tile_geojson = get_tile(stderr, cursor, layer_name, bbox, zoom)
+			tile_geojson = get_tile(stderr, cursor, layer_name, small_bbox, large_bbox, zoom)
 			if tile_geojson is not None:
 				geojson[layer_name.replace("osm-vector-","")] = tile_geojson
 	else:
-		geojson = get_tile(stderr, cursor, layer_name, bbox, zoom)
+		geojson = get_tile(stderr, cursor, layer_name, small_bbox, large_bbox, zoom)
 
 	# Convert Python objects to JSON and compress
 	out = io.BytesIO()

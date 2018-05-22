@@ -1,6 +1,6 @@
 # pykarta/draw/labels_lines.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 15 May 2018
+# Last modified: 22 May 2018
 
 import cairo
 import math
@@ -12,12 +12,11 @@ font_family = "sans-serif"
 
 # Find a place to place the label of a line feature such as a road.
 # TODO: slide the label looking for better placement
-def place_line_label(ctx, line, label_text, fontsize=8, tilesize=None):
+def place_line_label(line, label_text, fontsize=8, tilesize=None):
 	assert len(line) >= 2
 
-	ctx.select_font_face(font_family)
-	ctx.set_font_size(fontsize)
-	xbearing, ybearing, width, height, xadvance, yadvance = ctx.text_extents(label_text)
+	# Estimate width of text in pixels
+	width = len(label_text) * fontsize * 0.6
 
 	# Find the length of each line segment and the total length
 	distances = []
@@ -68,8 +67,9 @@ def place_line_label(ctx, line, label_text, fontsize=8, tilesize=None):
 	return (label_text, fontsize, width, middle, angle)
 
 # Draw a line feature label at a previously selected postion.
-def draw_line_label(ctx, placement, scale, offset):
+def draw_line_label(ctx, placement, scale):
 	label_text, fontsize, width, middle, angle = placement
+	offset = fontsize * -0.3
 	ctx.select_font_face(font_family)
 	ctx.set_font_size(fontsize)
 	ctx.save()
@@ -110,7 +110,7 @@ def place_line_shield(line):
 	return longest_distance_center
 
 # Draw the text inside a generic highway shield.
-def generic_shield(ctx, x, y, text, fontsize=12):
+def draw_generic_shield(ctx, x, y, text, fontsize=12):
 	ctx.select_font_face(font_family, cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 	ctx.set_font_size(fontsize)
 	extents = ctx.text_extents(text)

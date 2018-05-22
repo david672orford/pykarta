@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/geometry/__init__.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 15 May 2018
+# Last modified: 18 May 2018
 
 from __future__ import print_function
 import math
@@ -136,11 +136,11 @@ class MultiPoint(object):
 	def __init__(self, points=None, geometry=None):
 		if geometry is not None:
 			assert geometry["type"] == "MultiPoint"
-			points = map(lambda p: Point(p[1],p[0]), geometry['coordinates'])
+			self.points = map(lambda p: Point(p[1],p[0]), geometry['coordinates'])
 		elif points is not None:
-			points = map(Point, points)
+			self.points = map(Point, points)
 		else:
-			points = []
+			self.points = []
 		self.bbox = None
 	def get_bbox(self):
 		if self.bbox is None:
@@ -393,7 +393,6 @@ class BoundingBox(object):
 			return "<invalid>"
 
 	def as_polygon(self):
-		from polygon import Polygon
 		if self.valid:
 			return Polygon((
 				Point(self.min_lat, self.min_lon),	# bottom left

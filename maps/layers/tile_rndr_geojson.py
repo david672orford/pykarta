@@ -2,7 +2,7 @@
 # pykarta/maps/layers/tile_rndr_geojson.py
 # Base class for GeoJSON vector tile renderers
 # Copyright 2013--2018, Trinity College
-# Last modified: 15 May 2018
+# Last modified: 22 May 2018
 
 from __future__ import print_function
 try:
@@ -16,7 +16,7 @@ import time
 
 from pykarta.geometry.projection import project_to_tilespace_pixel
 from pykarta.geometry import Polygon
-import pykarta.draw
+from pykarta.draw import place_line_label, place_line_shield, polygon as draw_polygon, line_string as draw_line_string, line_string as draw_line_string, stroke_with_style, fill_with_style
 
 def json_loader(filename):
 	try:
@@ -49,22 +49,37 @@ def project_to_tilespace_pixels(coordinates, zoom, xtile, ytile):
 
 # Base class for a tile which renders GeoJSON
 class MapGeoJSONTile(object):
-	draw_passes = 1										# draw1(), override for draw2(), etc.
-	clip = None
+	draw_passes = 1					# draw1(), override for draw2(), etc.
+	clip = None						# None for no clipping, or number of pixels beyond tile border
 	sort_key = None
+
+	label_points = False
+	label_lines = False
 	label_polygons = False
+
+	timing_load = True				# Option: Time the loading routines and print the results
+	timing_draw = False				# Option: Time the drawing routines and print the results
+
 	def __init__(self, layer, filename, zoom, x, y, data=None):
-		self.timing_load = True							# Option: Time the loading routines and print the results
-		self.timing_draw = False						# Option: Time the drawing routines and print the results
-		self.tileset = layer.tileset					# Note that we do not keep a reference to layer
-		self.containing_map = layer.containing_map		# itself since that would be circular.
-		self.dedup = layer.dedup
-		self.style_cache = layer.style_cache
-		self.zoom = zoom
+		self.zoom = zoom								# zoom, x, y of tile to load
 		self.x = x
 		self.y = y
-		self.labels = {}								# labels indexed by zoom level
 
+		self.tileset = layer.tileset
+		self.style_cache = layer.style_cache
+		self.dedup = layer.dedup
+		self.containing_map = layer.containing_map
+
+		self.points = []
+		self.lines = []
+		self.polygons = []
+
+		self.point_labels = []
+		self.line_labels = []
+		self.line_shields = []
+		self.polygon_labels = []
+
+		# Load the data, uncompress it, and parse the JSON into Python objects
 		if self.timing_load:
 			self._elapsed_start("Parsing %s %s %d %d %d..." % (layer.tileset.key, type(self).__name__, zoom, x, y))
 		if data is not None:
@@ -72,33 +87,60 @@ class MapGeoJSONTile(object):
 		else:
 			parsed_json = json_loader(filename)
 
-		self._load_features(parsed_json)
+		# Interpret the JSON (now in the form of Python dicts and lists) as GeoJSON
+		self.load_geojson(parsed_json)
+
+		if self.label_points:
+			pass		# not implemented
+
+		if self.label_lines:
+
+			# Place text labels along lines
+			labels = self.line_labels
+			for id, line, properties, style in self.lines:
+				label_text = self.choose_line_label_text(properties)
+				fontsize = self.zoom_feature(style)
+				placement = place_line_label(line, label_text, fontsize=fontsize, tilesize=256)
+				if placement is not None:
+					labels.append(placement)
+
+			# Place the highway shields
+			tile_level_dedup = set()
+			shields = self.line_shields
+			for id, line, properties, style in self.lines:
+				ref = properties.get('ref')
+				if ref is not None:
+					shield_text = ref.split(";")[0]
+					if not shield_text in tile_level_dedup:
+						shield_pos = place_line_shield(line)
+						if shield_pos is not None:
+							shields.append((shield_pos, shield_text))
+						tile_level_dedup.add(shield_text)
 
 		if self.label_polygons:
-			polygon_labels = self.polygon_labels = []
+			polygon_labels = self.polygon_labels
 			if zoom >= 13:
 				for id, polygon, properties, style in self.polygons:
-					if not id in self.dedup:
-						label_text = self.choose_polygon_label_text(properties)
-						if label_text is not None:
-							polygon_obj = Polygon(polygon)
-							area = polygon_obj.area()
-							center = polygon_obj.choose_label_center()
-							#label_text = "%s(%s)" % (label_text, id)		# for debugging
-							polygon_labels.append((id, area, center, label_text))
-						self.dedup.add(id)
+					label_text = self.choose_polygon_label_text(properties)
+					if label_text is not None:
+						polygon_obj = Polygon(polygon)
+						area = polygon_obj.area()
+						center = polygon_obj.choose_label_center()
+						polygon_labels.append((id, area, center, label_text))
 
 		if self.timing_load:
 			self._elapsed()
 
+	def choose_line_label_text(self, properties):
+		return properties.get('name')
+
 	def choose_polygon_label_text(self, properties):
 		return properties.get('name')
 
-	# This code is broken out of __init__() strictly for the sake of readability.
-	def _load_features(self, geojson):
-		points = self.points = []
-		lines = self.lines = []
-		polygons = self.polygons = []
+	def load_geojson(self, geojson):
+		points = self.points
+		lines = self.lines
+		polygons = self.polygons
 
 		assert geojson['type'] == 'FeatureCollection'
 		features = geojson['features']
@@ -206,15 +248,15 @@ class MapGeoJSONTile(object):
 	def draw1(self, ctx, scale):
 		self.start_clipping(ctx, scale)
 		for id, polygon, properties, style in self.polygons:
-			pykarta.draw.polygon(ctx, self.scale_points(polygon, scale))
-			pykarta.draw.fill_with_style(ctx, style, preserve=True)
-			pykarta.draw.stroke_with_style(ctx, style, preserve=True)
+			draw_polygon(ctx, self.scale_points(polygon, scale))
+			fill_with_style(ctx, style, preserve=True)
+			stroke_with_style(ctx, style, preserve=True)
 			ctx.new_path()
 		for id, line, properties, style in self.lines:
-			pykarta.draw.line_string(ctx, self.scale_points(line, scale))
-			pykarta.draw.stroke_with_style(ctx, style)
+			draw_line_string(ctx, self.scale_points(line, scale))
+			stroke_with_style(ctx, style)
 		for id, point, properties, style in self.points:
-			pykarta.draw.node_dots(ctx, [point], style=style)
+			draw_node_dots(ctx, [point], style=style)
 
 	# draw1(), draw2(), etc. should call this if they want their drawing
 	# commands to be clipped to the tile borders.

@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/base.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 14 May 2018
+# Last modified: 22 May 2018
 
 import math
 import cairo
@@ -125,7 +125,7 @@ class MapTileLayer(MapLayer):
 		self.int_zoom = None			# nearest integer zoom level (for fetching tiles)
 		self.tile_size = None
 		self.tile_ranges = None			# used for precaching
-		self.dedup = set()
+		self.dedup = set()				# for deduplicating labels, shared by all the tiles
 		self.style_cache = {}			# used by vector tiles
 
 	#def __del__(self):
@@ -144,10 +144,9 @@ class MapTileLayer(MapLayer):
 		# than that requested. But let's start with what was requested.
 		use_zoom = self.int_zoom
 
-		# If there is no renderer (which means we are using raster tiles)
-		# and this map is in print mode (which means higher resolution is needed)
-		# and tiles are available at a higher zoom level so we can scale them
-		# down and double the resolution.
+		# If we are using raster tiles and this map is in print mode (which means
+		# higher resolution is needed) and tiles are available at a higher zoom
+		# level so we can scale them down and double the resolution.
 		if self.tile_class is MapRasterTile and self.containing_map.print_mode and self.int_zoom < self.opts.zoom_max:
 			use_zoom += 1
 
@@ -224,6 +223,8 @@ class MapTileLayer(MapLayer):
 	def do_draw(self, ctx):
 		#print "Draw %s tiles..." % self.name
 
+		self.dedup.clear()
+
 		# Load tiles
 		progress = 1
 		tile_objs = []
@@ -258,7 +259,6 @@ class MapTileLayer(MapLayer):
 			progress += 1
 
 		# Draw tiles
-		self.dedup.clear()
 		for draw_pass in range(self.tile_class.draw_passes):
 			i = 0
 			for zoom, x, y, xpixoff, ypixoff in self.tiles:
