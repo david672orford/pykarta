@@ -2,7 +2,7 @@
 # pykarta/maps/layers/tile_rndr_geojson.py
 # Base class for GeoJSON vector tile renderers
 # Copyright 2013--2018, Trinity College
-# Last modified: 22 May 2018
+# Last modified: 23 May 2018
 
 from __future__ import print_function
 try:
@@ -13,6 +13,7 @@ import gzip
 import os
 import math
 import time
+import re
 
 from pykarta.geometry.projection import project_to_tilespace_pixel
 from pykarta.geometry import Polygon
@@ -108,14 +109,13 @@ class MapGeoJSONTile(object):
 			tile_level_dedup = set()
 			shields = self.line_shields
 			for id, line, properties, style in self.lines:
-				ref = properties.get('ref')
-				if ref is not None:
-					shield_text = ref.split(";")[0]
-					if not shield_text in tile_level_dedup:
+				for ref in self.get_highway_refs(properties):
+					if not ref in tile_level_dedup:
+						# FIXME: should place all of them
 						shield_pos = place_line_shield(line)
 						if shield_pos is not None:
-							shields.append((shield_pos, shield_text))
-						tile_level_dedup.add(shield_text)
+							shields.append((shield_pos, ref))
+						tile_level_dedup.add(ref)
 
 		if self.label_polygons:
 			polygon_labels = self.polygon_labels
@@ -130,6 +130,11 @@ class MapGeoJSONTile(object):
 
 		if self.timing_load:
 			self._elapsed()
+
+	def get_highway_refs(self, properties):
+		for ref in re.split(r'\s*;\s*', properties.get('ref','')):
+			if ref != "":
+				yield ref
 
 	def choose_line_label_text(self, properties):
 		return properties.get('name')

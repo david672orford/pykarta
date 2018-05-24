@@ -1,8 +1,9 @@
 # pykarta/draw/shapes.py
-# Copyright 2013--2016, Trinity College
-# Last modified: 21 August 2014
+# Copyright 2013--2018, Trinity College
+# Last modified: 23 May 2018
 
 import cairo
+import re
 
 # Add a rectangle with rounded corners to the path.
 def rounded_rectangle(cr, x, y, w, h, r=20):
@@ -24,4 +25,46 @@ def rounded_rectangle(cr, x, y, w, h, r=20):
     cr.line_to(x,y+r)                      # Line to H
     cr.curve_to(x,y,x,y,x+r,y)             # Curve to A
 
+# Parse a subset of the SVG path language and draw it. Design complex shapes
+# using Inkscape, then paste paths into your code. Note that this supports
+# only absolute coordinates. In Inkscape preferences under SVG Output change
+# Path Data to Absolute. Then you can move the elements with relative paths
+# and move them back. They should not have absolute paths which you can
+# paste into calls to this function.
+def svg_path(ctx, path):
+	ctx.new_path()
+	while len(path) > 0:
+		#print "path:", path
+		if path.startswith("M "):
+			path = path[2:]
+			while True:
+				m = re.match(r"([\d-]+),([\d-]+) ", path)
+				if m is None:
+					break
+				ctx.move_to(*map(int,m.groups()))
+				path = path[len(m.group(0)):]
+			continue
+		if path.startswith("L "):
+			path = path[2:]
+			while True:
+				m = re.match(r"([\d-]+),([\d-]+) ", path)
+				if m is None:
+					break
+				ctx.line_to(*map(int,m.groups()))
+				path = path[len(m.group(0)):]
+			continue
+		if path.startswith("C "):
+			path = path[2:]
+			while True:
+				m = re.match(r"([\d-]+),([\d-]+) ([\d-]+),([\d\-]+) ([\d-]+),([\d-]+) ", path)
+				if m is None:
+					break
+				ctx.curve_to(*map(int,m.groups()))
+				path = path[len(m.group(0)):]
+			continue
+		if path == "Z":
+			ctx.close_path()
+			path = ""
+			continue
+		raise ValueError("Bad SVG path: \"%s\" (len=%d)" % (path, len(path)))
 

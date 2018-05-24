@@ -2,7 +2,7 @@
 # pykarta/maps/layers/tilesets_osm_vec.py
 # Vector tile sets and renderers for them
 # Copyright 2013--2018, Trinity College
-# Last modified: 22 May 2018
+# Last modified: 23 May 2018
 
 # http://colorbrewer2.org/ is helpful for picking color palates for maps.
 
@@ -16,7 +16,13 @@ import re
 from tilesets_base import tilesets, MapTilesetVector
 from pykarta.maps.layers.tile_rndr_geojson import MapGeoJSONTile, json_loader
 from pykarta.maps.symbols import MapSymbolSet
-from pykarta.draw import draw_line_label, draw_generic_shield, centered_label as draw_centered_label, polygon as draw_polygon, line_string as draw_line_string, stroke_with_style
+from pykarta.draw import \
+	draw_line_label_pango as draw_line_label, \
+	draw_highway_shield, \
+	centered_label as draw_centered_label, \
+	polygon as draw_polygon, \
+	line_string as draw_line_string, \
+	stroke_with_style
 
 #-----------------------------------------------------------------------------
 
@@ -426,9 +432,9 @@ class MapOsmRoadLabelsTile(MapGeoJSONTile):
 				dedup.add(placement[0])
 
 		# Draw highway route number shields
-		for center, shield_text in self.line_shields:
+		for center, ref in self.line_shields:
 			center = self.scale_point(center, scale)
-			draw_generic_shield(ctx, center[0], center[1], shield_text, fontsize=10)
+			draw_highway_shield(ctx, center[0], center[1], ref)
 
 tilesets.append(MapTilesetVector('osm-vector-road-labels',
 	tile_class=MapOsmRoadLabelsTile,
