@@ -1,6 +1,6 @@
 # pykarta/server/modules/tiles_osm_vec.py
 # Produce GeoJSON tiles from OSM data stored in a Spatialite database
-# Last modified: 16 May 2018
+# Last modified: 24 May 2018
 
 # References:
 # https://docs.python.org/2/library/sqlite3.html
@@ -276,7 +276,7 @@ def application(environ, start_response):
 		return []
 
 	p1 = unproject_from_tilespace(x, y, zoom)
-	p2 = unproject_from_tilespace(x, y, zoom)
+	p2 = unproject_from_tilespace(x + 1.0, y + 1.0, zoom)
 	small_bbox = 'BuildMBR(%f,%f,%f,%f,4326)' % (p1[1], p1[0], p2[1], p2[0])
 
 	p1 = unproject_from_tilespace(x - 0.05, y - 0.05, zoom)
