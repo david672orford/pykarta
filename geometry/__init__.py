@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/geometry/__init__.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 18 May 2018
+# Last modified: 24 May 2018
 
 from __future__ import print_function
 import math
@@ -221,9 +221,10 @@ class Polygon(MultiPoint):
 			self.points = []
 			self.holes = []
 
-	# Methods area() and centroid() came from:
-	# http://local.wasp.uwa.edu.au/~pbourke/geometry/polyarea/
-	# We have shortened them up.
+	# This and the centroid function are from:
+	#  http://local.wasp.uwa.edu.au/~pbourke/geometry/polyarea/
+	# See also:
+	#  http://www.seas.upenn.edu/~sys502/extra_materials/Polygon%20Area%20and%20Centroid.pdf
 	def area(self, project=False):
 		"Area of polygon in square degrees unless project=True when it is in square meters"
 		if project:		# project to meters first?
@@ -231,7 +232,7 @@ class Polygon(MultiPoint):
 		else:
 			points = self.points
 		area=0
-		j=len(points)-1
+		j=len(points)-1		# last point
 		for i in range(len(points)):
 			p1=points[i]
 			p2=points[j]
@@ -243,19 +244,20 @@ class Polygon(MultiPoint):
 
 	def centroid(self):
 		"Compute the centroid of the polygon"
+		points = self.points
 		x=0
 		y=0
-		j=len(self.points)-1;
-		for i in range(len(self.points)):
-			p1=self.points[i]
-			p2=self.points[j]
+		j=len(points)-1;	# last point
+		for i in range(len(points)):
+			p1=points[i]
+			p2=points[j]
 			f=p1[0]*p2[1]-p2[0]*p1[1]
 			x+=(p1[0]+p2[0])*f
 			y+=(p1[1]+p2[1])*f
 			j=i
 		f=self.area()*6
 		if(f == 0):
-			return self.points[0]
+			return points[0]
 		else:
 			return Point(x/f, y/f)
 
@@ -303,7 +305,11 @@ class Polygon(MultiPoint):
 		if largest_distance_point is not None:
 			return largest_distance_point
 		else:	# for some unknown pathological case
-			return self.centroid()
+			# FIXME: See ../tests/polygon_labeling_test.py for a case in which
+			# the centroid is far from the polygon. For now we are going with
+			# the bounding box center.
+			#return self.centroid()
+			return self.get_bbox().center()
 
 	def distance_to(self, point, low_abort=None):
 		"Find the distance from <point> to the nearest segment of the polygon"
@@ -321,6 +327,7 @@ class Polygon(MultiPoint):
 		return shortest
 
 	def as_geojson(self):
+		"Return a representation of the polygon in GeoJSON format"
 		coordinates = []
 		for poly in [self.points] + self.holes:
 			points = self.points[:]
@@ -430,19 +437,22 @@ class BoundingBox(object):
 		self.min_lon = min(self.min_lon, bbox.min_lon)		
 		self.max_lon = max(self.max_lon, bbox.max_lon)		
 
-	# Return the point at the center of the bounding box.
 	def center(self):
+		"Return the point at the center of the bounding box."
 		if self.valid:
 			return Point( (self.max_lat + self.min_lat) / 2, (self.max_lon + self.min_lon) / 2 )
 		else:
 			return None
 
-	# Does the bounding box contain the indicated point?
 	def contains_point(self, point):
+		"Does the bounding box contain the indicated point?"
 		return (point.lat >= self.min_lat and point.lat <= self.max_lat and point.lon >= self.min_lon and point.lon <= self.max_lon)
 
-	# Do the bounding boxes overlap?
 	def overlaps(self, other):
+		"Do this bounding box and bounding box other overlap?"
+
+		if not isinstance(other, BoundingBox): raise TypeError
+
 		if self.valid and other.valid:
 			# See: http://rbrundritt.wordpress.com/2009/10/03/determining-if-two-bounding-boxes-overlap/
 			# Distance between centers on horizontal and vertical axes

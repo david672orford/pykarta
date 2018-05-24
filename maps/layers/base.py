@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/base.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 22 May 2018
+# Last modified: 24 May 2018
 
 import math
 import cairo
@@ -126,7 +126,6 @@ class MapTileLayer(MapLayer):
 		self.tile_size = None
 		self.tile_ranges = None			# used for precaching
 		self.dedup = set()				# for deduplicating labels, shared by all the tiles
-		self.style_cache = {}			# used by vector tiles
 
 	#def __del__(self):
 	#	print "Map: tile layer %s destroyed" % self.name

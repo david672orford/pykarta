@@ -1,5 +1,5 @@
 # encoding=utf-8
-# pykarta/geometry/text.py
+# pykarta/geometry/from_text.py
 # Copyright 2013--2018, Trinity College
 # Last modified: 15 May 2018
 

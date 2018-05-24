@@ -73,20 +73,19 @@ layers = {
 		'clip': False,
 		},
 	'osm-vector-admin-borders': {
-		'table': 'multipolygons',
+		'table': 'lines',
 		'columns': ('name', 'boundary', 'admin_level'),
-		'zoom_min': 4,
+		'zoom_min': 6,
 		'where_expressions': [
-			"boundary = 'administrative' and admin_level <= 4",		# z4 state
-			"boundary = 'administrative' and admin_level <= 4",		# z5
-			"boundary = 'administrative' and admin_level <= 4",		# z6
+			"boundary = 'administrative' and admin_level <= 4",		# z6 state
 			"boundary = 'administrative' and admin_level <= 4",		# z7
-			"boundary = 'administrative' and admin_level <= 6",		# z8 county
-			"boundary = 'administrative' and admin_level <= 6", 	# z9
-			"boundary = 'administrative' and admin_level <= 8",		# z10 town
-			"boundary = 'administrative' and admin_level <= 8",		# z11
-			"boundary = 'administrative' and admin_level <= 8",		# z12
-			"boundary = 'administrative' and admin_level <= 10", 	# z13 neighborhood
+			"boundary = 'administrative' and admin_level <= 4",		# z8
+			"boundary = 'administrative' and admin_level <= 4",		# z9
+			"boundary = 'administrative' and admin_level <= 6",		# z10 county
+			"boundary = 'administrative' and admin_level <= 6", 	# z11
+			"boundary = 'administrative' and admin_level <= 8",		# z12 town
+			"boundary = 'administrative' and admin_level <= 8",		# z13
+			"boundary = 'administrative' and admin_level <= 9", 	# z14 neighborhood
 			],
 		},
 	'osm-vector-buildings': {

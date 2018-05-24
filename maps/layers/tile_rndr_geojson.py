@@ -2,7 +2,7 @@
 # pykarta/maps/layers/tile_rndr_geojson.py
 # Base class for GeoJSON vector tile renderers
 # Copyright 2013--2018, Trinity College
-# Last modified: 23 May 2018
+# Last modified: 24 May 2018
 
 from __future__ import print_function
 try:
@@ -67,7 +67,6 @@ class MapGeoJSONTile(object):
 		self.y = y
 
 		self.tileset = layer.tileset
-		self.style_cache = layer.style_cache
 		self.dedup = layer.dedup
 		self.containing_map = layer.containing_map
 
@@ -87,6 +86,9 @@ class MapGeoJSONTile(object):
 			parsed_json = data
 		else:
 			parsed_json = json_loader(filename)
+
+		if self.timing_load:
+			self._elapsed()
 
 		# Interpret the JSON (now in the form of Python dicts and lists) as GeoJSON
 		self.load_geojson(parsed_json)
@@ -123,13 +125,25 @@ class MapGeoJSONTile(object):
 				for id, polygon, properties, style in self.polygons:
 					label_text = self.choose_polygon_label_text(properties)
 					if label_text is not None:
-						polygon_obj = Polygon(polygon)
-						area = polygon_obj.area()
-						center = polygon_obj.choose_label_center()
-						polygon_labels.append((id, area, center, label_text))
+						# See ../tests/polyton_labeling_test.py for an example where this fails.
+						#polygon_obj = Polygon(polygon)
+						#area = polygon_obj.area()
+						#label_center = polygon_obj.choose_label_center()
 
-		if self.timing_load:
-			self._elapsed()
+						# For now we will compute a bounding box and put the label at the center.
+						min_x = 255
+						max_x = 0
+						min_y = 255
+						max_y = 0
+						for x, y in polygon:
+							min_x = min(min_x, x)
+							max_x = max(max_x, x)
+							min_y = min(min_y, y)
+							max_y = max(max_y, y)
+						area = ((max_x - min_x) * (max_y - min_y))
+						label_center = ((max_x + min_x) / 2, (max_y + min_y) / 2)
+
+						polygon_labels.append((id, area, label_center, label_text))
 
 	def get_highway_refs(self, properties):
 		for ref in re.split(r'\s*;\s*', properties.get('ref','')):

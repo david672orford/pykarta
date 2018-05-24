@@ -2,10 +2,11 @@
 # pykarta/maps/layers/tilesets_osm_vec.py
 # Vector tile sets and renderers for them
 # Copyright 2013--2018, Trinity College
-# Last modified: 23 May 2018
+# Last modified: 24 May 2018
 
 # http://colorbrewer2.org/ is helpful for picking color palates for maps.
 
+from __future__ import print_function
 import os
 import glob
 import cairo
@@ -17,7 +18,7 @@ from tilesets_base import tilesets, MapTilesetVector
 from pykarta.maps.layers.tile_rndr_geojson import MapGeoJSONTile, json_loader
 from pykarta.maps.symbols import MapSymbolSet
 from pykarta.draw import \
-	draw_line_label_pango as draw_line_label, \
+	draw_line_label_stroked as draw_line_label, \
 	draw_highway_shield, \
 	centered_label as draw_centered_label, \
 	polygon as draw_polygon, \
@@ -52,11 +53,15 @@ class MapOsmLanduseTile(MapGeoJSONTile):
 		style = self.styles.get(landuse, { 'fill-color': (0.90, 0.90, 0.90) })
 		return style
 	def draw2(self, ctx, scale):
+		dedup = self.dedup
 		for id, area, center, text in self.polygon_labels:
-			area = area * scale * scale
-			if area > 10000:	# equivalent of 100 pixel square
-				center = self.scale_point(center, scale)
-				draw_centered_label(ctx, center[0], center[1], text, style=self.label_style)
+			if not text in dedup:
+				# If area in square pixels is greater than that of a 100x100 pixel square,
+				area = area * scale * scale
+				if area > 10000:
+					center = self.scale_point(center, scale)
+					draw_centered_label(ctx, center[0], center[1], text, style=self.label_style)
+					dedup.add(text)
 
 tilesets.append(MapTilesetVector('osm-vector-landuse',
 	tile_class=MapOsmLanduseTile,
@@ -68,6 +73,7 @@ tilesets.append(MapTilesetVector('osm-vector-landuse',
 #-----------------------------------------------------------------------------
 
 class MapOsmWaterwaysTile(MapGeoJSONTile):
+	clip = 5
 	styles = {
 		"river": {
 				'line-color': (0.53, 0.80, 0.98),
@@ -77,7 +83,17 @@ class MapOsmWaterwaysTile(MapGeoJSONTile):
 				'line-color': (0.53, 0.80, 0.98),
 				'line-width': (11,0.25, 16, 3.0),
 				},
-		"default": {
+		"canal": {
+				'line-color': (0.53, 0.80, 0.98),
+				'line-width': (11,0.25, 16, 2.0),
+				'line-dasharray': (6,1),
+				},
+		"derelict_canal": {
+				'line-color': (0.53, 0.80, 0.98),
+				'line-width': (11,0.25, 16, 2.0),
+				'line-dasharray': (1,6),
+				},
+		"default": {		# yellow error indicator
 				'line-color': (1.00, 1.00, 0.00),
 				'line-width': (11,0.25, 16, 2.0),
 				},
@@ -125,9 +141,9 @@ class MapOsmBuildingsTile(MapGeoJSONTile):
 	def choose_polygon_label_text(self, properties):
 		return properties.get('addr:housenumber')
 	def draw2(self, ctx, scale):
-		for id, area, center, text in self.polygon_labels:
-			center = self.scale_point(center, scale)
-			draw_centered_label(ctx, center[0], center[1], text, style=self.label_style)
+		for id, area, label_center, label_text in self.polygon_labels:
+			label_center = self.scale_point(label_center, scale)
+			draw_centered_label(ctx, label_center[0], label_center[1], label_text, style=self.label_style)
 
 tilesets.append(MapTilesetVector('osm-vector-buildings',
 	tile_class=MapOsmBuildingsTile,
@@ -141,9 +157,18 @@ tilesets.append(MapTilesetVector('osm-vector-buildings',
 def RGB(r,g,b):
 	return (r / 255.0, g / 255.0, b / 255.0)
 
+#road_color = (
+#	RGB(189,0,38),		# motorways
+#	RGB(240,59,32),		# trunk
+#	RGB(253,141,60),	# primary
+#	RGB(254,204,92),	# secondary
+#	RGB(255,255,178),	# tertiary
+#	RGB(255,255,190),	# unclassified
+#	RGB(255,255,255),	# residential
+#	)
 road_color = (
-	RGB(189,0,38),		# motorways
-	RGB(240,59,32),		# trunk
+	RGB(227,26,28),		# motorways
+	RGB(227,80,40),		# trunk
 	RGB(253,141,60),	# primary
 	RGB(254,204,92),	# secondary
 	RGB(255,255,178),	# tertiary
@@ -166,7 +191,8 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 		'round':cairo.LINE_JOIN_ROUND,
 		}
 
-	road_type_simplifier = {						# until zoom level 14
+	# Until zoom level 14 we conflate road classes
+	road_type_simplifier = {
 		'trunk': 'major_road',
 		'primary': 'major_road',
 		'secondary': 'major_road',
@@ -176,7 +202,20 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 		'residential': 'minor_road',
 		'service': 'minor_road',
 		}
-	styles = {
+
+	styles_z6_to_z10 = {
+		'motorway':{
+			'line-color':(0,0,0),
+			'overline-color':road_color[0],
+			'line-width':(6,0.08, 14,6.0),
+			},
+		'major_road':{
+			'line-color':(0.5,0.5,0.5),
+			'line-width':(6,0.03, 14,3.0),
+			},
+		}
+
+	styles_z11_to_z13 = {
 		'motorway':{
 			'line-color':(0,0,0),
 			'overline-color':road_color[0],
@@ -203,7 +242,7 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 		}
 
 	# https://wiki.openstreetmap.org/wiki/Key:highway
-	styles_z14 = {
+	styles_z14_to_z18 = {
 		'motorway':{
 			'line-color':(0.0, 0.0, 0.0),			# black casing
 			'line-width':(14,6.0, 18,18.0),
@@ -310,10 +349,7 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 			},
 		}
 	def choose_line_style(self, properties):
-		cache_key = json.dumps([self.zoom,] + properties.items(), sort_keys=True)
-		style = self.style_cache.get(cache_key)
-		if style is not None:
-			return style
+		#return {'line-width':1, 'line-color':(0.0, 1.0, 0.0)}
 
 		way_type = properties.get('highway')
 		if way_type is None and 'railway' in properties:
@@ -321,11 +357,13 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 		if way_type is None and 'aeroway' in properties:
 			way_type = 'aeroway'
 		if self.zoom >= 14:
-			style = self.styles_z14.get(way_type)
+			style = self.styles_z14_to_z18.get(way_type)
+		elif self.zoom >= 11:
+			style = self.styles_z11_to_z13.get(self.road_type_simplifier.get(way_type,way_type))
 		else:
-			style = self.styles.get(self.road_type_simplifier.get(way_type,way_type))
+			style = self.styles_z6_to_z10.get(self.road_type_simplifier.get(way_type,way_type))
 		if style is None:
-			print "Warning: no style for:", way_type, properties
+			print("Warning: no style for:", way_type, properties)
 			style = {'line-width':(0,10, 16,10), 'line-color':(0.0, 1.0, 0.0)}		# error indicator
 
 		style = style.copy()
@@ -350,7 +388,6 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 			'line-width': line_width,
 			})
 
-		self.style_cache[cache_key] = style
 		return style
 
 	def draw1(self, ctx, scale):
@@ -455,46 +492,46 @@ class MapOsmAdminBordersTile(MapGeoJSONTile):
 	sort_key = 'admin_level'
 	# http://wiki.openstreetmap.org/wiki/United_States_admin_level
 	styles = {
-		4: { 	# state
-			'line-color': (1.0, 1.0, 1.0),
-			'line-width': (4, 1.5, 14, 3.5),
-			'overline-color': (0.0, 0.0, 0.0),
-			'overline-width': (4, 1.0, 14, 3.0),
-			'overline-dasharray': (15, 4, 4, 4),
+		4: { 	# admin_level 4: state
+			'line-color': (0.0, 0.0, 0.0),
+			'line-width': (6, 0.25, 14, 1.0),
+			'line-dasharray': (10, 5),
 			},
-		5: {	# New York City (was 7)
-			'line-color': (1.0, 1.0, 1.0),
-			'line-width': (4, 1.0, 14, 3.0),
-			'overline-color': (0.0, 0.0, 0.0),
-			'overline-width': (4, 0.75, 14, 2.5), 
-			'overline-dasharray': (15, 4, 4, 4),
+		5: {	# admin_level 5: New York City
+			'line-color': (0.0, 0.0, 0.0),
+			'line-width': (6, 0.1, 14, 0.75), 
+			'line-dasharray': (8, 4),
 			},
-		6: {	# county
-			'line-color': (1.0, 1.0, 1.0),
-			'line-width': (4, 0.9, 14, 2.5),
-			'overline-color': (0.0, 0.0, 0.0),
-			'overline-width': (4, 0.66, 14, 2.0), 
-			'overline-dasharray': (15, 4, 4, 4),
+		6: {	# admin_level 6: county
+			'line-color': (0.0, 0.0, 0.0),
+			'line-width': (6, 0.1, 14, 0.75), 
+			'line-dasharray': (6, 3),
 			},
-		7: {	# town (larger than city?!), township, unincorporated community
-			'line-color': (1.0, 1.0, 1.0),
-			'line-width': (4, 0.6, 14, 2.0),
-			'overline-color': (0.0, 0.0, 0.0),
-			'overline-width': (4, 0.50, 14, 1.5),
-			'overline-dasharray': (15, 4, 4, 4),
+		7: {	# admin_level 7: civil township (large structure in some US states)
+			'line-color': (0.0, 0.0, 0.0),
+			'line-width': (6, 0.1, 14, 0.75),
+			'line-dasharray': (5, 3),
 			},
-		8: {	# city or village
-			'line-color': (1.0, 1.0, 1.0),
-			'line-width': (4, 0.4, 14, 1.5),
-			'overline-color': (0.0, 0.0, 0.0),
-			'overline-width': (4, 0.33, 14, 1.0),
-			'overline-dasharray': (15, 4, 4, 4),
+		8: {	# admin_level 8: city or town
+			'line-color': (0.0, 0.0, 0.0),
+			'line-width': (6, 0.05, 14, 0.5),
+			'line-dasharray': (4,2),
+			},
+		9: {	# admin_level 9: ward
+			'line-color': (0.0, 0.0, 0.0),
+			'line-width': (6, 0.02, 14, 0.25),
+			'line-dasharray': (2,2),
+			},
+		10: {	# admin_level 10: neighborhood
+			'line-color': (0.0, 0.0, 0.0),
+			'line-width': (6, 0.02, 14, 0.25),
+			'line-dasharray': (2,2),
 			},
 		}
-	def choose_polygon_style(self, properties):
+	def choose_line_style(self, properties):
 		style = self.styles.get(properties['admin_level'],None)
 		if style is None:
-			print "Warning: no style for admin polygon:", properties
+			print("Warning: no style for admin_level %d" % properties['admin_level'])
 		if style is not None:
 			style = style.copy()
 			for i in ("line-width", "overline-width"):
@@ -503,8 +540,8 @@ class MapOsmAdminBordersTile(MapGeoJSONTile):
 		return style
 	def draw1(self, ctx, scale):
 		self.start_clipping(ctx, scale)
-		for id, polygon, properties, style in reversed(self.polygons):
-			draw_polygon(ctx, self.scale_points(polygon, scale))
+		for id, line, properties, style in reversed(self.lines):
+			draw_line_string(ctx, self.scale_points(line, scale))
 			stroke_with_style(ctx, style)
 
 tilesets.append(MapTilesetVector('osm-vector-admin-borders',
@@ -534,7 +571,7 @@ class MapOsmPoisTile(MapGeoJSONTile):
 			renderer = symbol.get_renderer(self.containing_map)
 			label_text = properties.get("name") if self.zoom >= 16 else None
 			return (renderer, label_text)
-		print "Warning: no symbol for POI:", properties
+		print("Warning: no symbol for POI:", properties)
 		return None
 	def draw1(self, ctx, scale):
 		for id, point, properties, style in self.points:
@@ -566,8 +603,8 @@ class MapOsmPlacesTile(MapGeoJSONTile):
 		'locality': (13, 8.0, 16,30.0),
 		}
 	def choose_point_style(self, properties):
-		#print "admin point:", properties
-		if 'name' in properties and properties['name'] is not None:
+		name = properties.get("name")
+		if name is not None:
 			fontsize = self.sizes.get(properties['place'])
 			if fontsize is not None:
 				fontsize = self.zoom_feature(fontsize)
