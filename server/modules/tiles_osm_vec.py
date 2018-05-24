@@ -125,9 +125,9 @@ layers = {
 		'other_tags': ('population',),
 		'zoom_min': 5,
 		'where_expressions': [
-            "place IN ('state')",		# z5
-            "place IN ('state')",		# z6
-            "place IN ('state','city')",	# z7
+            "place IN ('state')",					# z5
+            "place IN ('state')",					# z6
+            "place IN ('state','city')",			# z7
             "place IN ('state','city','county')",	# z8
             "place IN ('state','city','county')",	# z9
             "place IN ('city','town')",				# z10

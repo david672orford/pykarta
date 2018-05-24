@@ -54,7 +54,6 @@ class MapGeoJSONTile(object):
 	clip = None						# None for no clipping, or number of pixels beyond tile border
 	sort_key = None
 
-	label_points = False
 	label_lines = False
 	label_polygons = False
 
@@ -74,7 +73,6 @@ class MapGeoJSONTile(object):
 		self.lines = []
 		self.polygons = []
 
-		self.point_labels = []
 		self.line_labels = []
 		self.line_shields = []
 		self.polygon_labels = []
@@ -92,9 +90,6 @@ class MapGeoJSONTile(object):
 
 		# Interpret the JSON (now in the form of Python dicts and lists) as GeoJSON
 		self.load_geojson(parsed_json)
-
-		if self.label_points:
-			pass		# not implemented
 
 		if self.label_lines:
 

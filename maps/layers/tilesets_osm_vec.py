@@ -592,30 +592,30 @@ tilesets.append(MapTilesetVector('osm-vector-pois',
 
 class MapOsmPlacesTile(MapGeoJSONTile):
 	#sort_key = 'sort_key'
-	sizes = {
-		'state':    ( 5, 8.0,  9, 40.0),
-		'county':   ( 7, 10.0, 9, 15.0),
-		'city':     ( 6, 5.0, 16, 60.0),
-		'town':     ( 9, 6.0, 16, 40.0),
-		'village':  (13, 8.0, 16,30.0),
-		'hamlet':   (13, 8.0, 16,30.0),
-		'suburb':   (13, 8.0, 16,30.0),
-		'locality': (13, 8.0, 16,30.0),
+	place_label_sizes = {
+		'state':    ( 6, 10, 9, 30),		# comes in at z5, goes out at z13
+		'county':   ( 6, 6,  9, 20),		# comes in at z8, goes out at z10
+		'city':     ( 6, 4, 16, 14),		# comes in at z7
+		'town':     (10, 8, 16, 20),		# comes in at z10
+		'village':  (10, 4, 16, 14),		# comes in at z13
+		'hamlet':   (10, 4, 16, 14),
+		'suburb':   (10, 4, 16, 14),
+		'locality': (10, 4, 16, 14),
 		}
 	def choose_point_style(self, properties):
+		#print("place:", properties)
 		name = properties.get("name")
 		if name is not None:
-			fontsize = self.sizes.get(properties['place'])
-			if fontsize is not None:
-				fontsize = self.zoom_feature(fontsize)
+			label_size = self.place_label_sizes.get(properties.get("place"))
+			if label_size is None:
+				print("Warning: unrecognized place type:", properties)
+			elif self.zoom >= label_size[0] and self.zoom <= label_size[2]:
 				if self.zoom >= 11.0:
 					return {
-						'font-size':fontsize,
-						'color':(0.0,0.0,0.0,0.6),
-						'halo':False,
+						'font-size': self.zoom_feature(label_size),
+						'color': (0.0, 0.0, 0.0, 0.6),
+						'halo': False,
 						}
-				else:
-					return { 'font-size':fontsize }
 		return None
 	def draw1(self, ctx, scale):
 		for id, point, properties, style in self.points:
