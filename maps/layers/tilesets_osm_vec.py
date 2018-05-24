@@ -21,6 +21,7 @@ from pykarta.draw import \
 	draw_line_label_stroked as draw_line_label, \
 	draw_highway_shield, \
 	centered_label as draw_centered_label, \
+	poi_label as draw_poi_label, \
 	polygon as draw_polygon, \
 	line_string as draw_line_string, \
 	stroke_with_style
@@ -585,7 +586,7 @@ tilesets.append(MapTilesetVector('osm-vector-pois',
 	tile_class=MapOsmPoisTile,
 	url_template="tiles/osm-vector-pois/{z}/{x}/{y}.geojson", 
 	attribution=u"Map © OpenStreetMap contributors",
-	zoom_min=14,
+	zoom_min=15,
 	))
 
 #-----------------------------------------------------------------------------
@@ -593,34 +594,51 @@ tilesets.append(MapTilesetVector('osm-vector-pois',
 class MapOsmPlacesTile(MapGeoJSONTile):
 	#sort_key = 'sort_key'
 	place_label_sizes = {
-		'state':    ( 6, 10, 9, 30),		# comes in at z5, goes out at z13
-		'county':   ( 6, 6,  9, 20),		# comes in at z8, goes out at z10
-		'city':     ( 6, 4, 16, 14),		# comes in at z7
-		'town':     (10, 8, 16, 20),		# comes in at z10
-		'village':  (10, 4, 16, 14),		# comes in at z13
-		'hamlet':   (10, 4, 16, 14),
-		'suburb':   (10, 4, 16, 14),
-		'locality': (10, 4, 16, 14),
+		'state':    (6, 12, 16, 32),		# comes in at z5, goes out at z13
+		'county':   (6, 8,  16, 18),		# comes in at z8, goes out at z10
+		'city':     (6, 6,  16, 16),		# comes in at z7
+		'town':     (6, 6,  16, 12),		# comes in at z10
+		'village':  (6, 4,  16, 10),		# comes in at z13
+		'hamlet':   (6, 4,  16, 10),
+		'suburb':   (6, 4,  16, 10),
+		'locality': (6, 4,  16, 10),
 		}
 	def choose_point_style(self, properties):
 		#print("place:", properties)
-		name = properties.get("name")
-		if name is not None:
+		if properties.get("name") is not None:
 			label_size = self.place_label_sizes.get(properties.get("place"))
 			if label_size is None:
 				print("Warning: unrecognized place type:", properties)
-			elif self.zoom >= label_size[0] and self.zoom <= label_size[2]:
-				if self.zoom >= 11.0:
-					return {
-						'font-size': self.zoom_feature(label_size),
-						'color': (0.0, 0.0, 0.0, 0.6),
-						'halo': False,
-						}
+			else:
+				return {
+					'font-size': self.zoom_feature(label_size),
+					'font-weight': 'bold',
+					'color': (0.0, 0.0, 0.0),
+					'halo': True,
+					}
 		return None
 	def draw1(self, ctx, scale):
 		for id, point, properties, style in self.points:
-			point = self.scale_point(point, scale)
-			draw_centered_label(ctx, point[0], point[1], properties['name'], style=style)
+			x, y = self.scale_point(point, scale)
+			place = properties["place"]
+			label_text = properties['name']
+			if place == "county":
+				label_text = "%s County" % label_text
+
+			if self.zoom < 14 and place == "city" or place == "town":
+				ctx.new_path()
+				ctx.arc(x, y, 3, 0, 2*math.pi)
+				ctx.set_line_width(1.5)
+				ctx.set_source_rgb(1,1,1)
+				ctx.stroke_preserve()
+				ctx.set_line_width(1.0)
+				ctx.set_source_rgb(0,0,0)
+				ctx.stroke_preserve()
+				ctx.set_source_rgba(0.5,0.5,1.0)
+				ctx.fill()
+				draw_poi_label(ctx, x + 5, y, label_text, fontsize=style['font-size'])
+			else:
+				draw_centered_label(ctx, x, y, label_text, style=style)
 
 tilesets.append(MapTilesetVector('osm-vector-places',
 	tile_class=MapOsmPlacesTile,

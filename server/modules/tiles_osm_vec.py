@@ -80,7 +80,7 @@ layers = {
 			"boundary = 'administrative' and admin_level <= 4",		# z6 state
 			"boundary = 'administrative' and admin_level <= 4",		# z7
 			"boundary = 'administrative' and admin_level <= 4",		# z8
-			"boundary = 'administrative' and admin_level <= 4",		# z9
+			"boundary = 'administrative' and admin_level <= 6",		# z9
 			"boundary = 'administrative' and admin_level <= 6",		# z10 county
 			"boundary = 'administrative' and admin_level <= 6", 	# z11
 			"boundary = 'administrative' and admin_level <= 8",		# z12 town
@@ -123,16 +123,15 @@ layers = {
 		'table': 'points',
 		'columns': ('name', 'place'),
 		'other_tags': ('population',),
-		'zoom_min': 5,
+		'zoom_min': 6,
 		'where_expressions': [
-            "place IN ('state')",					# z5
             "place IN ('state')",					# z6
             "place IN ('state','city')",			# z7
             "place IN ('state','city','county')",	# z8
             "place IN ('state','city','county')",	# z9
-            "place IN ('city','town')",				# z10
-            "place IN ('city','town')",				# z11
-            "place IN ('city','town')",				# z12
+            "place IN ('county','city','town')",	# z10
+            "place IN ('city','town','village')",	# z11
+            "place IN ('city','town','village')",	# z12
             "place IN ('city','town','village','hamlet','suburb','locality')", # z13
 			],
 		'clip': False,		# unnecessary
@@ -142,7 +141,7 @@ layers = {
 	'osm-vector-pois': {
 		'table': 'points',
 		'columns': ('name', 'amenity'),
-		'zoom_min': 14,
+		'zoom_min': 15,
 		'where_expressions': [
 			"amenity IS NOT NULL"
 			],
