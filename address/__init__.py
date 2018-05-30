@@ -1,6 +1,6 @@
 # pykarta/address/__init__.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 16 May 2018
+# Last modified: 28 May 2018
 
 from __future__ import print_function
 import string
@@ -100,11 +100,11 @@ def split_house_street_apt(text):
 			m = re.search(r"^(.*) #([^#]+)$", components['Street'])
 			if not m:
 				# "1 Main St, Apt C"
-				m = re.search(r"^(.*),? (Apt|Ste)\.? (.+)$", components['Street'], re.I)
+				m = re.search(r"^(.*),? (?:Apt|Ste|Unit)\.? (.+)$", components['Street'], re.I)
 			if not m:
 				break
 			components['Street'] = m.group(1)
-			components['Apartment Number'] = m.group(3)
+			components['Apartment Number'] = m.group(2)
 		components['Street'] = disabbreviate_street(components['Street'])
 		return components
 	else:
@@ -504,7 +504,7 @@ def abbreviate_street(street):
 
 def disabbreviate_placename(placename):
 	"Convert an abbreviated place name (city, town, etc.) to the full form"
-	placename = re.sub('\s+', ' ', placename)
+	placename = re.sub('\s+', ' ', placename)		# repeated spaces to single
 	placename = re.sub('\. ', ' ', placename)
 	placename = string.capwords(placename)
 	words = placename.split(' ')

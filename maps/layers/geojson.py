@@ -1,18 +1,15 @@
 # pykarta/maps/layers/geojson.py
 # Copyright 2014--2018, Trinity College
-# Last modified: 21 May 2018
+# Last modified: 30 May 2018
 #
-# Preliminary implementation of an extension to the vector layer which can
-# load GeoJSON data from file handles and save the whole layer to a file
-# handle as GeoJSON.
+# An extension of MapLayerVector which enables it to load a subset of GeoJSON
+# from file handles and save the whole layer to a file handle as GeoJSON.
 #
 # Current Limitations:
-# * the loader only works if the top level object is a FeatureCollection
-# * properties are not preserved
-# * nested FeatureCollections are not supported
-# * GeomemtryCollections are loaded as individual objects
-# * MultiLineString is not supported yet
-# * MultiPolygon is loaded as multiple polygons
+# * The loader only works if the top level object is a FeatureCollection
+# * Properties are not preserved
+# * Only Point, LineString, and Polygon are supported. If the file contains
+#   other GeoJSON types, it will not be loaded.
 #
 
 import json

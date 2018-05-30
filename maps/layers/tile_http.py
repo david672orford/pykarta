@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tile_http.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 8 May 2018
+# Last modified: 30 May 2018
 
 import os
 import errno
@@ -11,6 +11,8 @@ import threading
 import time
 import socket
 import gobject
+import gzip
+from StringIO import StringIO
 
 from pykarta.misc.http import http_date
 from pykarta.maps.layers.base import MapTileLayer, MapTileError
@@ -440,6 +442,8 @@ class MapTileDownloaderThread(threading.Thread):
 				self.feedback.debug(1, "  %s/%d/%d/%d: non-image MIME type: %s" % (debug_args + (content_type,)))
 				response_body = response.read()
 				if content_type.startswith("text/"):
+					if response.getheader("content-encoding") == "gzip":
+						response_body = gzip.GzipFile(fileobj=StringIO(response_body)).read()
 					self.feedback.debug(1, "%s" % response_body.strip())
 				return True	 				# give up on tile
 	

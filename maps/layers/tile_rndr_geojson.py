@@ -17,7 +17,7 @@ import re
 
 from pykarta.geometry.projection import project_to_tilespace_pixel
 from pykarta.geometry import Polygon
-from pykarta.draw import place_line_label, place_line_shield, polygon as draw_polygon, line_string as draw_line_string, line_string as draw_line_string, stroke_with_style, fill_with_style
+from pykarta.draw import place_line_label, place_line_shields, polygon as draw_polygon, line_string as draw_line_string, line_string as draw_line_string, stroke_with_style, fill_with_style
 
 def json_loader(filename):
 	try:
@@ -106,12 +106,11 @@ class MapGeoJSONTile(object):
 			tile_level_dedup = set()
 			shields = self.line_shields
 			for id, line, properties, style in self.lines:
+				positions = place_line_shields(line)
 				for ref in self.get_highway_refs(properties):
 					if not ref in tile_level_dedup:
-						# FIXME: should place all of them
-						shield_pos = place_line_shield(line)
-						if shield_pos is not None:
-							shields.append((shield_pos, ref))
+						if len(positions) > 0:
+							shields.append((positions.pop(0), ref))
 						tile_level_dedup.add(ref)
 
 		if self.label_polygons:

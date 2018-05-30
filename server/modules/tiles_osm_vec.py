@@ -1,6 +1,6 @@
 # pykarta/server/modules/tiles_osm_vec.py
 # Produce GeoJSON tiles from OSM data stored in a Spatialite database
-# Last modified: 24 May 2018
+# Last modified: 25 May 2018
 
 # References:
 # https://docs.python.org/2/library/sqlite3.html
@@ -70,6 +70,7 @@ layers = {
 			"highway IN ('motorway','trunk','primary','secondary','tertiary','unclassified','residential')",	# z14
 			],
 		'simplification': 5.0,
+		'simplify-until': 99,
 		'clip': False,
 		},
 	'osm-vector-admin-borders': {
@@ -161,7 +162,7 @@ def get_tile(stderr, cursor, layer_name, small_bbox, large_bbox, zoom):
 	if layer.get('clip',True):
 		geometry = "Intersection(%s,%s)" % (geometry, bbox)
 	simplification = layer.get('simplification',1.0)		# one pixel
-	if simplification is not None and zoom < layer.get('simplify_until',16):
+	if simplification is not None and zoom < layer.get('simplify-until',16):
 		simplification = 360.0 / (2.0 ** zoom) / 256.0 * simplification
 		geometry = "SimplifyPreserveTopology(%s,%f)" % (geometry, simplification)
 
@@ -223,7 +224,8 @@ def get_tile(stderr, cursor, layer_name, small_bbox, large_bbox, zoom):
 				other_tags = dict()
 			else:
 				try:
-					other_tags = dict(map(lambda item: re.match(r'^"?([^"]+)"=>"([^"]*)"?$', item).groups(), other_tags.split('","')))
+					#other_tags = dict(map(lambda item: re.match(r'^"?([^"]+)"=>"([^"]*)"?$', item).groups(), other_tags.split('","')))
+					other_tags = json.loads("{%s}" % other_tags.replace('"=>"','":"'))
 					for tag in layer['other_tags']:
 						value = other_tags.get(tag)	
 						if value is not None:

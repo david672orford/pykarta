@@ -1,6 +1,6 @@
 # pykarta/draw/labels_lines.py
 # Copyright 2013--2018, Trinity College
-# Last modified: 23 May 2018
+# Last modified: 25 May 2018
 
 import cairo
 import math
@@ -27,12 +27,18 @@ def place_line_label(line, label_text, fontsize=8, tilesize=None):
 	# Find the length of each line segment and the total length
 	distances = []
 	total_distance = 0
+	longest_distance = 0
+	longest_index = None
 	for i in range(len(line)-1):
 		p1 = line[i]
 		p2 = line[i+1]
 		dx = p2[0] - p1[0]
 		dy = p2[1] - p1[1]
 		distance = math.sqrt(dx * dx + dy * dy)
+
+		if distance > longest_distance:
+			longest_index = i
+			longest_distance = distance
 		distances.append(distance)
 		total_distance += distance
 
@@ -40,18 +46,22 @@ def place_line_label(line, label_text, fontsize=8, tilesize=None):
 	if total_distance < width:
 		return None
 
-	# Find the middle segment (in terms of distance)
-	countdown = total_distance / 2
-	i = 0
-	for distance in distances:
-		countdown -= distance
-		if countdown < 0:
-			break
-		i += 1
-	p1 = line[i]
-	p2 = line[i+1]
+#	# Find the middle segment (in terms of distance)
+#	countdown = total_distance / 2
+#	i = 0
+#	for distance in distances:
+#		countdown -= distance
+#		if countdown < 0:
+#			break
+#		i += 1
+#	p1 = line[i]
+#	p2 = line[i+1]
 
-	# Find the middle of the middle segment
+	# Take the longest segment
+	p1 = line[longest_index]
+	p2 = line[longest_index+1]
+
+	# Find the middle of the selected segment
 	dx = p2[0] - p1[0]
 	dy = p2[1] - p1[1]
 	middle = (p1[0] + dx/2, p1[1] + dy/2)
@@ -61,7 +71,7 @@ def place_line_label(line, label_text, fontsize=8, tilesize=None):
 		if middle[0] < 0 or middle[0] > tilesize or middle[1] < 0 or middle[1] > tilesize:
 			return None
 
-	# and find the angle of the middle segment
+	# and find the angle of the selected segment
 	if dx != 0:
 		slope = dy/dx
 		angle = math.atan(slope)
@@ -78,7 +88,7 @@ def place_line_label(line, label_text, fontsize=8, tilesize=None):
 
 def draw_line_label_simple(ctx, placement, scale):
 	label_text, fontsize, width, middle, angle = placement
-	offset = fontsize * 0.2
+	offset = fontsize * 0.40
 	ctx.select_font_face(font_family)
 	ctx.set_font_size(fontsize)
 	ctx.save()
@@ -90,7 +100,7 @@ def draw_line_label_simple(ctx, placement, scale):
 
 def draw_line_label_stroked(ctx, placement, scale):
 	label_text, fontsize, width, middle, angle = placement
-	offset = fontsize * 0.2
+	offset = fontsize * 0.40
 	ctx.select_font_face(font_family)
 	ctx.set_font_size(fontsize)
 	ctx.save()
@@ -147,6 +157,20 @@ def place_line_shield(line):
 				longest_distance = distance
 				longest_distance_center = center
 	return longest_distance_center
+
+def place_line_shields(line):
+	positions = []
+	for i in range(len(line)-1):
+		p1 = line[i]
+		p2 = line[i+1]
+		dx = p2[0] - p1[0]
+		dy = p2[1] - p1[1]
+		distance = math.sqrt(dx * dx + dy * dy)
+		#print p1, p2, distance
+		center = (p1[0] + dx/2.0, p1[1] + dy/2.0)
+		if min(center[0],center[1]) >= 0 and max(center[0],center[1]) < 256:	# if within tile
+			positions.append((distance, center))
+	return map(lambda i: i[1], sorted(positions, key=lambda i: i[0], reverse=True))
 
 #============================================================================
 # Draw the text inside a generic highway shield.
