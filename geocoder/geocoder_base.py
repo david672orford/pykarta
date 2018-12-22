@@ -1,6 +1,6 @@
 # pykarta/geocoder/geocoder_base.py
 # Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 15 May 2018
+# Last modified: 17 June 2018
 
 from __future__ import print_function
 import threading

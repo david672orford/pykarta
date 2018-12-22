@@ -2,7 +2,7 @@
 # pykarta/maps/layers/tilesets_osm_vec.py
 # Vector tile sets and renderers for them
 # Copyright 2013--2018, Trinity College
-# Last modified: 25 May 2018
+# Last modified: 30 May 2018
 
 # http://colorbrewer2.org/ is helpful for picking color palates for maps.
 
@@ -477,8 +477,8 @@ class MapOsmRoadLabelsTile(MapGeoJSONTile):
 		dedup = self.dedup
 
 		# For debugging
-		for id, line, name, style in self.lines:
-			draw_node_dots(ctx, self.scale_points(line, scale), {'diameter':4})
+		#for id, line, name, style in self.lines:
+		#	draw_node_dots(ctx, self.scale_points(line, scale), {'diameter':4})
 
 		# Draw road names
 		for placement in self.line_labels:

@@ -2,7 +2,7 @@
 # pykarta/maps/layers/tile_rndr_geojson.py
 # Base class for GeoJSON vector tile renderers
 # Copyright 2013--2018, Trinity College
-# Last modified: 24 May 2018
+# Last modified: 30 May 2018
 
 from __future__ import print_function
 try:
@@ -57,7 +57,7 @@ class MapGeoJSONTile(object):
 	label_lines = False
 	label_polygons = False
 
-	timing_load = True				# Option: Time the loading routines and print the results
+	timing_load = False				# Option: Time the loading routines and print the results
 	timing_draw = False				# Option: Time the drawing routines and print the results
 
 	def __init__(self, layer, filename, zoom, x, y, data=None):
