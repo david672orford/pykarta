@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tilesets_base.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 14 May 2018
+# Copyright 2013--2019, Trinity College
+# Last modified: 1 April 2019
 
 import time
 from urllib import urlencode
@@ -76,6 +76,8 @@ class MapTileset(object):
 		if self.api_key_name is not None:
 			self.api_key = pykarta.api_keys[self.api_key_name]
 
+		# If the tileset URL template does not specify a server, it is relative
+		# to the root of the Pykarta tile server.
 		if self.url_template is not None and self.url_template.netloc == "":
 			server_url = urlparse(pykarta.server_url)
 			if server_url.path.endswith("/"):

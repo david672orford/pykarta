@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tile_http.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 30 May 2018
+# Copyright 2013--2019, Trinity College
+# Last modified: 1 April 2019
 
 import os
 import errno
@@ -439,12 +439,14 @@ class MapTileDownloaderThread(threading.Thread):
 				return True	 				# give up on tile
 
 			if not content_type.startswith("image/") and content_type != "application/json":
-				self.feedback.debug(1, "  %s/%d/%d/%d: non-image MIME type: %s" % (debug_args + (content_type,)))
 				response_body = response.read()
 				if content_type.startswith("text/"):
 					if response.getheader("content-encoding") == "gzip":
 						response_body = gzip.GzipFile(fileobj=StringIO(response_body)).read()
-					self.feedback.debug(1, "%s" % response_body.strip())
+					sample = ": %s" % response_body.strip()[:50]
+				else:
+					sample = ""
+				self.feedback.debug(1, "  %s/%d/%d/%d: non-image MIME type: %s: %s" % (debug_args + (content_type, sample)))
 				return True	 				# give up on tile
 	
 			if content_length is not None and int(content_length) == 0:
