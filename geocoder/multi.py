@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # pykarta/geocoder/multi.py
-# Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 17 June 2018
+# Copyright 2013--2019, Trinity College Computing Center
+# Last modified: 4 May 2019
 
 import os
 from pykarta.misc import file_age_in_days, get_cachedir
@@ -71,7 +71,7 @@ class GeocoderMulti(GeocoderBase):
 				if stop_on_interpolated or iresult.precision != "INTERPOLATED":
 					break		# good enough
 			else:
-				result.alternative_addresses.extend(iresult.alternative_addresses)
+				result.alternative_addresses.extend(map(lambda address: "%s: %s" % (geocoder.name, address), iresult.alternative_addresses))
 			i += 1
 
 		if best is not None:

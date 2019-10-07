@@ -1,6 +1,6 @@
 # pykarta/geocoder/geocoder_base.py
-# Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 17 June 2018
+# Copyright 2013--2019, Trinity College Computing Center
+# Last modified: 4 May 2019
 
 from __future__ import print_function
 import threading
@@ -205,7 +205,8 @@ class GeocoderBase(object):
 				next_name, next_value = find_in.pop(0)
 				#self.debug(" %s %s" % (next_name, next_value))
 				if (find_name is None or next_name == find_name) and next_value == find_value:
-					break	
+					break
+		#self.debug("Matches.")
 		return True		
 
 	def result_city_matches(self, city, reply_address_components):

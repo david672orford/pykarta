@@ -1,11 +1,11 @@
 # pykarta/geocoder/bing.py
-# Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 15 May 2018
+# Copyright 2013--2019, Trinity College Computing Center
+# Last modified: 4 May 2019
 
 from __future__ import print_function
 import json
 import pykarta
-from .geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
+from pykarta.geocoder.geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 from pykarta.address import split_house_street_apt
 
 # See http://msdn.microsoft.com/en-us/library/ff701714.aspx
@@ -21,6 +21,7 @@ class GeocoderBing(GeocoderBase):
 	location_types = {
 		'Parcel':'LOT',
 		'InterpolationOffset':'INTERPOLATED',
+		'Rooftop':'ROOF',
 		}
 
 	# Given a street address, try to find the latitude and longitude.
@@ -56,7 +57,7 @@ class GeocoderBing(GeocoderBase):
 				found_addr_list.append(("street", address1['Street']))
 				found_addr_list.append(("city", response['address']['locality']))
 				found_addr_list.append(("state", response['address']['adminDistrict']))
-				#print(found_addr_list)
+				print(found_addr_list)
 		
 				if self.result_truly_matches(address, found_addr_list):
 					location_type = response['geocodePoints'][0]['calculationMethod']
@@ -70,8 +71,8 @@ class GeocoderBing(GeocoderBase):
 		return result
 
 if __name__ == "__main__":
-	#pykarta.api_keys["bing"] = 
-	gc = GeocoderBing()
-	gc.debug_enabled = True
+	import sys
+	pykarta.api_keys["bing"] = sys.argv[1]
+	gc = GeocoderBing(debug=True)
 	print(gc.FindAddr(["300","Summit Street","","Hartford","CT","06106"]))
 
