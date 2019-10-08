@@ -1,6 +1,6 @@
 # pykarta/address/__init__.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 28 May 2018
+# Copyright 2013--2019, Trinity College
+# Last modified: 8 October 2019
 
 from __future__ import print_function
 import string
@@ -209,7 +209,9 @@ street_suffix_abbreviations = [
 	['Canyon','Cyn','Canyn','Cnyn'],
 	['Cape','Cpe'],
 	['Causeway','Cswy','Causway'],
-	['Center','Ctr','Cen','Cent','Centr','Centre','Cnter','Cntr'],
+	# Dropped "Centre" because they can spell it that way if they want to.
+	#['Center','Ctr','Cen','Cent','Centr','Centre','Cnter','Cntr'],
+	['Center','Ctr','Cen','Cent','Centr','Cnter','Cntr'],
 	['Centers','Ctrs'],
 	['Circle','Cir','Circ','Circl','Crcl','Crcle'],
 	['Circles','Cirs'],
@@ -376,7 +378,9 @@ street_suffix_abbreviations = [
 	['Unions','Uns'],
 	['Valley','Vly','Vally','Vlly'],
 	['Valleys','Vlys'],
-	['Viaduct','Via','Vdct','Viadct'],
+	# Dropped 'Via' since converting say "Via Paolo" to "Viaduct Paolo" may not be correct.
+	#['Viaduct','Via','Vdct','Viadct'],
+	['Viaduct','Vdct','Viadct'],
 	['View','Vw'],
 	['Views','Vws'],
 	['Village','Vlg','Vill','Villag','Villg','Villiage'],
@@ -384,7 +388,7 @@ street_suffix_abbreviations = [
 	['Ville','Vl'],
 	['Vista','Vis','Vist','Vst','Vsta'],
 	['Walk'],
-	['Walks','Walk'],
+	#['Walks','Walk'],
 	['Wall'],
 	['Way','Wy'],
 	['Ways'],
@@ -459,7 +463,7 @@ def disabbreviate_street(street, phonebook_format=False):
 				words[i] = "Mc" + m.group(1).upper() + m.group(2)
 
 	# Use prefix table to disabbreviate words starting from the left until we 
-	# hit a word that his not a prefix (whether abbreviated or not).
+	# hit a word that is not a prefix (whether abbreviated or not).
 	prefixes = []
 	while words and words[0] in directional_prefix_table:
 		prefixes.append(directional_prefix_table[words.pop(0)])
@@ -486,8 +490,11 @@ def disabbreviate_street(street, phonebook_format=False):
 	# "Park Drive" remains the same
 	# "City Arcade" remains the same (since "Arcade" is a street suffix), but
 	# "Arcade" becomes "Arcade Street"
-	if phonebook_format and ( len(words) < 2 or not words[-1] in street_words_table ):
-		words.append("Street")
+	if phonebook_format:
+		if words[0] == "Via":		# Via Paolo
+			pass
+		elif ( len(words) < 2 or not words[-1] in street_words_table ):
+			words.append("Street")
 
 	words.extend(suffixes)
 
