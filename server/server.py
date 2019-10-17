@@ -66,7 +66,7 @@ if __name__ == "__main__":
 		def __init__(self, app):
 			self.app = app
 		def __call__(self, environ, start_response):
-			environ['DATADIR'] = os.environ('DATADIR')
+			environ['DATADIR'] = os.environ['DATADIR']
 			return self.app(environ, start_response)
 	application = EnvInsert(application)
 	run_simple('0.0.0.0', 5000, application, threaded=True)
