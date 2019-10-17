@@ -8,7 +8,7 @@ import threading
 
 thread_data = threading.local()
 
-def application(environ, start_response):
+def app(environ, start_response):
 	stderr = environ['wsgi.errors']
 
 	cursor, response_headers = dbopen(environ, "parcels.sqlite")

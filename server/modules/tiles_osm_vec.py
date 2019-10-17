@@ -1,6 +1,6 @@
 # pykarta/server/modules/tiles_osm_vec.py
 # Produce GeoJSON tiles from OSM data stored in a Spatialite database
-# Last modified: 25 May 2018
+# Last modified: 17 October 2019
 
 # References:
 # https://docs.python.org/2/library/sqlite3.html
@@ -259,7 +259,7 @@ def get_tile(stderr, cursor, layer_name, small_bbox, large_bbox, zoom):
 
 	return geojson
 
-def application(environ, start_response):
+def app(environ, start_response):
 	stderr = environ['wsgi.errors']
 
 	m = re.match(r'^/([^/]+)/(\d+)/(\d+)/(\d+)\.geojson$', environ['PATH_INFO'])
@@ -306,11 +306,12 @@ def application(environ, start_response):
 		])
 	return [geojson]
 
+# Test which fetches a single tile
 if __name__ == "__main__":
 	import sys
 	def dummy_start_response(code, headers):
 		print(code, headers)
-	application({
+	app({
 		'PATH_INFO': "/osm-vector-roads/16/19528/24304.geojson",
 		'wsgi.errors': sys.stderr,
 		}, dummy_start_response)

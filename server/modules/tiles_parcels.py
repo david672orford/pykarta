@@ -7,7 +7,7 @@ import os, json, re, gzip, io
 from pykarta.geometry.projection import unproject_from_tilespace
 from pykarta.server.dbopen import dbopen
 
-def application(environ, start_response):
+def app(environ, start_response):
 	stderr = environ['wsgi.errors']
 
 	m = re.match(r'^/(\d+)/(\d+)/(\d+)\.geojson$', environ['PATH_INFO'])
@@ -78,7 +78,7 @@ def application(environ, start_response):
 if __name__ == "__main__":
 	def dummy_start_response(code, headers):
 		print(code, headers)
-	print(application({
+	print(app({
 		'PATH_INFO': "/16/19525/24300.geojson",
 		}, dummy_start_response))
  
