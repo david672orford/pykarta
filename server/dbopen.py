@@ -1,5 +1,5 @@
 # pykarta/servers/dbopen.py
-# Last modified: 16 May 2018
+# Last modified: 17 October 2019
 
 from email.utils import formatdate, parsedate_tz, mktime_tz
 import os, time
@@ -17,6 +17,7 @@ def dbopen(environ, db_basename):
 
 	if not db_basename in databases.databases:
 		db_filename = os.path.join(environ["DATADIR"], db_basename)
+		stderr.write("Opening database %s...\n" % db_filename)
 		stderr.write("db_filename: %s\n" % db_filename)
 		conn = sqlite3.connect(db_filename)
 		conn.enable_load_extension(True)
