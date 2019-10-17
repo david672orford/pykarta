@@ -58,9 +58,8 @@ def application(environ, start_response):
 				app = routes[None]
 	return app(environ, start_response)
 
+# For testing
 if __name__ == "__main__":
 	import sys
-	sys.path.insert(1, "../..")
 	from werkzeug.serving import run_simple
-	run_simple('localhost', 8000, application, threaded=True)
-
+	run_simple('0.0.0.0', 5000, application, threaded=True)
