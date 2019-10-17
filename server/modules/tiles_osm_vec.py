@@ -296,15 +296,14 @@ def app(environ, start_response):
 
 	# Convert Python objects to JSON and compress
 	out = io.BytesIO()
-	with gzip.GzipFile(fileobj=out, mode='wt') as fo:
+	with gzip.open(fileobj=out, mode='wt') as fo:
 		json.dump(geojson, fo)
-	geojson = out.getvalue()
 
 	start_response("200 OK", response_headers + [
 		('Content-Type', 'application/json'),
 		('Content-Encoding', 'gzip'),
 		])
-	return [geojson]
+	return [out.getvalue()]
 
 # Test which fetches a single tile
 if __name__ == "__main__":
