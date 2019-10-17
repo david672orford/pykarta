@@ -296,7 +296,7 @@ def app(environ, start_response):
 
 	# Convert Python objects to JSON and compress
 	out = io.BytesIO()
-	with gzip.open(fileobj=out, mode='wt') as fo:
+	with gzip.open(out, mode='wt') as fo:
 		json.dump(geojson, fo)
 
 	start_response("200 OK", response_headers + [
