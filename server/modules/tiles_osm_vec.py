@@ -180,7 +180,7 @@ def get_tile(stderr, cursor, layer_name, small_bbox, large_bbox, zoom):
 	pixel_in_degrees = 360.0 / (2.0 ** zoom) / 256.0
 	a_speck = (pixel_in_degrees * pixel_in_degrees) * 10.0	
 	where = where.replace("{a_speck}", str(a_speck))
-	stderr.write("where: %s\n" % where)
+	#stderr.write("where: %s\n" % where)
 
 	# In Spatialite we must join the spatial index table explicitly.
 	spatial_test = "ROWID IN ( SELECT ROWID FROM SpatialIndex WHERE f_table_name = '{table}' AND search_frame = {bbox} )""".format(
@@ -195,10 +195,10 @@ def get_tile(stderr, cursor, layer_name, small_bbox, large_bbox, zoom):
 		where=where,
 		spatial_test=spatial_test,
 		)
+	#stderr.write("query: %s\n" % query)
 
 	# Enclose above query in another query which does more precision spatial
 	# filtering and converts the geometry to GeoJSON.
-	stderr.write("query: %s\n" % query)
 	query = """SELECT AsGeoJSON({geometry}) as __geometry__, *
 				FROM ( {query} ) AS q
 				WHERE Intersects({bbox}, q.__geometry__)
@@ -210,7 +210,7 @@ def get_tile(stderr, cursor, layer_name, small_bbox, large_bbox, zoom):
 	features = []
 	for row in cursor:
 		if row['__geometry__'] is None:
-			stderr.write("invalid geometry: %s\n" % str(list(row)))
+			stderr.write("Invalid geometry: %s\n" % str(list(row)))
 			continue
 
 		row = dict(row)

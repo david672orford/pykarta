@@ -1,5 +1,5 @@
 # pykarta/servers/dbopen.py
-# Last modified: 17 October 2019
+# Last modified: 19 October 2019
 
 from email.utils import formatdate, parsedate_tz, mktime_tz
 import os, time
@@ -12,6 +12,10 @@ class Databases(threading.local):
 
 databases = Databases()
 
+# Open the requested database, if it is not open already. But first,
+# if the HTTP request in environ has an If-Modified-Since header
+# earlier than the file revision date of the database, bail out
+# returning None.
 def dbopen(environ, db_basename):
 	stderr = environ['wsgi.errors']
 
@@ -36,8 +40,8 @@ def dbopen(environ, db_basename):
 
 	if_modified_since = environ.get("HTTP_IF_MODIFIED_SINCE")
 	if if_modified_since is not None:
-		stderr.write("If-Modified-Since: %s\n" % if_modified_since)
-		stderr.write("Last-Modified: %s\n" % formatdate(last_modified, usegmt=True))
+		#stderr.write("If-Modified-Since: %s\n" % if_modified_since)
+		#stderr.write("Last-Modified: %s\n" % formatdate(last_modified, usegmt=True))
 		if_modified_since = mktime_tz(parsedate_tz(if_modified_since))
 		if last_modified <= if_modified_since:
 			stderr.write("304 Not Modified\n")
