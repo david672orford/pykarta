@@ -1,6 +1,6 @@
 # pykarta/server/modules/tiles_parcels.py
 # Produce GeoJSON tiles from parcel boundaries stored in a Spatialite database
-# Last modified: 16 May 2018
+# Last modified: 19 October 2019
 
 from __future__ import print_function
 import os, json, re, gzip, io
@@ -65,15 +65,14 @@ def app(environ, start_response):
 
 	# Convert to JSON and compress
 	out = io.BytesIO()
-	with gzip.GzipFile(fileobj=out, mode='w') as fo:
+	with gzip.open(out, mode='wt') as fo:
 		json.dump(geojson, fo)
-	geojson = out.getvalue()
 
 	start_response("200 OK", response_headers + [
 		('Content-Type', 'application/json'),
 		('Content-Encoding', 'gzip'),
 		])
-	return [geojson]
+	return [out.getvalue()]
 
 if __name__ == "__main__":
 	def dummy_start_response(code, headers):

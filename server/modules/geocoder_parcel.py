@@ -1,6 +1,6 @@
 # pykarta/server/modules/geocoder_parcel.py
 # Geocoder gets addresses from the assessor's parcel map
-# Last modified: 16 May 2018
+# Last modified: 19 October 2019
 
 import os, json, time
 from pykarta.server.dbopen import dbopen
