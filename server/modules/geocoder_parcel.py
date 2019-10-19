@@ -2,9 +2,13 @@
 # Geocoder gets addresses from the assessor's parcel map
 # Last modified: 16 May 2018
 
-import os, urllib, json, time
+import os, json, time
 from pykarta.server.dbopen import dbopen
 import threading
+try:
+	from urllib import unquote_plus
+except ImportError:
+	from urllib.parse import unquote_plus
 
 thread_data = threading.local()
 
@@ -16,7 +20,7 @@ def app(environ, start_response):
 		start_response("304 Not Modified", response_headers)
 		return []
 
-	query_string = urllib.unquote_plus(environ['QUERY_STRING'])
+	query_string = unquote_plus(environ['QUERY_STRING'])
 	#stderr.write("QUERY_STRING: %s\n" % query_string)
 	house_number, apartment_number, street, town, state, postal_code = json.loads(query_string)
 
