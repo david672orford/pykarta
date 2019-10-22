@@ -4,7 +4,7 @@
 
 from __future__ import print_function
 import lxml.etree as ET
-from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
+from .geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 import pykarta.address
 
 # https://wiki.state.ma.us/confluence/pages/viewpage.action?pageId=451772508

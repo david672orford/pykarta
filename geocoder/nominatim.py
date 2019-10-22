@@ -1,14 +1,14 @@
 #! /usr/bin/python
 # pykarta/geocoder/nominatim.py
-# Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 20 May 2018
+# Copyright 2013--2019, Trinity College Computing Center
+# Last modified: 22 October 2019
 
 from __future__ import print_function
 
 import xml.etree.cElementTree as ET
 import json
 
-from pykarta.geocoder.geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
+from .geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 from pykarta.address import abbreviate_state
 from pykarta.geometry import Point, Polygon, BoundingBox
 

@@ -1,11 +1,11 @@
 # pykarta/geocoder/bing.py
 # Copyright 2013--2019, Trinity College Computing Center
-# Last modified: 4 May 2019
+# Last modified: 22 October 2019
 
 from __future__ import print_function
 import json
 import pykarta
-from pykarta.geocoder.geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
+from .geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 from pykarta.address import split_house_street_apt
 
 # See http://msdn.microsoft.com/en-us/library/ff701714.aspx
