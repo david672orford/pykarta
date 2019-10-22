@@ -1,7 +1,8 @@
 # pykarta/geocoder/massgis.py
-# Copyright 2013--2018, Trinity College Computing Center
-# Last modified: 13 May 2018
+# Copyright 2013--2019, Trinity College Computing Center
+# Last modified: 22 October 2019
 
+from __future__ import print_function
 import lxml.etree as ET
 from geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 import pykarta.address
@@ -57,10 +58,10 @@ class GeocoderMassGIS(GeocoderBase):
 
 		# xml_declaration and pretty_print require LXML
 		query_text = ET.tostring(ET.ElementTree(element=query), encoding="utf-8", xml_declaration=True, pretty_print=True)
-		#print query_text
+		#print(query_text)
 
 		resp_text = self.get(self.url_path, query=query_text, method="POST", content_type="text/xml")
-		#print resp_text
+		#print(resp_text)
 		try:
 			tree = ET.XML(resp_text)
 		except:
@@ -76,7 +77,7 @@ class GeocoderMassGIS(GeocoderBase):
 			matched_address = match.find("{http://tempuri.org/}MatchedAddress").text
 			lat = float(match.find("{http://tempuri.org/}Lat").text)
 			lon = float(match.find("{http://tempuri.org/}Long").text)
-			#print score, lat, lon
+			#print(score, lat, lon)
 			if score == "100" and matched_address.startswith("%s %s," % (address[self.f_house_number], abbr_street.upper())):
 				result.coordinates = (lat, lon)
 				result.precision = "INTERPOLATED"
@@ -86,7 +87,7 @@ class GeocoderMassGIS(GeocoderBase):
 if __name__ == "__main__":
 	gc = GeocoderMassGIS()
 	gc.debug_enabled = True
-	print gc.FindAddr(["457","Union Street","","West Springfield","MA",""])
-	#print gc.FindAddr(["10","Improbable Street","","Westfield","MA","01085"])
+	print(gc.FindAddr(["457","Union Street","","West Springfield","MA",""]))
+	#print(gc.FindAddr(["10","Improbable Street","","Westfield","MA","01085"]))
 	#print gc.FindAddr(["32","Park Avenue Court","","West Springfield","MA",""])
 

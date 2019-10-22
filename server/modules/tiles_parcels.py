@@ -34,7 +34,8 @@ def app(environ, start_response):
 			simplification = 360.0 / (2.0 ** zoom) / 256.0		# one pixel
 			)
 	else:
-		stderr.write("Not simplified\n")
+		#stderr.write("Not simplified\n")
+		pass
 
 	query = """SELECT rowid as __id__, AsGeoJSON({geometry}) as __geometry__, house_number, street, centroid
 		FROM parcels
