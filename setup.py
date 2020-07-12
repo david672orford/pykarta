@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="PyKarta",
-    version="0.92",
+    version="0.93",
     author="David Chappell",
     author_email="David.Chappell@trincoll.edu",
     description="Mapping library",
