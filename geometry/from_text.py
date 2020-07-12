@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/geometry/from_text.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 15 May 2018
+# Copyright 2013--2020, Trinity College
+# Last modified: 9 February 2020
 
 import re
 from . import Point
@@ -19,9 +19,9 @@ def PointFromText(coords_text):
 
 	#print "Pasted coordinates:", coords_text
 
-	# Make more standard
-	coords_text = coords_text.upper()
-	coords_text = coords_text.replace(u"(", u"")
+	# Make the format more standard
+	coords_text = coords_text.upper()						# nsew -> NSEW
+	coords_text = coords_text.replace(u"(", u"")			# remove parenthesis
 	coords_text = coords_text.replace(u")", u"")
 	
 	coords_text = coords_text.replace(u"'", u"\u2032")		# ASCII single quote (apostroph) to prime
@@ -35,11 +35,11 @@ def PointFromText(coords_text):
 	return Point(lat, lon)
 
 def _split_coords_text(coords_text):
-	m = re.match('^(\S+)\s+(\S+)$', coords_text)
+	m = re.match('^([^,]+),([^,]+)$', coords_text)
 	if m:
 		return (m.group(1), m.group(2))
 
-	m = re.match('^([^,]+),([^,]+)$', coords_text)
+	m = re.match('^(\S+)\s+(\S+)$', coords_text)
 	if m:
 		return (m.group(1), m.group(2))
 

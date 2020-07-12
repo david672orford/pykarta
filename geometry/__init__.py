@@ -1,12 +1,12 @@
 # encoding=utf-8
 # pykarta/geometry/__init__.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 24 May 2018
+# Copyright 2013--2020, Trinity College
+# Last modified: 12 June 2020
 
 from __future__ import print_function
 import math
-from .distance import plane_lineseg_distance
-from .projection import project_points_sinusoidal
+from pykarta.geometry.distance import plane_lineseg_distance
+from pykarta.geometry.projection import project_points_sinusoidal
 
 #=============================================================================
 # Create an appropriate geometry object from a GeoJSON geometry
@@ -221,12 +221,16 @@ class Polygon(MultiPoint):
 			self.points = []
 			self.holes = []
 
+	def area(self, project=False):
+		"""Area of polygon in square degrees unless project=True in which
+		case it will be  in square meters"""
+		return math.fabs(self.signed_area(project=project))
+
 	# This and the centroid function are from:
 	#  http://local.wasp.uwa.edu.au/~pbourke/geometry/polyarea/
 	# See also:
 	#  http://www.seas.upenn.edu/~sys502/extra_materials/Polygon%20Area%20and%20Centroid.pdf
-	def area(self, project=False):
-		"Area of polygon in square degrees unless project=True when it is in square meters"
+	def signed_area(self, project=False):
 		if project:		# project to meters first?
 			points = project_points_sinusoidal(self.points)
 		else:
@@ -240,7 +244,7 @@ class Polygon(MultiPoint):
 			area -= p1[1]*p2[0]
 			j=i
 		area /= 2;
-		return math.fabs(area)	# is often negative
+		return area
 
 	def centroid(self):
 		"Compute the centroid of the polygon"
@@ -255,7 +259,7 @@ class Polygon(MultiPoint):
 			x+=(p1[0]+p2[0])*f
 			y+=(p1[1]+p2[1])*f
 			j=i
-		f=self.area()*6
+		f=self.signed_area()*6
 		if(f == 0):
 			return points[0]
 		else:
@@ -491,7 +495,7 @@ class BoundingBox(object):
 #=============================================================================
 
 if __name__ == "__main__":
-	p = PolygonFromGeoJSON({
+	p = GeometryFromGeoJSON({
 		'type': 'Polygon',
 		'coordinates': [
 			[[-71.0, 42.0], [-70.0, 42.0], [-71.0, 41.0], [-71.0, 42.0]],
@@ -499,4 +503,6 @@ if __name__ == "__main__":
 			]
 		})
 	print(p.as_geojson())
+	print("centroid:", p.centroid())
+	print("area:", p.area())
 
