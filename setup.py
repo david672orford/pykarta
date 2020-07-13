@@ -14,13 +14,13 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/david672orford/pykarta",
-    packages=setuptools.find_packages(),
+    packages=['pykarta']
 	package_data={
-		"PyKarta":["draw/*.svg", "maps/layers/symbols/*.svg"],
+		"pykarta":["draw/*.svg", "maps/layers/symbols/*.svg"],
 	},
     classifiers=[
         "Programming Language :: Python :: 2",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
         "Operating System :: OS Independent",
     ],
 )
