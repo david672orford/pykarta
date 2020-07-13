@@ -14,7 +14,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/david672orford/pykarta",
-    packages=['pykarta']
+    packages=['pykarta'],
 	package_data={
 		"pykarta":["draw/*.svg", "maps/layers/symbols/*.svg"],
 	},
