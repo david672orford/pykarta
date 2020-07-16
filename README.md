@@ -20,3 +20,8 @@ Requires:
 There is no documentation yet, but the there are sample programs 
 in the examples/ directory.
 
+Installation
+============
+
+    $ python ./setup.py install [--user]
+
