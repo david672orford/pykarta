@@ -1,0 +1,32 @@
+#! /usr/bin/python3
+
+import sys, os
+sys.path.insert(1, os.path.join(os.path.dirname(__file__), "..", ".."))
+from pykarta.formats.osm_reader import OsmReader
+from pykarta.formats.geojson_writer import GeojsonWriter
+
+infile = sys.argv[1]
+outfile = sys.argv[2]
+
+osm_in = OsmReader(open(infile, "r"))
+gj_out = GeojsonWriter(open(outfile, "w"))
+
+gj_out.properties = {
+		"style": {
+			"label-font-size": 1.0,
+			"label-min-zoom": 6,
+			"line-width": 1,
+			"fill-color": [1.0, 1.0, 1.0, 0.5]
+			}
+	}
+
+for way in osm_in.ways:
+	points = map(lambda node: [node.lat, node.lon], way.nodes)
+	properties = {"name": way.osm_tags.get("name","")}
+	if len(way.nodes) >= 2 and way.nodes[0] is way.nodes[-1]:
+		gj_out.add_polygon(points, properties)
+	else:
+		gj_out.add_linestring(points, properties)
+
+gj_out.save()
+

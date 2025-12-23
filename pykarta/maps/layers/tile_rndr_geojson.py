@@ -4,7 +4,7 @@
 # Copyright 2013--2018, Trinity College
 # Last modified: 30 May 2018
 
-from __future__ import print_function
+
 try:
 	import simplejson as json
 except ImportError:
@@ -29,7 +29,7 @@ def json_loader(filename):
 	return parsed_json
 
 def _project_to_tilespace_pixels(coordinates, zoom, xtile, ytile):
-	return map(lambda p: project_to_tilespace_pixel(p[1], p[0], zoom, xtile, ytile), coordinates)
+	return [project_to_tilespace_pixel(p[1], p[0], zoom, xtile, ytile) for p in coordinates]
 
 # This is twice as fast as the above.
 def project_to_tilespace_pixels(coordinates, zoom, xtile, ytile):
@@ -119,7 +119,7 @@ class MapGeoJSONTile(object):
 				for id, polygon, properties, style in self.polygons:
 					label_text = self.choose_polygon_label_text(properties)
 					if label_text is not None:
-						# See ../tests/polyton_labeling_test.py for an example where this fails.
+						# See ../../../tests/polygon_labeling_test.py for an example where this fails.
 						#polygon_obj = Polygon(polygon)
 						#area = polygon_obj.area()
 						#label_center = polygon_obj.choose_label_center()
@@ -288,7 +288,7 @@ class MapGeoJSONTile(object):
 
 	@staticmethod
 	def scale_points(points, scale):
-		return map(lambda point: (point[0]*scale,point[1]*scale), points)
+		return list([(point[0]*scale,point[1]*scale) for point in points])
 
 	# Use the supplied rule to determine the width of a feature
 	# at the current zoom level.

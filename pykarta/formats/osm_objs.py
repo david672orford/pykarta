@@ -14,7 +14,7 @@ class OsmTags(dict):
 
 	def __str__(self):
 		text = ""
-		for name, value in self.items():
+		for name, value in list(self.items()):
 			text += ' <tag k="%s" v="%s"/>\n' % (self._encode(name), self._encode(value))
 		return text
 

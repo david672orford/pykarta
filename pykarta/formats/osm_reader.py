@@ -5,7 +5,7 @@
 # Last modified: 1 August 2014
 
 import xml.sax
-from osm_objs import OsmNode, OsmWay, OsmRelation, OsmRelationMember
+from .osm_objs import OsmNode, OsmWay, OsmRelation, OsmRelationMember
 
 class OsmReader(xml.sax.handler.ContentHandler):
 	def __init__(self, fh, keep_deleted=False):
@@ -40,7 +40,7 @@ class OsmReader(xml.sax.handler.ContentHandler):
 				elif member.type == 'way':
 					member.ref = self.ways_by_id[member.ref]
 				else:
-					raise AssertionError, "Missing case"
+					raise AssertionError("Missing case")
 	
 	def startElement(self, name, attrs):
 		if name == 'tag':

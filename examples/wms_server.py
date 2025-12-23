@@ -1,8 +1,8 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # pykarta/examples/wms_server.py
 # Simple WMS server which uses PyKarta as its backend to render OSM tiles
-# Copyright 2014--2018, Trinity College
-# Last modified: 12 May 2018
+# Copyright 2014--2023, Trinity College
+# Last modified: 26 March 2023
 
 # References:
 # * https://github.com/mapnik/OGCServer
@@ -10,10 +10,10 @@
 
 from werkzeug.wrappers import Request, Response
 import cairo
-import StringIO
+from io import StringIO
 import math
 import sys
-sys.path.insert(1, "../..")
+sys.path.insert(1, "..")
 from pykarta.maps import MapCairo
 from pykarta.geometry.projection import unproject_point_mercartor, radius_of_earth
 
@@ -82,18 +82,18 @@ def application(request):
 		min_x, min_y, max_x, max_y = map(float, bbox.split(","))
 		center_x = (min_x + max_x) / 2.0
 		center_y = (min_y + max_y) / 2.0
-		print "center:", center_x, center_y
+		print("center:", center_x, center_y)
 		center_lat, center_lon = unproject_point_mercartor(center_x, center_y)
-		print "center:", center_lat, center_lon
+		print("center:", center_lat, center_lon)
 
 		width_in_tiles = width / 256.0
-		print "width_in_tiles:", width_in_tiles
+		print("width_in_tiles:", width_in_tiles)
 		bbox_width_in_meters = max_x - min_x
-		print "bbox_width_in_meters:", bbox_width_in_meters
+		print("bbox_width_in_meters:", bbox_width_in_meters)
 		meters_per_tile = bbox_width_in_meters / width_in_tiles
-		print "meters_per_tile:", meters_per_tile
+		print("meters_per_tile:", meters_per_tile)
 		zoom = math.log(radius_of_earth * math.pi * 2.0 / meters_per_tile, 2)
-		print "zoom:", zoom
+		print("zoom:", zoom)
 
 		map_obj = MapCairo(tile_source="osm-vector")
 		map_obj.set_size(width, height)
@@ -111,7 +111,7 @@ def application(request):
 
 if __name__ == "__main__":
 	from werkzeug.serving import run_simple
-	import __builtin__
-	__builtin__.__dict__['_'] = lambda text: text
+	import builtins
+	builtins.__dict__["_"] = lambda text: text
 	run_simple("localhost", 8080, application)
 

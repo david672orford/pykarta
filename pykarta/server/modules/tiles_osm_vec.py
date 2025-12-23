@@ -10,7 +10,7 @@
 # https://github.com/TileStache/TileStache/blob/master/TileStache/Goodies/VecTiles/server.py
 # http://northredoubt.com/n/2012/01/18/spatialite-and-spatial-indexes/
 
-from __future__ import print_function
+
 import os, json, re, gzip, io
 from pykarta.geometry.projection import unproject_from_tilespace
 from pykarta.server.dbopen import dbopen
@@ -156,24 +156,24 @@ def get_tile(stderr, cursor, layer_name, small_bbox, large_bbox, zoom):
 	layer = layers.get(layer_name)
 	assert layer is not None
 
-	bbox = large_bbox if layer.get('pad-bbox',True) else small_bbox
+	bbox = large_bbox if layer.get("pad-bbox",True) else small_bbox
 
 	geometry = "__geometry__"
-	if layer.get('clip',True):
+	if layer.get("clip",True):
 		geometry = "Intersection(%s,%s)" % (geometry, bbox)
-	simplification = layer.get('simplification',1.0)		# one pixel
+	simplification = layer.get("simplification",1.0)		# one pixel
 	if simplification is not None and zoom < layer.get('simplify-until',16):
 		simplification = 360.0 / (2.0 ** zoom) / 256.0 * simplification
 		geometry = "SimplifyPreserveTopology(%s,%f)" % (geometry, simplification)
 
-	columns = layer['columns']
-	if 'other_tags' in layer:
+	columns = layer["columns"]
+	if "other_tags" in layer:
 		columns = list(columns)
-		columns.append('other_tags')
+		columns.append("other_tags")
 
 	# Build the part of the WHERE clause unique to this layer
-	where_expressions = layer['where_expressions']
-	where_index = (zoom - layer.get('zoom_min',0))
+	where_expressions = layer["where_expressions"]
+	where_index = (zoom - layer.get("zoom_min",0))
 	if where_index < 0:
 		return None
 	where = where_expressions[where_index if where_index < len(where_expressions) else -1]
@@ -233,7 +233,7 @@ def get_tile(stderr, cursor, layer_name, small_bbox, large_bbox, zoom):
 				except AttributeError:
 					stderr.write("Failed to parse other_tags: %s\n" % other_tags)
 
-		for name, value in row.items():
+		for name, value in list(row.items()):
 			if value is not None:
 				properties[name] = value
 
@@ -300,18 +300,18 @@ def app(environ, start_response):
 		json.dump(geojson, fo)
 
 	start_response("200 OK", response_headers + [
-		('Content-Type', 'application/json'),
-		('Content-Encoding', 'gzip'),
+		("Content-Type", "application/json"),
+		("Content-Encoding", "gzip"),
 		])
 	return [out.getvalue()]
 
-# Test which fetches a single tile
+# A test which fetches a single tile
 if __name__ == "__main__":
 	import sys
 	def dummy_start_response(code, headers):
 		print(code, headers)
 	app({
-		'PATH_INFO': "/osm-vector-roads/16/19528/24304.geojson",
-		'wsgi.errors': sys.stderr,
+		"PATH_INFO": "/osm-vector-roads/16/19528/24304.geojson",
+		"wsgi.errors": sys.stderr,
 		}, dummy_start_response)
  

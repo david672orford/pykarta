@@ -1,11 +1,12 @@
 # pykarta/maps/layers/tilesets_bing.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 26 April 2018
+# Copyright 2013--2021, Trinity College
+# Last modified: 26 December 2021
 
-from tilesets_base import tilesets, MapTilesetRaster
+
 import json
-from pykarta.misc.http import simple_urlopen
-from pykarta.maps.image_loaders import surface_from_file_data
+from .tilesets_base import tilesets, MapTilesetRaster
+from ...misc.http import simple_urlopen
+from ...maps.image_loaders import surface_from_file_data
 
 #-----------------------------------------------------------------------------
 # Microsoft Bing map layers
@@ -22,24 +23,24 @@ class MapTilesetBing(MapTilesetRaster):
 		url = self.metadata_url.replace("{api_key}", self.api_key)
 		response = simple_urlopen(url, extra_headers=self.extra_headers)
 		metadata = json.load(response)
-		print "Bing metadata:", json.dumps(metadata, indent=4, separators=(',', ': '))
-		resource = metadata['resourceSets'][0]['resources'][0]
-		url_template = resource['imageUrl'].replace("{subdomain}","{s}").replace("{culture}","en-us")
-		print "Bing URL template:", url_template
+		print("Bing metadata:", json.dumps(metadata, indent=4, separators=(',', ': ')))
+		resource = metadata["resourceSets"][0]["resources"][0]
+		url_template = resource["imageUrl"].replace("{subdomain}","{s}").replace("{culture}","en-us")
+		print("Bing URL template:", url_template)
 		self.set_url_template(url_template)
-		self.subdomains = resource['imageUrlSubdomains']
-		self.zoom_min = resource['zoomMin']
-		self.zoom_max = resource['zoomMax']
-		#print "Bing zoom levels: %d thru %d" % (self.zoom_min, self.zoom_max)
-		self.attribution = surface_from_file_data(simple_urlopen(metadata['brandLogoUri']).read())
+		self.subdomains = resource["imageUrlSubdomains"]
+		self.zoom_min = resource["zoomMin"]
+		self.zoom_max = resource["zoomMax"]
+		#print("Bing zoom levels: %d thru %d" % (self.zoom_min, self.zoom_max))
+		self.attribution = surface_from_file_data(simple_urlopen(metadata["brandLogoUri"]).read())
 
 for our_layer_key, bing_layer_key in (
-	('road', 'Road'),
-	('aerial', 'Aerial'),
-	('aerial-with-labels', 'AerialWithLabels')
+	("road", "Road"),
+	("aerial", "Aerial"),
+	("aerial-with-labels", "AerialWithLabels")
 	):
-	tilesets.append(MapTilesetBing('bing-%s' % our_layer_key,
-		metadata_url='http://dev.virtualearth.net/REST/v1/Imagery/Metadata/%s?key={api_key}' % bing_layer_key,
+	tilesets.append(MapTilesetBing("bing-%s" % our_layer_key,
+		metadata_url="http://dev.virtualearth.net/REST/v1/Imagery/Metadata/%s?key={api_key}" % bing_layer_key,
 		attribution="Bing",
 		api_key_name="bing"
 		))

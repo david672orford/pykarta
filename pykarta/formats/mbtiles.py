@@ -1,6 +1,6 @@
 # pykarta/formats/mbtiles.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 24 January 2013
+# Copyright 2013--2023, Trinity College
+# Last modified: 26 March 2023
 
 import sqlite3
 
@@ -14,7 +14,7 @@ class MapMbtilesWriter(object):
 		self.cursor.execute("CREATE TABLE tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob)")
 		self.cursor.execute("CREATE UNIQUE INDEX tile_index on tiles (zoom_level, tile_column, tile_row)")
 
-		for name, value in metadata.items():
+		for name, value in list(metadata.items()):
 			self.cursor.execute("INSERT INTO metadata (name, value) values (?, ?)", (name, value))
 
 		self.count = 0
@@ -32,7 +32,7 @@ class MapMbtilesWriter(object):
 			self.conn.commit()
 
 	def close(self):
-		print "%d tiles saved" % self.count
+		print("%d tiles saved" % self.count)
 		self.conn.commit()
 		self.conn.close()
 		self.conn = None

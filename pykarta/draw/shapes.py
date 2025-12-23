@@ -41,7 +41,7 @@ def svg_path(ctx, path):
 				m = re.match(r"([\d-]+),([\d-]+) ", path)
 				if m is None:
 					break
-				ctx.move_to(*map(int,m.groups()))
+				ctx.move_to(*list(map(int,m.groups())))
 				path = path[len(m.group(0)):]
 			continue
 		if path.startswith("L "):
@@ -50,7 +50,7 @@ def svg_path(ctx, path):
 				m = re.match(r"([\d-]+),([\d-]+) ", path)
 				if m is None:
 					break
-				ctx.line_to(*map(int,m.groups()))
+				ctx.line_to(*list(map(int,m.groups())))
 				path = path[len(m.group(0)):]
 			continue
 		if path.startswith("C "):
@@ -59,7 +59,7 @@ def svg_path(ctx, path):
 				m = re.match(r"([\d-]+),([\d-]+) ([\d-]+),([\d\-]+) ([\d-]+),([\d-]+) ", path)
 				if m is None:
 					break
-				ctx.curve_to(*map(int,m.groups()))
+				ctx.curve_to(*list(map(int,m.groups())))
 				path = path[len(m.group(0)):]
 			continue
 		if path == "Z":

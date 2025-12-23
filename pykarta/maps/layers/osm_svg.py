@@ -15,7 +15,7 @@ from pykarta.misc import file_age_in_days, SaveAtomically
 #try:
 #	import rsvg
 #except:
-import pykarta.fallback.rsvg as rsvg
+#import pykarta.fallback.rsvg as rsvg
 
 #=============================================================================
 # Experimental layer which exports a map in SVG format from openstreetmap.org
@@ -61,7 +61,7 @@ class MapLayerSVG(MapLayer):
 		MapLayer.__init__(self)
 		self.source = source
 		self.extra_zoom = extra_zoom
-		self.attribution = u"Map © OpenStreetMap contributors"
+		self.attribution = "Map © OpenStreetMap contributors"
 
 		self.svg = None
 		self.svg_scale = None
@@ -75,7 +75,7 @@ class MapLayerSVG(MapLayer):
 			os.makedirs(self.cache_dir)
 
 	def do_viewport(self):
-		print "SVG layer: new viewport"
+		print("SVG layer: new viewport")
 		bbox = self.containing_map.get_bbox()
 		zoom = self.containing_map.get_zoom()
 
@@ -85,7 +85,7 @@ class MapLayerSVG(MapLayer):
 		# Determined by trial and error, produces map with expected pixel size
 		scale = int(698000000 / math.pow(2, zoom) / self.extra_zoom + 0.5)
 
-		print "SVG layer: scale:", scale
+		print("SVG layer: scale:", scale)
 		cachefile = os.path.join(self.cache_dir, "%f_%f_%f_%f_%d.svg" % (bbox.min_lon, bbox.min_lat, bbox.max_lon, bbox.max_lat, scale))
 		cachefile_age = file_age_in_days(cachefile)
 
@@ -103,7 +103,7 @@ class MapLayerSVG(MapLayer):
 				raise AssertionError("Unsupported content-type: %s" % content_type)
 
 			content_length = int(response.getheader("content-length"))
-			print "content-length:", content_length
+			print("content-length:", content_length)
 
 			content_encoding = response.getheader("content-encoding")
 			#if content_encoding != "gzip":
@@ -136,15 +136,15 @@ class MapLayerSVG(MapLayer):
 		if not self.svg.close():
 			raise AssertionError("Failed to load SVG file: %s" % cachefile)
 
-		print "SVG layer: map dimensions:", self.containing_map.width, self.containing_map.height
+		print("SVG layer: map dimensions:", self.containing_map.width, self.containing_map.height)
 		width, height = self.svg.get_dimension_data()[:2]
-		print "SVG layer: SVG image dimensions:", width, height
+		print("SVG layer: SVG image dimensions:", width, height)
 		self.svg_scale = float(self.containing_map.width) / float(width)
-		print "SVG layer: svg_scale:", self.svg_scale
-		print "done"
+		print("SVG layer: svg_scale:", self.svg_scale)
+		print("done")
 
 	def do_draw(self, ctx):
-		print "draw"
+		print("draw")
 		self.containing_map.feedback.progress(1, 2, _("Rendering SVG file"))
 		ctx.scale(self.svg_scale, self.svg_scale)
 		self.svg.render_cairo(ctx)

@@ -3,7 +3,7 @@
 # Copyright 2013--2020, Trinity College
 # Last modified: 12 June 2020
 
-from __future__ import print_function
+
 import math
 from pykarta.geometry.distance import plane_lineseg_distance
 from pykarta.geometry.projection import project_points_sinusoidal
@@ -13,6 +13,8 @@ from pykarta.geometry.projection import project_points_sinusoidal
 #=============================================================================
 
 def GeometryFromGeoJSON(geojson):
+	print("geojson:", type(geojson), geojson)
+	assert type(geojson) is dict
 	geometry_type = geojson["type"]
 	if geometry_type == "Point":
 		return Point(geometry=geojson)
@@ -32,6 +34,7 @@ def GeometryFromGeoJSON(geojson):
 
 class GeometryCollection(object):
 	def __init__(self, geometry=None):
+		assert type(geometry) is dict
 		assert geometry["type"] == "GeometryCollection"
 		self.geometries = []
 		for sub_geometry in geometry["geometries"]:
@@ -59,8 +62,9 @@ class GeometryCollection(object):
 
 class Point(object):
 	__slots__ = ['lat', 'lon']
-	def __init__(self, lat=None, lon=None, geometry=None):
+	def __init__(self, lat=None, lon=None, *, geometry=None):
 		if geometry is not None:	# Point({"type":"Point","coordinates":[lon, lat]})
+			assert type(geometry) is dict
 			assert geometry['type'] == "Point"
 			self.lon, self.lat = geometry["coordinates"]
 		elif lon is None:
@@ -97,17 +101,17 @@ class Point(object):
 
 	def as_str_dms(self):
 		"Convert to string in degrees, minutes and seconds."
-		return ( u"(%s, %s)" % (
-				u"%s%02d°%02d'%04.1f\"" % self._dms_split(self.lat, "N", "S"),
-				u"%s%03d°%02d'%04.1f\"" % self._dms_split(self.lon, "E", "W")
+		return ( "(%s, %s)" % (
+				"%s%02d°%02d'%04.1f\"" % self._dms_split(self.lat, "N", "S"),
+				"%s%03d°%02d'%04.1f\"" % self._dms_split(self.lon, "E", "W")
 				)
 			)
 
 	def as_str_dm(self):
 		"Convert to string degrees, minutes with decimal point."
-		return ( u"(%s, %s)" % (
-				u"%s%02d°%06.3f'" % self._dm_split(self.lat, "N", "S"),
-				u"%s%03d°%06.3f'" % self._dm_split(self.lon, "E", "W")
+		return ( "(%s, %s)" % (
+				"%s%02d°%06.3f'" % self._dm_split(self.lat, "N", "S"),
+				"%s%03d°%06.3f'" % self._dm_split(self.lon, "E", "W")
 				)
 			)
 	
@@ -133,12 +137,13 @@ class Point(object):
 
 # Convert an array of points (presumably expressed as (lat, lon)) to Point objects.
 class MultiPoint(object):
-	def __init__(self, points=None, geometry=None):
+	def __init__(self, points=None, *, geometry=None):
 		if geometry is not None:
+			assert type(geometry) is dict
 			assert geometry["type"] == "MultiPoint"
-			self.points = map(lambda p: Point(p[1],p[0]), geometry['coordinates'])
+			self.points = [Point(p[1],p[0]) for p in geometry['coordinates']]
 		elif points is not None:
-			self.points = map(Point, points)
+			self.points = list(map(Point, points))
 		else:
 			self.points = []
 		self.bbox = None
@@ -148,7 +153,7 @@ class MultiPoint(object):
 			self.bbox.add_points(self.points)
 		return self.bbox
 	def as_geojson(self):
-		return { "type":"MultiPoint", "coordinates": map(lambda p: p.as_geojson_position(), self.points) }
+		return { "type":"MultiPoint", "coordinates": [p.as_geojson_position() for p in self.points] }
 
 #=============================================================================
 # Strings of Geographic Points
@@ -157,17 +162,19 @@ class MultiPoint(object):
 class LineString(MultiPoint):
 	def __init__(self, points=None, geometry=None):
 		if geometry is not None:
+			assert type(geometry) is dict
 			assert geometry["type"] == "LineString"
-			points = map(lambda p: Point(p[1],p[0]), geometry['coordinates'])
-			MultiPoint.__init__(self, points)
+			points = [Point(p[1],p[0]) for p in geometry['coordinates']]
+			super().__init__(points)
 		else:
-			MultiPoint.__init__(self, points, geometry)
+			super().__init__(points, geometry=geometry)
 	def as_geojson(self):
-		return { "type":"LineString", "coordinates": map(lambda p: p.as_geojson_position(), self.points) }
+		return { "type":"LineString", "coordinates": [p.as_geojson_position() for p in self.points] }
 
 class MultiLineString(object):
-	def __init__(self, linestrings=None, geometry=None):
+	def __init__(self, linestrings=None, *, geometry=None):
 		if geometry is not None:
+			assert type(geometry) is dict
 			assert geometry["type"] == "MultiLineString"
 			self.linestrings = []
 			for coordinates in geometry['coordinates']:
@@ -202,21 +209,22 @@ class MultiLineString(object):
 #=============================================================================
 
 class Polygon(MultiPoint):
-	def __init__(self, points=None, geometry=None):
-		MultiPoint.__init__(self)
+	def __init__(self, points=None, holes=[], *, geometry=None):
+		super().__init__()
 		if geometry is not None:
+			assert type(geometry) is dict
 			assert geometry['type'] == 'Polygon', geometry['type']
 			rings = []
 			for sub_poly in geometry['coordinates']:
-				points = list(map(lambda p: Point(p[1], p[0]), sub_poly))
+				points = [Point(p[1], p[0]) for p in sub_poly]
 				assert len(points) >= 4, "not enough points for a polygon"
 				assert points[0] == points.pop(-1), "polygon is not closed"
 				rings.append(points)
 			self.points = rings[0]
 			self.holes = rings[1:]
 		elif points is not None:
-			self.points = map(Point, points)
-			self.holes = []
+			self.points = list(map(Point, points))
+			self.holes = holes
 		else:
 			self.points = []
 			self.holes = []
@@ -336,12 +344,13 @@ class Polygon(MultiPoint):
 		for poly in [self.points] + self.holes:
 			points = self.points[:]
 			points.append(points[0])		# close polygon
-			coordinates.append(map(lambda p: p.as_geojson_position(), points))
+			coordinates.append([p.as_geojson_position() for p in points])
 		return { "type":"Polygon", "coordinates": coordinates }
 
 class MultiPolygon(object):
 	def __init__(self, polygons=None, geometry=None):
 		if geometry is not None:
+			assert type(geometry) is dict
 			assert geometry["type"] == "MultiPolygon"
 			self.polygons = []
 			for coordinates in geometry['coordinates']:

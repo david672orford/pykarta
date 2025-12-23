@@ -1,12 +1,14 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # pykarta/examples/widget_custom_layer.py
-# Last modified: 12 May 2018
+# Last modified: 2 January 2022
 
 import sys
 sys.path.insert(1, "../..")
 
-import gtk
-import gobject
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
 from pykarta.maps.widget import MapWidget
 from pykarta.maps.layers import MapLayer, MapLayerScale, MapLayerAttribution
 from pykarta.geometry import Point
@@ -15,13 +17,13 @@ from pykarta.geometry import Point
 class TrivialLayer(MapLayer):
 
 	def do_viewport(self):
-		print "Test layer: new viewport:", self.containing_map.get_bbox()
+		print("Test layer: new viewport:", self.containing_map.get_bbox())
 		# Project three points into tilespace
 		points = (Point(42.125,-72.75), Point(42.125,-72.70), Point(42.10,-72.70))
 		self.points_projected = self.containing_map.project_points(points)
 
 	def do_draw(self, ctx):
-		print "Test layer: redraw"
+		print("Test layer: redraw")
 		# Use Cairo to draw a line between the three points
 		ctx.set_source_rgb(0.0, 0.0, 0.0)
 		ctx.set_line_width(1)
@@ -30,11 +32,9 @@ class TrivialLayer(MapLayer):
 			ctx.line_to(*p)
 		ctx.stroke()
 
-gobject.threads_init()
-
-window = gtk.Window()
+window = Gtk.Window()
 window.set_default_size(800, 800)
-window.connect('delete-event', lambda window, event: gtk.main_quit())
+window.connect('delete-event', Gtk.main_quit)
 
 map_widget = MapWidget(
 	tile_source = "osm-default",
@@ -54,6 +54,6 @@ map_widget.add_osd_layer(MapLayerAttribution())
 # Initial center and zoom level
 map_widget.set_center_and_zoom(42.125, -72.75, 12)
 
-# Run GTK+ main loop
-gtk.main()
+# Run GTK main loop
+Gtk.main()
 

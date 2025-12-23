@@ -11,7 +11,7 @@ import bluetooth
 # See http://www.tomtom.com/lib/doc/ttnavsdk3_manual.pdf
 class TomtomBT(object):
 	def __init__(self, address):
-		print "BtTomTom(%s)" % str(address)
+		print("BtTomTom(%s)" % str(address))
 		self.sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
 		self.sock.connect(address)
 		result = self.sock.recv(1024)
@@ -19,10 +19,10 @@ class TomtomBT(object):
 			raise Exception("No HELLO: %s" % result)
 
 	def api_call(self, *command):
-		print "api_call(%s)" % str(command)
+		print("api_call(%s)" % str(command))
 		self.sock.sendall("API %s|\n" % ("|".join(map(str, command))))
 
-		print "Waiting for response..."
+		print("Waiting for response...")
 		result_text = ""
 		while True:
 			i = self.sock.recv(1024)
@@ -32,7 +32,7 @@ class TomtomBT(object):
 			if result_text[-1] == "\n":
 				break 
 
-		print "Response:", result_text	
+		print("Response:", result_text	)
 		result = result_text.split("|")[:-1]
 		if result[0] != '0':
 			raise Exception("API call failed: %s" % result_text)
@@ -72,10 +72,10 @@ class TomtomBT(object):
 
 if __name__ == "__main__":
 	tomtom = TomtomBT(("00:13:6C:1E:CE:AB", 2))
-	#print tomtom.GetApplicationVersion()
+	#print(tomtom.GetApplicationVersion())
 	#tomtom.FlashMessage("Test")
-	#print tomtom.GetFavorite(0)
-	#print tomtom.GetCurrentPosition()
+	#print(tomtom.GetFavorite(0))
+	#print(tomtom.GetCurrentPosition())
 	tomtom.ShowRectangleOnMap(-72.72427, 42.09626, -72.68712, 41.74645)
 	#tomtom.NavigateToCoordinates(41.74645, -72.68712, "Test Destination")
 	#tomtom.ShowCoordinatesOnMap(41.74645, -72.68712)

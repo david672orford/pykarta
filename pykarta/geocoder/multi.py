@@ -71,7 +71,7 @@ class GeocoderMulti(GeocoderBase):
 				if stop_on_interpolated or iresult.precision != "INTERPOLATED":
 					break		# good enough
 			else:
-				result.alternative_addresses.extend(map(lambda address: "%s: %s" % (geocoder.name, address), iresult.alternative_addresses))
+				result.alternative_addresses.extend(["%s: %s" % (geocoder.name, address) for address in iresult.alternative_addresses])
 			i += 1
 
 		if best is not None:

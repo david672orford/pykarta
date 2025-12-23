@@ -1,7 +1,7 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # pykarta/formats/tomtom_ov2.py
-# Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 10 October 2014
+# Copyright 2013--2023, Trinity College Computing Center
+# Last modified: 26 March 2023
 
 import struct
 
@@ -57,7 +57,7 @@ class Ov2Reader:
 			record_type = struct.unpack("B", record_type)[0]
 
 			record_length = self.read_word()
-			print "%d: Type: %d, Length: %d" % (record_offset, record_type, record_length)
+			print("%d: Type: %d, Length: %d" % (record_offset, record_type, record_length))
 			record_length -= 5
 	
 			# "Skipper" record	
@@ -67,8 +67,8 @@ class Ov2Reader:
 				ne_lat = self.read_degrees()
 				sw_lon = self.read_degrees()
 				sw_lat = self.read_degrees()
-				print "    (%f, %f), (%f, %f)" % (sw_lat, sw_lon, ne_lat, ne_lon)
-				print "    Not skipping."
+				print("    (%f, %f), (%f, %f)" % (sw_lat, sw_lon, ne_lat, ne_lon))
+				print("    Not skipping.")
 
 			# POI
 			elif record_type == 2 or record_type == 3:
@@ -77,18 +77,18 @@ class Ov2Reader:
 				record_length -= 8
 				data = self.read_or_die(record_length)
 				name = data.partition('\0')[0]
-				print "    (%f, %f)" % (lat, lon)
-				print "    %s" % name
+				print("    (%f, %f)" % (lat, lon))
+				print("    %s" % name)
 				self.pois.append(Ov2POI(lat, lon, name))
 	
 			# Unrecognized record type	
 			else:
-				print "   Skipping %d bytes." % record_length
+				print("   Skipping %d bytes." % record_length)
 				self.fh.seek(record_length, 1)
 
 class Ov2Splitter:
 	def __init__(self, pois, minlat, minlon, maxlat, maxlon):
-		#print "(%f, %f), (%f, %f)" % (minlat, minlon, maxlat, maxlon)
+		#print("(%f, %f), (%f, %f)" % (minlat, minlon, maxlat, maxlon))
 
 		self.minlat = minlat
 		self.minlon = minlon
@@ -191,7 +191,8 @@ if __name__ == "__main__":
 		for poi in reader.pois:
 			writer.add_poi(poi)
 		writer.save()
-	except Ov2Error as (message):
+	except Ov2Error as xxx_todo_changeme:
+		(message) = xxx_todo_changeme
 		sys.stderr.write("Ov2Error: %s\n" % message)
 
 

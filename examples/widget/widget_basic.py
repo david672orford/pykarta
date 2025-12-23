@@ -1,26 +1,31 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # pykarta/examples/widget_basic.py
 # How to display a simple map in Gtk widget
-# Last modified: 12 May 2018
+# Last modified: 25 March 2023
 
-import sys
+import sys, os
 sys.path.insert(1, "../..")
 
-import gtk
-import gobject
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
+import pykarta
 from pykarta.maps.widget import MapWidget
 from pykarta.maps.layers import MapLayerBuilder, MapLayerScale, MapLayerAttribution
 
-gobject.threads_init()
+pykarta.server_url = os.environ.get('PYKARTA_SERVER_URL', pykarta.server_url)
 
-window = gtk.Window()
+window = Gtk.Window()
 window.set_default_size(800, 800)
-window.connect('delete-event', lambda window, event: gtk.main_quit())
+window.connect('delete-event', Gtk.main_quit)
 
 map_widget = MapWidget(
-	#tile_source = "osm-default",
-	tile_source = "osm-vector",
-	debug_level=0,
+	tile_source = "osm-default",
+	#tile_source = "osm-vector",
+	#tile_source = "osm-vector-roads",
+	#tile_source = "osm-vector-road-labels",
+	debug_level=10,
 	)
 
 window.add(map_widget)
@@ -36,5 +41,6 @@ map_widget.add_osd_layer(MapLayerAttribution())
 # Initial center and zoom level
 map_widget.set_center_and_zoom(42.125, -72.75, 12)
 
-# Run GTK+ main loop
-gtk.main()
+# Run GTK main loop
+Gtk.main()
+

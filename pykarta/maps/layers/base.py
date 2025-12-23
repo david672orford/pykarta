@@ -1,19 +1,17 @@
 # encoding=utf-8
 # pykarta/maps/layers/base.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 24 May 2018
+# Copyright 2013--2022, Trinity College
+# Last modified: 2 January 2022
+
 
 import math
 import cairo
 import weakref
+from collections import OrderedDict
 
-try:
-	from collections import OrderedDict
-except ImportError:
-	from pykarta.fallback.ordereddict import OrderedDict
-
-from pykarta.maps.image_loaders import surface_from_pixbuf, pixbuf_from_file, pixbuf_from_file_data
-from pykarta.geometry.projection import project_to_tilespace
+from ...misc.i18n import *
+from ..image_loaders import surface_from_pixbuf, pixbuf_from_file, pixbuf_from_file_data
+from ...geometry.projection import project_to_tilespace
 
 class MapTileError(Exception):
 	pass
@@ -89,7 +87,7 @@ class MapLayer(object):
 				cache_ctx.set_line_cap(ctx.get_line_cap())
 				self.do_draw(cache_ctx)
 			else:
-				#print "cached"
+				#print("cached")
 				pass
 			ctx.set_source_surface(self.cache_surface, 0, 0)
 			ctx.paint()
@@ -128,16 +126,16 @@ class MapTileLayer(MapLayer):
 		self.dedup = set()				# for deduplicating labels, shared by all the tiles
 
 	#def __del__(self):
-	#	print "Map: tile layer %s destroyed" % self.name
+	#	print("Map: tile layer %s destroyed" % self.name)
 
 	# Called whenever viewport changes
 	def do_viewport(self):
-		#print "New %s tiles viewport..." % self.name
+		#print("New %s tiles viewport..." % self.name)
 
 		lat, lon, self.zoom = self.containing_map.get_center_and_zoom()
 		self.int_zoom = int(self.zoom + 0.5)		# round to int
 		self.tile_scale_factor = math.pow(2, self.zoom) / (1 << self.int_zoom)
-		#print "zoom:", self.zoom, self.int_zoom, self.tile_scale_factor
+		#print("zoom:", self.zoom, self.int_zoom, self.tile_scale_factor)
 
 		# We may have a good reason to use tiles from a different zoom level
 		# than that requested. But let's start with what was requested.
@@ -211,7 +209,7 @@ class MapTileLayer(MapLayer):
 			for x in range(x_range_start, x_range_end + 1):
 				ypixoff = starting_ypixoff
 				for y in range(y_range_start, y_range_end + 1):
-					#print " Tile:", x, y, xpixoff, ypixoff
+					#print(" Tile:", x, y, xpixoff, ypixoff)
 					self.tiles.append((self.int_zoom, x % (1 << self.int_zoom), y, xpixoff, ypixoff))
 					ypixoff += self.tile_size
 				xpixoff += self.tile_size
@@ -220,7 +218,7 @@ class MapTileLayer(MapLayer):
 
 	# Called whenever redrawing required
 	def do_draw(self, ctx):
-		#print "Draw %s tiles..." % self.name
+		#print("Draw %s tiles..." % self.name)
 
 		self.dedup.clear()
 
@@ -281,13 +279,13 @@ class MapTileLayer(MapLayer):
 
 	# This wraps load_tile() and caches the most recently used tiles in RAM.
 	def load_tile_cached(self, zoom, x, y, may_download):
-		#print "Tile:", zoom, x, y, may_download
+		#print("Tile:", zoom, x, y, may_download)
 		key = (zoom, x, y)
 		try:
 			result = self.ram_cache.pop(key)	# will reinsert below
-			#print " cache hit"
+			#print(" cache hit")
 		except KeyError:
-			#print " cache miss"
+			#print(" cache miss")
 			result = self.load_tile(zoom, x, y, may_download)
 			if result == None and not may_download:
 				return None
@@ -300,7 +298,7 @@ class MapTileLayer(MapLayer):
 		try:
 			self.ram_cache.pop((zoom, x, y))
 		except KeyError:
-			print "cache_invalidate(): not in cache", zoom, x, y
+			print("cache_invalidate(): not in cache", zoom, x, y)
 
 	# Return the indicated tile as a Cairo surface. If it is not yet
 	# available, return None.
@@ -330,7 +328,7 @@ class MapRasterTile(object):
 		else:
 			raise MapTileError("neither filename nor data given")
 
-		# See http://www.pygtk.org/pygtk2reference/class-gdkpixbuf.html
+		# See http://www.pyGtk.org/pygtk2reference/class-gdkpixbuf.html
 		transparent_color = layer.opts.transparent_color
 		if transparent_color is not None:
 			pixbuf = pixbuf.add_alpha(True, *transparent_color)

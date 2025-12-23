@@ -1,7 +1,7 @@
 # encoding=utf-8
 # pykarta/maps/layers/tile_debug.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 9 May 2014
+# Copyright 2013--2023, Trinity College
+# Last modified: 25 March 2023
 
 from pykarta.maps.layers.base import MapTileLayer
 import cairo
@@ -9,7 +9,7 @@ import cairo
 # This layer draws tile outlines and puts z/x/y in the top left hand corner.
 class MapTileLayerDebug(MapTileLayer):
 	def __init__(self):
-		MapTileLayer.__init__(self, None)		# None is the tile class
+		super().__init__(None)		# None is the tile class
 	def do_draw(self, ctx):
 		ctx.set_line_width(1)
 		ctx.set_source_rgb(1.0, 0.0, 0.0)

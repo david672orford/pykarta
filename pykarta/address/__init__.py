@@ -2,7 +2,7 @@
 # Copyright 2013--2019, Trinity College
 # Last modified: 8 October 2019
 
-from __future__ import print_function
+
 import string
 import re
 
@@ -62,7 +62,7 @@ def split_address(address):
 	return components
 
 # Split a person's name into its component parts.
-def split_name(name):
+def split_name(name, lastname_first=False):
 	if re.search(r'[A-Z]', name) and not re.search(r'[a-z]', name):
 		name = name.title()
 
@@ -70,14 +70,18 @@ def split_name(name):
 	name = re.sub(r' ((Jr)|(Sr)|(II)|(III))$', '', name, re.IGNORECASE)
 
 	components = {}
-	match = re.match('^([^,]+), ?(.*)', name)
+	match = re.match('^([^,]+), ?(.*)', name)		# Lastname, Firstname
 	if match:
 		components['Last Name'] = match.group(1)
 		components['First Name'] = match.group(2)
 	else:
 		name_words = name.split(' ')
-		components['Last Name'] = name_words[-1]
-		components['First Name'] = ' '.join(name_words[0:-1])
+		if lastname_first:
+			components['Last Name'] = name_words[0]
+			components['First Name'] = name_words[1:]
+		else:
+			components['Last Name'] = name_words[-1]
+			components['First Name'] = ' '.join(name_words[0:-1])
 	return components
 
 number_words = {
@@ -90,7 +94,7 @@ number_words = {
 def split_house_street_apt(text):
 	# "123A Main St"
 	# "One Constitution Plaza"
-	m = re.search(r"^((?:\d+\S*)|%s) (.+)$" % ("|".join(number_words.keys())), text, re.I)
+	m = re.search(r"^((?:\d+\S*)|%s) (.+)$" % ("|".join(list(number_words.keys()))), text, re.I)
 	if m:
 		components = {}
 		components['House Number'] = number_words.get(m.group(1).lower(), m.group(1))

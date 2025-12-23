@@ -1,14 +1,15 @@
 # encoding=utf-8
 # pykarta/maps/layers/osd.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 15 May 2018
+# Copyright 2013--2021, Trinity College
+# Last modified: 26 December 2021
+
 
 import cairo
 import math
 
-from pykarta.maps.layers.base import MapLayer
-from pykarta.geometry import Point
-from pykarta.geometry.projection import radius_of_earth
+from .base import MapLayer
+from ...geometry import Point
+from ...geometry.projection import radius_of_earth
 
 #=============================================================================
 # On Screen Display layers
@@ -64,7 +65,7 @@ class MapLayerScale(MapLayer):
 
 	# Compute the dimensions for the scale indicator.
 	def do_viewport(self):
-		#print "Adjusting map scale indicator"
+		#print("Adjusting map scale indicator")
 		bbox = self.containing_map.get_bbox()
 
 		scale_width = self.containing_map.width * self.scale_width_percentage / 100
@@ -103,7 +104,7 @@ class MapLayerScale(MapLayer):
 		self.scale_dimensions = (scale_width, first_digit_pixels, int(first_digit_max), units)
 
 	def do_draw(self, ctx):
-		#print "Drawing map scale:", self.scale_dimensions
+		#print("Drawing map scale:", self.scale_dimensions)
 		(scale_width, first_digit_pixels, first_digit_max, units) = self.scale_dimensions
 
 		# Bottom right
@@ -198,7 +199,7 @@ class MapLayerLiveGPS(MapLayer):
 				or (fix.heading is None != self.fix.heading is None) \
 				or (abs(fix.heading - self.fix.heading) % 360.0) >= 5.0 \
 				or abs(fix.speed - self.fix.speed) >= 1.0:
-			print "GPS marker moved"
+			print("GPS marker moved")
 			self.fix = fix
 
 			# If the marker is in the viewport (or just was), refresh layer.

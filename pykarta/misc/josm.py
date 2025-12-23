@@ -1,10 +1,10 @@
 # pykarta/misc/josm.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 19 September 2014
+# Copyright 2013--2023, Trinity College
+# Last modified: 26 March 2023
 
 import subprocess
-import urllib
-import httplib
+from urllib.parse import urlencode
+from http.client import HTTPConnection
 import socket
 import time
 
@@ -19,15 +19,15 @@ class Josm(object):
 
 	# Send a Remote Control command to JOSM
 	def send_cmd(self, command, params):
-		url_path = "/%s?%s" % (command, urllib.urlencode(params))
-		print "JOSM Remote Control command:", url_path
+		url_path = "/%s?%s" % (command, urlencode(params))
+		print("JOSM Remote Control command:", url_path)
 		try:
 			# Use httplib because urllib2 has proxy support which we would have to disable.
-			conn = httplib.HTTPConnection("localhost:8111")
+			conn = HTTPConnection("localhost:8111")
 			conn.request("GET", url_path)
 			resp = conn.getresponse()
-			print "%s %s" % (resp.status, resp.reason)
-			print resp.read()
+			print("%s %s" % (resp.status, resp.reason))
+			print(resp.read())
 		except socket.error:
 			raise JosmNotListening
 	
@@ -37,7 +37,7 @@ class Josm(object):
 		except JosmNotListening:
 			try:
 				self.pid = subprocess.Popen(["josm"])
-				print "JOSM PID:", self.pid
+				print("JOSM PID:", self.pid)
 			except OSError:
 				raise JosmNotListening
 			for i in range(30):
@@ -50,7 +50,7 @@ class Josm(object):
 			raise JosmNotListening
 	
 	def cmd_zoom(self, bbox):
-		print "JOSM zoom to ", str(bbox)
+		print("JOSM zoom to ", str(bbox))
 		self.send_cmd("zoom", {
 			"top": bbox.max_lat,
 			"left": bbox.min_lon,
@@ -59,7 +59,7 @@ class Josm(object):
 			})
 	
 	def cmd_load_and_zoom(self, bbox):
-		print "JOSM load data and zoom to ", bbox
+		print("JOSM load data and zoom to ", bbox)
 		self.send_cmd("load_and_zoom", {
 			"top": bbox.max_lat,
 			"left": bbox.min_lon,
@@ -77,7 +77,7 @@ class Josm(object):
 		}
 
 	def cmd_imagery(self, title="Bing Sat"):
-		print "JOSM add imagery", title
+		print("JOSM add imagery", title)
 		if not title in self.loaded_imagery:
 			params = self.imagery_layers[title]
 			self.send_cmd("imagery", params)

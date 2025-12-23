@@ -2,7 +2,7 @@
 # Copyright 2013--2019, Trinity College Computing Center
 # Last modified: 22 October 2019
 
-from __future__ import print_function
+
 import lxml.etree as ET
 from .geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 import pykarta.address

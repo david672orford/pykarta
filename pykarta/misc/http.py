@@ -4,10 +4,7 @@
 
 import os
 import re
-try:
-	import httplib
-except ImportError:
-	import http.client as httplib
+import http.client
 import time
 
 # Quick and dirty function to extract the hostname (possibly with port)
@@ -23,9 +20,9 @@ def simple_url_split(url):
 def simple_urlopen(url, extra_headers={}):
 	method, hostname, path = simple_url_split(url)
 	if method == "https":
-		conn = httplib.HTTPSConnection(hostname, timeout=30)
+		conn = http.client.HTTPSConnection(hostname, timeout=30)
 	else:
-		conn = httplib.HTTPConnection(hostname, timeout=30)
+		conn = http.client.HTTPConnection(hostname, timeout=30)
 	#print "GET %s" % path
 	conn.request("GET", path, None, extra_headers)
 	response = conn.getresponse()

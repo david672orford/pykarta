@@ -7,10 +7,10 @@
 import math
 import json
 
-from pykarta.maps.layers.tile_rndr_geojson import MapGeoJSONTile
-from tilesets_base import tilesets, MapTilesetVector
-from pykarta.geometry.projection import project_to_tilespace_pixel
-import pykarta.draw
+from ..layers.tile_rndr_geojson import MapGeoJSONTile
+from .tilesets_base import tilesets, MapTilesetVector
+from ...geometry.projection import project_to_tilespace_pixel
+from ...draw import centered_label
 
 class MapParcelsTile(MapGeoJSONTile):
 	clip = 0
@@ -40,7 +40,7 @@ class MapParcelsTile(MapGeoJSONTile):
 				text = "%s %s" % (house_number, street)
 			else:
 				text = house_number
-			pykarta.draw.centered_label(ctx, center[0], center[1], text, style={'font-size':8})
+			centered_label(ctx, center[0], center[1], text, style={'font-size':8})
 
 tilesets.append(MapTilesetVector('parcels-pykarta',
 	tile_class=MapParcelsTile,

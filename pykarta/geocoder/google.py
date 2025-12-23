@@ -2,7 +2,7 @@
 # Copyright 2013--2018, Trinity College Computing Center
 # Last modified: 15 May 2018
 
-from __future__ import print_function
+
 import string
 import xml.etree.cElementTree as ET
 
@@ -63,7 +63,7 @@ class GeocoderGoogle(GeocoderBase):
 		# See: https://developers.google.com/maps/documentation/geocoding/
 		query_hash = {
 			'sensor': 'false',
-			'address': (u"%s %s, %s, %s" \
+			'address': ("%s %s, %s, %s" \
 				% (address[self.f_house_number], address[self.f_street],
 				  address[self.f_city], address[self.f_state])).encode("utf-8"),
 			}

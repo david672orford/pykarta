@@ -1,7 +1,8 @@
 # pykarta/draw/labels_points.py
 # Draw POI labels
-# Copyright 2013--2018, Trinity College
-# Last modified: 23 May 2018
+# Copyright 2013--2021, Trinity College
+# Last modified: 26 December 2021
+
 
 import cairo
 from .shapes import rounded_rectangle
@@ -32,10 +33,10 @@ def poi_label(ctx, x, y, text, fontsize=8):
 
 # Place label halo centered on the indicated point.
 def centered_label(ctx, x, y, text, style=None, fontsize=None):
-	assert isinstance(text, basestring), "Text is if improper type: %s" % type(text)
+	assert isinstance(text, str), "Text is if improper type: %s" % type(text)
 	if style is None:
 		if fontsize is not None:
-			print "Warning: use of fontsize with centered_label() is deprecated"
+			print("Warning: use of fontsize with centered_label() is deprecated")
 			style = {'font-size':fontsize}
 		else:
 			style = {'font-size':12}

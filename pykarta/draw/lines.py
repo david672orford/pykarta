@@ -1,6 +1,6 @@
 # pykarta/draw/lines.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 18 December 2014
+# Copyright 2013--2022, Trinity College
+# Last modified: 2 January 2022
 
 import cairo
 import math
@@ -9,10 +9,10 @@ import math
 def line_string(ctx, points):
 	if len(points) < 1:		# empty line?
 		return
-	point = points[0]
-	ctx.move_to(point[0], point[1])
+	ctx.move_to(*points[0])
 	line_to = ctx.line_to
-	map(lambda p: line_to(p[0], p[1]), points)
+	for point in points[1:]:
+		line_to(*point)
 
 # Add a line with arrows showing direction to the path.
 def route(ctx, points):
@@ -32,7 +32,7 @@ def line_string_arrows(ctx, points, line_width=1):
 	arrow_min_interval = 50
 	arrow_running_distance = arrow_min_interval
 	# Note that if the len(points) is < 2 there will be no iterations. This is good.
-	for i in reversed(range(len(points)-1)):
+	for i in reversed(list(range(len(points)-1))):
 		p1 = points[i]
 		p2 = points[i+1]
 		width = p2[0] - p1[0]

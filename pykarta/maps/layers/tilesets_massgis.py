@@ -1,9 +1,9 @@
 # encoding=utf-8
 # pykarta/maps/layers/tilesets_massgis.py
-# Copyright 2013, 2014, Trinity College
-# Last modified: 5 September 2014
+# Copyright 2013--2021, Trinity College
+# Last modified: 26 December 2021
 
-from tilesets_base import tilesets, MapTilesetRaster, MapTilesetWMS
+from .tilesets_base import tilesets, MapTilesetRaster, MapTilesetWMS
 
 # MassGIS WMS server
 # http://giswebservices.massgis.state.ma.us/geoserver/wms?service=WMS&version=1.1.1&request=GetCapabilities

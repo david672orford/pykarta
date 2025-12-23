@@ -1,0 +1,26 @@
+#! /usr/bin/python
+# Convert a shapefile to GPX format using Pykarta
+# Does not reproject the coordinates
+
+import sys, os
+sys.path.insert(1, os.path.join(os.path.dirname(__file__), "..", ".."))
+from pykarta.formats.shapefile import Reader as ShpReader
+from pykarta.formats.gpx_writer import GpxWriter
+
+shapefile, gpxfile, name_field = sys.argv[1:]
+name_field = int(name_field)
+
+sf = ShpReader(shapefile)
+gpx = GpxWriter(open(gpxfile, "w"), "Pykarta shp2gpx")
+
+print(sf.fields)
+
+for obj in sf.shapeRecords():
+	print("Record:", obj.record)
+	#print(dir(obj.shape))
+	print("Parts:", obj.shape.parts)
+	print("shapeType:", obj.shape.shapeType)
+	if obj.shape.shapeType == 3:	# polyline
+		gpx.write_rte(map(lambda p: (p[1], p[0], {}), obj.shape.points), name=obj.record[name_field])
+	print()
+

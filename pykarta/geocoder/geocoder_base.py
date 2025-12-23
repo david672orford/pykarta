@@ -2,15 +2,15 @@
 # Copyright 2013--2019, Trinity College Computing Center
 # Last modified: 4 May 2019
 
-from __future__ import print_function
+
 import threading
 try:
-	import httplib
+	import http.client
 except ImportError:
 	import http.client as httplib
 import socket
 import errno
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import time
 import sys
 import pykarta
@@ -118,7 +118,7 @@ class GeocoderBase(object):
 			message_body = None
 			if query is not None:
 				if method == "GET":
-					path = path + "?" + urllib.urlencode(query)
+					path = path + "?" + urllib.parse.urlencode(query)
 				elif method == "POST":
 					message_body = query
 			self.debug("  %s %s" % (method, path))
@@ -133,9 +133,9 @@ class GeocoderBase(object):
 				if self.conn is None:
 					self.debug("  Opening HTTP connexion to %s..." % self.url_server)
 					if self.url_method == "https":
-						self.conn = httplib.HTTPSConnection(self.url_server, timeout=self.timeout)
+						self.conn = http.client.HTTPSConnection(self.url_server, timeout=self.timeout)
 					else:
-						self.conn = httplib.HTTPConnection(self.url_server, timeout=self.timeout)
+						self.conn = http.client.HTTPConnection(self.url_server, timeout=self.timeout)
 
 				# Send the HTTP request
 				# We could use self.conn.request() here, but then we would have
@@ -154,7 +154,7 @@ class GeocoderBase(object):
 				# immediately.
 				try:
 					http_resp = self.conn.getresponse()
-				except httplib.BadStatusLine as e:
+				except http.client.BadStatusLine as e:
 					if attempt == 1:
 						self.debug("  Server disconnected.")
 						self.conn = None
@@ -244,7 +244,7 @@ class GeocoderResult(object):
 		self.source = source
 		self.alternative_addresses = []
 	def __str__(self):
-		return ",".join(map(lambda i: "%s:%s" % (i, str(getattr(self,i))), vars(self)))
+		return ",".join(["%s:%s" % (i, str(getattr(self,i))) for i in vars(self)])
 	def add_alternative_address(self, address_dict):
 		alt_addr = []
 		for i in ("house_number", "street", "sublocality", "locality", "town", "city", "state", "postal_code"):

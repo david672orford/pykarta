@@ -1,31 +1,39 @@
 #=============================================================================
 # pykarta/maps/widget.py
-# Copyright 2013--2016, Trinity College
-# Last modified: 31 March 2016
+# Copyright 2013--2022, Trinity College
+# Last modified: 2 January 2022
 #=============================================================================
 
-import gtk
+
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Gdk
 import math
 import cairo
 import copy
 import time
 import sys
 
-import pyapp.i18n
-from pykarta.maps import MapBase, MapCairo, MapFeedback
-from pykarta.maps.layers import MapLayerBuilder, MapTileLayerHTTP
-from pykarta.misc import BoundMethodProxy
+try:
+	import pyapp.i18n
+except ImportError:
+	import builtins
+	builtins.__dict__["_"] = lambda text: text
+
+from . import MapBase, MapCairo, MapFeedback
+from .layers import MapLayerBuilder, MapTileLayerHTTP
+from ..misc import BoundMethodProxy
 
 #=============================================================================
-# Combine a MapBase and a gtk.DrawingArea in order to create
+# Combine a MapBase and a Gtk.DrawingArea in order to create
 # a Gtk map widget.
 #=============================================================================
 
-class MapWidget(gtk.DrawingArea, MapBase):
+class MapWidget(Gtk.DrawingArea, MapBase):
 	lazy_tiles = True		# load tiles asyncronously so partial map is drawn
 
 	def __init__(self, static_resize=False, background_color=(1.0, 1.0, 1.0), **kwargs):
-		gtk.DrawingArea.__init__(self)
+		Gtk.DrawingArea.__init__(self)
 		MapBase.__init__(self, **kwargs)
 		self.static_resize = static_resize
 		self.background_color = background_color
@@ -36,24 +44,30 @@ class MapWidget(gtk.DrawingArea, MapBase):
 		self.cursor = None
 		self.prev_window_config = None
 
-		self.connect('expose-event', self.expose_event)
+		#self.connect('expose-event', self.expose_event)
+		self.connect('draw', self.draw_event)
+
+		self.set_events(
+			Gdk.EventMask.BUTTON_PRESS_MASK |
+			Gdk.EventMask.BUTTON_RELEASE_MASK |
+			Gdk.EventMask.POINTER_MOTION_MASK |
+			Gdk.EventMask.LEAVE_NOTIFY_MASK |
+			Gdk.EventMask.SCROLL_MASK |
+			Gdk.EventMask.KEY_PRESS_MASK
+			)
 		self.connect('button-press-event', self.button_press_event)
 		self.connect('button-release-event', self.button_release_event)
 		self.connect('motion-notify-event', self.motion_notify_event)
 		self.connect('leave-notify-event', self.leave_notify_event)
 		self.connect('scroll-event', self.scroll_event_cb)
-		self.set_events(gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.LEAVE_NOTIFY_MASK)
 		self.connect("key_press_event", self.key_press_event)
-		self.set_flags(gtk.CAN_FOCUS)
 		self.connect('configure-event', self.configure_event)
 
-	# See http://www.pygtk.org/articles/cairo-pygtk-widgets/cairo-pygtk-widgets.htm
-	def expose_event(self, widget, event):
-		#print "expose_event()"
+		# So we can receive keypress events
+		self.set_can_focus(True)
 
-		# Create a Cairo context for drawing on the window part of which was exposed.
-		ctx = self.window.cairo_create()
-
+	# See http://www.pyGtk.org/articles/cairo-pygtk-widgets/cairo-pygtk-widgets.htm
+	def draw_event(self, widget, ctx):
 		# Set font antialiasing
 		fo = cairo.FontOptions()
 		#fo.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
@@ -66,10 +80,6 @@ class MapWidget(gtk.DrawingArea, MapBase):
 		#ctx.set_antialias(cairo.ANTIALIAS_NONE)		# awful for lettering
 		#ctx.set_antialias(cairo.ANTIALIAS_GRAY)
 		#ctx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
-
-		# Clip our drawing operations to the area just exposed.
-		ctx.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
-		ctx.clip()
 
 		ctx.set_source_rgb(*(self.background_color))
 		ctx.paint()
@@ -106,7 +116,7 @@ class MapWidget(gtk.DrawingArea, MapBase):
 			self.feedback.debug(2, " %s: stale=%s" % (layer.name, layer.stale))
 			if layer.stale:
 				if self.map_drag_start:
-					print "Warning: dragging dirty layer"
+					print("Warning: dragging dirty layer")
 				else:
 					start_time = time.time()
 					layer.cache_surface = None
@@ -138,7 +148,7 @@ class MapWidget(gtk.DrawingArea, MapBase):
 		self.feedback.debug(3, " %s: %d ms" % (opname, elapsed_time))
 
 	def key_press_event(self, widget, event):
-		keyname = gtk.gdk.keyval_name(event.keyval)
+		keyname = Gdk.keyval_name(event.keyval)
 		self.feedback.debug(2, "key %s (%d) was pressed" % (keyname, event.keyval))
 		if keyname == "Up":
 			self.scroll(0, -5)
@@ -156,8 +166,8 @@ class MapWidget(gtk.DrawingArea, MapBase):
 
 	# Mouse wheel zooming
 	def scroll_event_cb(self, widget, gdkevent):
-		#print "Event:", gdkevent.x, gdkevent.y, gdkevent.direction
-		#print "position:", self.get_center_and_zoom()
+		#print("Event:", gdkevent.x, gdkevent.y, gdkevent.direction)
+		#print("position:", self.get_center_and_zoom())
 		zoom = self.get_zoom()
 		zoom_step_factor = math.pow(2, self.zoom_step)
 		center_x = (self.width / 2)
@@ -165,7 +175,7 @@ class MapWidget(gtk.DrawingArea, MapBase):
 		distance_x = (gdkevent.x - center_x)
 		distance_y = (gdkevent.y - center_y)
 		# Zoom in: new center is between existing center and mouse pointer
-		if gdkevent.direction == gtk.gdk.SCROLL_UP:
+		if gdkevent.direction == Gdk.ScrollDirection.UP:
 			new_center_x = gdkevent.x - (distance_x / zoom_step_factor)
 			new_center_y = gdkevent.y - (distance_y / zoom_step_factor)
 			new_center = self.unproject_point(new_center_x, new_center_y)
@@ -173,10 +183,10 @@ class MapWidget(gtk.DrawingArea, MapBase):
 				self.set_center(new_center.lat, new_center.lon)
 			return True
 		# Zoom out: new center is beyond existing center as seen from mouse pointer
-		elif gdkevent.direction == gtk.gdk.SCROLL_DOWN:
+		elif gdkevent.direction == Gdk.ScrollDirection.DOWN:
 			new_center_x = gdkevent.x - (distance_x * zoom_step_factor)
 			new_center_y = gdkevent.y - (distance_y * zoom_step_factor)
-			#print "new center:", new_center_x, new_center_y
+			#print("new center:", new_center_x, new_center_y)
 			new_center = self.unproject_point(new_center_x, new_center_y)
 			if self.zoom_out() != zoom:
 				self.set_center(new_center.lat, new_center.lon)
@@ -197,7 +207,7 @@ class MapWidget(gtk.DrawingArea, MapBase):
 
 		# Since not handled above, must be for base layer. Keep track of dragging
 		# so that we can translate the drawing context to compensate.
-		if gdkevent.type == gtk.gdk.BUTTON_PRESS and gdkevent.button == 1:
+		if gdkevent.type == Gdk.EventType.BUTTON_PRESS and gdkevent.button == 1:
 			self.map_drag_start = [gdkevent.x, gdkevent.y]
 
 		return True
@@ -272,32 +282,36 @@ class MapWidget(gtk.DrawingArea, MapBase):
 	# Set the mouse cursor shape (over the map).
 	def set_cursor(self, cursor):
 		if cursor is not None:
-			cursor = gtk.gdk.Cursor(cursor)
-		if self.window:
-			self.window.set_cursor(cursor)
+			cursor = Gdk.Cursor.new(cursor)
+		window = self.get_window()
+		if window is not None:
+			window.set_cursor(cursor)
+		else:
+			print("FIXME: no window")
 
 	def queue_draw(self):
-		gtk.DrawingArea.queue_draw(self)
+		Gtk.DrawingArea.queue_draw(self)
 
 	def precache_tiles(self, main_window=None, max_zoom=16):
 		progress = MapPrintProgress(main_window, title=_("Tile Download Progress"))
 		for layer in self.layers_ordered:
 			if isinstance(layer, MapTileLayerHTTP):
-				print " Layer:", layer.tileset.key
+				print(" Layer:", layer.tileset.key)
 				layer.precache_tiles(progress, max_zoom)
 		#progress.done()
 
 	def reload_tiles(self):
 		for layer in self.layers_ordered:
 			if isinstance(layer, MapTileLayerHTTP):
-				print " Layer:", layer.tileset.key
+				print(" Layer:", layer.tileset.key)
 				layer.reload_tiles()
 		self.queue_draw()
 
 #=============================================================================
 # Gtk Printing
 # Extends the MapCairo (which is itself an extension of MapBase) so as to
-# make a version of the map which prints using the Gtk facilities.
+# make a version of the map which prints using the Gtk facilities for
+# accessing the printer.
 #
 # Instances of this class are not entirely new maps. Instead, then are
 # printing versions of a MapWidget which must be passed to the conctructor
@@ -307,6 +321,7 @@ class MapWidget(gtk.DrawingArea, MapBase):
 #  printer = MapPrint(map_widget)
 #  printer.do_print()
 #=============================================================================
+
 class MapPrint(MapCairo):
 	def __init__(self, map_widget, papersize=[792.0, 612.0], margin=18, main_window=None):
 		self.papersize = papersize
@@ -329,7 +344,7 @@ class MapPrint(MapCairo):
 
 		# Same base layers as MapWidget.
 		for layer in map_widget.layers_ordered:
-			print " %s" % layer.name
+			print(" %s" % layer.name)
 			#if layer.name == "osm-default":
 			#	layer_obj = MapLayerBuilder("osm-default-svg")
 			#else:
@@ -345,23 +360,23 @@ class MapPrint(MapCairo):
 
 	# Call this from File->Print
 	def do_print(self):
-		print_op = gtk.PrintOperation()
+		print_op = Gtk.PrintOperation()
 
 		# Page size and orientation
 		# FIXME: sizes other than letter do not work
-		print "paper size:", self.papersize
-		paper_size = gtk.PaperSize(gtk.PAPER_NAME_LETTER)
+		print("paper size:", self.papersize)
+		paper_size = Gtk.PaperSize(Gtk.PAPER_NAME_LETTER)
 		if self.papersize[0] > self.papersize[1]:
-			print " landscape"
-			paper_size.set_size(self.papersize[1], self.papersize[0], gtk.UNIT_POINTS)
-			orientation = gtk.PAGE_ORIENTATION_LANDSCAPE
+			print(" landscape")
+			paper_size.set_size(self.papersize[1], self.papersize[0], Gtk.Unit.POINTS)
+			orientation = Gtk.PageOrientation.LANDSCAPE
 		else:
-			print " portrait"
-			paper_size.set_size(self.papersize[0], self.papersize[1], gtk.UNIT_POINTS)
-			orientation = gtk.PAGE_ORIENTATION_PORTRAIT
-		print "is_custom:", paper_size.is_custom()
+			print(" portrait")
+			paper_size.set_size(self.papersize[0], self.papersize[1], Gtk.Unit.POINTS)
+			orientation = Gtk.PageOrientation.PORTRAIT
+		print("is_custom:", paper_size.is_custom())
 
-		page_setup = gtk.PageSetup()
+		page_setup = Gtk.PageSetup()
 		page_setup.set_paper_size_and_default_margins(paper_size)
 		page_setup.set_orientation(orientation)
 		print_op.set_default_page_setup(page_setup)
@@ -375,25 +390,25 @@ class MapPrint(MapCairo):
 		print_op.connect('draw_page', self.draw_page)
 
 		print_op.set_n_pages(1)
-		result = print_op.run(gtk.PRINT_OPERATION_ACTION_PRINT_DIALOG, self.main_window)
+		result = print_op.run(Gtk.PrintOperationAction.PRINT_DIALOG, self.main_window)
 
-		print "Printing result:", result
+		print("Printing result:", result)
 		if self.map_failure:
 			return self.map_failure
-		elif result == gtk.PRINT_OPERATION_RESULT_ERROR:
+		elif result == Gtk.PrintOperationResult.ERROR:
 			return print_op.get_error()
-		#elif result == gtk.PRINT_OPERATION_RESULT_APPLY:
+		#elif result == Gtk.PrintOperationResult.APPLY:
 		#	self.print_settings = print_op.get_print_settings()
 		#	return None
 		else:
 			return None
 
-	# Called as gtk.PrintOperation's draw-page handler
+	# Called as Gtk.PrintOperation's draw-page handler
 	def draw_page(self, print_op, print_ctx, page_number):
 		ctx = print_ctx.get_cairo_context()
 		width = print_ctx.get_width()
 		height = print_ctx.get_height()
-		print "drawing surface:", width, height
+		print("drawing surface:", width, height)
 
 		ctx.translate(self.margin, self.margin)
 		width -= (2*self.margin)
@@ -403,7 +418,7 @@ class MapPrint(MapCairo):
 		try:
 			self.draw_map(ctx)
 		except Exception as e:
-			print "Printing failed:"
+			print("Printing failed:")
 			import traceback
 			traceback.print_exc()
 			print_op.cancel()
@@ -419,6 +434,7 @@ class MapPrint(MapCairo):
 # A derivative of MapFeedback which displays a progress dialog box.
 # MapPrint uses this.
 #=============================================================================
+
 class MapPrintProgress(MapFeedback):
 	def __init__(self, main_window, title=_("Printing Progress")):
 		MapFeedback.__init__(self)
@@ -426,31 +442,31 @@ class MapPrintProgress(MapFeedback):
 		self.canceled = False
 		self.shown = False
 
-		self.dialog = gtk.Dialog(
+		self.dialog = Gtk.Dialog(
 			title=title,
 			parent=main_window,
-			flags=(gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT),
-			buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+			flags=(Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT),
+			buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
 			)
 		self.dialog.connect("response", BoundMethodProxy(self.response_cb))
 		self.dialog.set_default_size(400, -1)
 
 		vbox = self.dialog.get_content_area()
 
-		self.message = gtk.Label("")
-		vbox.pack_start(self.message)
+		self.message = Gtk.Label(label="")
+		vbox.pack_start(self.message, True, True, 0)
 		self.message.show()
 
-		self.countdown_message = gtk.Label("")
-		vbox.pack_start(self.countdown_message)
+		self.countdown_message = Gtk.Label(label="")
+		vbox.pack_start(self.countdown_message, True, True, 0)
 		self.countdown_message.show()
 
-		self.bar = gtk.ProgressBar()
-		vbox.pack_start(self.bar)
+		self.bar = Gtk.ProgressBar()
+		vbox.pack_start(self.bar, True, True, 0)
 		self.bar.show()
 
 	def response_cb(self, widget, response_id):
-		print "*** cancel pressed ***"
+		print("*** cancel pressed ***")
 		self.canceled = True
 
 	def progress(self, finished, total, message):
@@ -467,19 +483,19 @@ class MapPrintProgress(MapFeedback):
 		if not self.shown:
 			self.dialog.show()
 			self.shown = True
-		while gtk.events_pending():
-			gtk.main_iteration(False)
+		while Gtk.events_pending():
+			Gtk.main_iteration_do(False)
 
 	def error(self, message):
 		self.message.set_text(message)
 		self.countdown_message.set_text("")
-		while gtk.events_pending():
-			gtk.main_iteration(False)
+		while Gtk.events_pending():
+			Gtk.main_iteration_do(False)
 
 	def countdown(self, message):
 		self.countdown_message.set_text(message)
-		while gtk.events_pending():
-			gtk.main_iteration(False)
+		while Gtk.events_pending():
+			Gtk.main_iteration_do(False)
 
 	def __del__(self):
 		if self.shown:

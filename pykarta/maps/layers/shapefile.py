@@ -21,7 +21,7 @@ class MapLayerShapefile(MapLayer):
 			if shape.shapeType == 3:	# polyline
 				shape_bbox = BoundingBox(shape.bbox)
 				if shape_bbox.overlaps(map_bbox):
-					points = map(lambda p: Point(p[1], p[0]), shape.points)
+					points = [Point(p[1], p[0]) for p in shape.points]
 					self.visible_objs.append(self.containing_map.project_points(points))	
 
 	def do_draw(self, ctx):

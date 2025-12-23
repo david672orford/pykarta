@@ -6,7 +6,7 @@
 
 # http://colorbrewer2.org/ is helpful for picking color palates for maps.
 
-from __future__ import print_function
+
 import os
 import glob
 import cairo
@@ -14,10 +14,10 @@ import math
 import re
 import math
 
-from tilesets_base import tilesets, MapTilesetVector
-from pykarta.maps.layers.tile_rndr_geojson import MapGeoJSONTile, json_loader
-from pykarta.maps.symbols import MapSymbolSet
-from pykarta.draw import \
+from .tilesets_base import tilesets, MapTilesetVector
+from ..layers.tile_rndr_geojson import MapGeoJSONTile, json_loader
+from ..symbols import MapSymbolSet
+from ...draw import \
 	draw_line_label_stroked as draw_line_label, \
 	draw_highway_shield, \
 	centered_label as draw_centered_label, \
@@ -31,28 +31,28 @@ from pykarta.draw import \
 
 class MapOsmLanduseTile(MapGeoJSONTile):
 	styles = {
-		'school': { 'fill-color': (1.0, 0.7, 0.7) },			# redish
-		'playground': { 'fill-color': (1.0, 1.0, 0.7) },
-		'park': { 'fill-color': (0.7, 1.0, 0.7) },				# light green
-		'recreation_ground': { 'fill-color': (0.7, 1.0, 0.7) },	# light green
-		'golf_course': { 'fill-color': (0.7, 1.0, 0.7) },		# light green
-		'pitch': { 'fill-color': (0.6, 0.9, 0.6) },				# brown
-		'forest': { 'fill-color': (0.6, 0.9, 0.6) },			# dark green
-		'wood': { 'fill-color': (0.6, 0.9, 0.6) },				# dark green
-		'conservation': { 'fill-color': (0.6, 0.9, 0.6) },		# dark green
-		'farm': { 'fill-color': (0.9, 0.9, 0.6) },				# redish brown
+		"school": { "fill-color": (1.0, 0.7, 0.7) },			# redish
+		"playground": { "fill-color": (1.0, 1.0, 0.7) },
+		"park": { "fill-color": (0.7, 1.0, 0.7) },				# light green
+		"recreation_ground": { "fill-color": (0.7, 1.0, 0.7) },	# light green
+		"golf_course": { "fill-color": (0.7, 1.0, 0.7) },		# light green
+		"pitch": { "fill-color": (0.6, 0.9, 0.6) },				# brown
+		"forest": { "fill-color": (0.6, 0.9, 0.6) },			# dark green
+		"wood": { "fill-color": (0.6, 0.9, 0.6) },				# dark green
+		"conservation": { "fill-color": (0.6, 0.9, 0.6) },		# dark green
+		"farm": { "fill-color": (0.9, 0.9, 0.6) },				# redish brown
 		}
 	label_style = {
-		'font-size':10,
-		'font-weight':'bold',
-		'halo':False,
-		'color':(0.5, 0.5, 0.5),
+		"font-size":10,
+		"font-weight":"bold",
+		"halo":False,
+		"color":(0.5, 0.5, 0.5),
 		}
 	draw_passes = 2	# set to 2 to enable labels, 1 to disable
 	label_polygons = True
 	def choose_polygon_style(self, properties):
 		landuse = properties.get("landuse", "?")
-		style = self.styles.get(landuse, { 'fill-color': (0.90, 0.90, 0.90) })
+		style = self.styles.get(landuse, { "fill-color": (0.90, 0.90, 0.90) })
 		return style
 	def draw2(self, ctx, scale):
 		dedup = self.dedup
@@ -65,10 +65,10 @@ class MapOsmLanduseTile(MapGeoJSONTile):
 					draw_centered_label(ctx, center[0], center[1], text, style=self.label_style)
 					dedup.add(text)
 
-tilesets.append(MapTilesetVector('osm-vector-landuse',
+tilesets.append(MapTilesetVector("osm-vector-landuse",
 	tile_class=MapOsmLanduseTile,
 	url_template="tiles/osm-vector-landuse/{z}/{x}/{y}.geojson", 
-	attribution=u"Map © OpenStreetMap contributors",
+	attribution="Map © OpenStreetMap contributors",
 	zoom_min=10,
 	))
 
@@ -78,34 +78,34 @@ class MapOsmWaterwaysTile(MapGeoJSONTile):
 	clip = 5
 	styles = {
 		"river": {
-				'line-color': (0.53, 0.80, 0.98),
-				'line-width': (11,0.5, 16, 7.0),
+				"line-color": (0.53, 0.80, 0.98),
+				"line-width": (11,0.5, 16, 7.0),
 				},
 		"stream": {
-				'line-color': (0.53, 0.80, 0.98),
-				'line-width': (11,0.25, 16, 3.0),
+				"line-color": (0.53, 0.80, 0.98),
+				"line-width": (11,0.25, 16, 3.0),
 				},
 		"canal": {
-				'line-color': (0.53, 0.80, 0.98),
-				'line-width': (11,0.25, 16, 2.0),
-				'line-dasharray': (6,1),
+				"line-color": (0.53, 0.80, 0.98),
+				"line-width": (11,0.25, 16, 2.0),
+				"line-dasharray": (6,1),
 				},
 		"derelict_canal": {
-				'line-color': (0.53, 0.80, 0.98),
-				'line-width': (11,0.25, 16, 2.0),
-				'line-dasharray': (1,6),
+				"line-color": (0.53, 0.80, 0.98),
+				"line-width": (11,0.25, 16, 2.0),
+				"line-dasharray": (1,6),
 				},
 		"dam": {
-				'line-color': (0, 0, 0),
-				'line-width': (11,1.0, 16, 4.0),
+				"line-color": (0, 0, 0),
+				"line-width": (11,1.0, 16, 4.0),
 				},
 		"weir": {
-				'line-color': (0, 0, 0),
-				'line-width': (11,0.5, 16, 2.0),
+				"line-color": (0, 0, 0),
+				"line-width": (11,0.5, 16, 2.0),
 				},
 		"default": {		# yellow error indicator
-				'line-color': (1.00, 1.00, 0.00),
-				'line-width': (11,0.25, 16, 2.0),
+				"line-color": (1.00, 1.00, 0.00),
+				"line-width": (11,0.25, 16, 2.0),
 				},
 		}
 	def choose_line_style(self, properties):
@@ -125,12 +125,12 @@ tilesets.append(MapTilesetVector('osm-vector-waterways',
 
 class MapOsmWaterTile(MapGeoJSONTile):
 	def choose_polygon_style(self, properties):
-		return { 'fill-color': (0.53, 0.80, 0.98) }
+		return { "fill-color": (0.53, 0.80, 0.98) }
 
 tilesets.append(MapTilesetVector('osm-vector-water',
 	tile_class=MapOsmWaterTile,
 	url_template="tiles/osm-vector-water/{z}/{x}/{y}.geojson", 
-	attribution=u"Map © OpenStreetMap contributors",
+	attribution="Map © OpenStreetMap contributors",
 	zoom_min=4,
 	))
 
@@ -141,24 +141,24 @@ class MapOsmBuildingsTile(MapGeoJSONTile):
 	label_polygons = True
 	draw_passes = 2
 	label_style = {
-		'font-size':8,
-		'font-weight':'normal',
-		'halo':False,
-		'color':(0.5, 0.5, 0.5),
+		"font-size":8,
+		"font-weight":"normal",
+		"halo":False,
+		"color":(0.5, 0.5, 0.5),
 		}
 	def choose_polygon_style(self, properties):
-		return  { 'fill-color': (0.8, 0.7, 0.7) }
+		return  { "fill-color": (0.8, 0.7, 0.7) }
 	def choose_polygon_label_text(self, properties):
-		return properties.get('addr:housenumber')
+		return properties.get("addr:housenumber")
 	def draw2(self, ctx, scale):
 		for id, area, label_center, label_text in self.polygon_labels:
 			label_center = self.scale_point(label_center, scale)
 			draw_centered_label(ctx, label_center[0], label_center[1], label_text, style=self.label_style)
 
-tilesets.append(MapTilesetVector('osm-vector-buildings',
+tilesets.append(MapTilesetVector("osm-vector-buildings",
 	tile_class=MapOsmBuildingsTile,
 	url_template="tiles/osm-vector-buildings/{z}/{x}/{y}.geojson", 
-	attribution=u"Map © OpenStreetMap contributors",
+	attribution="Map © OpenStreetMap contributors",
 	zoom_min=13,
 	))
 
@@ -167,15 +167,6 @@ tilesets.append(MapTilesetVector('osm-vector-buildings',
 def RGB(r,g,b):
 	return (r / 255.0, g / 255.0, b / 255.0)
 
-#road_color = (
-#	RGB(189,0,38),		# motorways
-#	RGB(240,59,32),		# trunk
-#	RGB(253,141,60),	# primary
-#	RGB(254,204,92),	# secondary
-#	RGB(255,255,178),	# tertiary
-#	RGB(255,255,190),	# unclassified
-#	RGB(255,255,255),	# residential
-#	)
 road_color = (
 	RGB(227,26,28),		# motorways
 	RGB(227,80,40),		# trunk
@@ -188,184 +179,184 @@ road_color = (
 
 class MapOsmRoadsTile(MapGeoJSONTile):
 	clip = 15
-	sort_key = 'z_order'
+	sort_key = "z_order"
 	draw_passes = 2
 	line_cap = {
-		'butt':cairo.LINE_CAP_BUTT,				# default
-		'square':cairo.LINE_CAP_SQUARE,
-		'round':cairo.LINE_CAP_ROUND,
+		"butt":cairo.LINE_CAP_BUTT,				# default
+		"square":cairo.LINE_CAP_SQUARE,
+		"round":cairo.LINE_CAP_ROUND,
 		}
 	line_join = {
-		'miter':cairo.LINE_JOIN_MITER,			# default
-		'bevel':cairo.LINE_JOIN_BEVEL,
-		'round':cairo.LINE_JOIN_ROUND,
+		"miter":cairo.LINE_JOIN_MITER,			# default
+		"bevel":cairo.LINE_JOIN_BEVEL,
+		"round":cairo.LINE_JOIN_ROUND,
 		}
 
 	# Until zoom level 14 we conflate road classes
 	road_type_simplifier = {
-		'trunk': 'major_road',
-		'primary': 'major_road',
-		'secondary': 'major_road',
-		'tertiary': 'minor_road',
-		'road': 'minor_road',
-		'unclassified': 'minor_road',
-		'residential': 'minor_road',
-		'service': 'minor_road',
+		"trunk": "major_road",
+		"primary": "major_road",
+		"secondary": "major_road",
+		"tertiary": "minor_road",
+		"road": "minor_road",
+		"unclassified": "minor_road",
+		"residential": "minor_road",
+		"service": "minor_road",
 		}
 
 	styles_z6_to_z10 = {
-		'motorway':{
-			'line-color':(0,0,0),
-			'overline-color':road_color[0],
-			'line-width':(6,0.5, 11,2.0),
+		"motorway":{
+			"line-color":(0,0,0),
+			"overline-color":road_color[0],
+			"line-width":(6,0.5, 11,2.0),
 			},
-		'major_road':{
-			'line-color':(0.5,0.5,0.5),
-			'line-width':(6,0.25, 11,1.2),
+		"major_road":{
+			"line-color":(0.5,0.5,0.5),
+			"line-width":(6,0.25, 11,1.2),
 			},
 		}
 
 	styles_z11_to_z13 = {
-		'motorway':{
-			'line-color':(0,0,0),
-			'overline-color':road_color[0],
-			'line-width':(11,2.0, 14,8.0),
+		"motorway":{
+			"line-color":(0,0,0),
+			"overline-color":road_color[0],
+			"line-width":(11,2.0, 14,8.0),
 			},
-		'major_road':{								# style as primary
-			'line-color':(0,0,0),
-			'overline-color':road_color[2],
-			'line-width':(11,1.5, 14,4.0),
+		"major_road":{								# style as primary
+			"line-color":(0,0,0),
+			"overline-color":road_color[2],
+			"line-width":(11,1.5, 14,4.0),
 			},
-		'minor_road':{								# appear at z12
-			'line-color':(0.5, 0.5, 0.5),			# gray texture rather than road_color[2]
-			'line-width':(11,0.5, 14,1),
+		"minor_road":{								# appear at z12
+			"line-color":(0.5, 0.5, 0.5),			# gray texture rather than road_color[2]
+			"line-width":(11,0.5, 14,1),
 			},
-		'railway':{
-			'line-width': (11,0.5, 14,1.5),
-			'line-color': (0.0, 0.0, 0.0),
-			'line-dasharray': (1, 1),
+		"railway":{
+			"line-width": (11,0.5, 14,1.5),
+			"line-color": (0.0, 0.0, 0.0),
+			"line-dasharray": (1, 1),
 			},
-		'aeroway':{
-			'line-width': (11,1.0, 14,2.0),
-			'line-color': (0.5, 0.5, 0.7),
+		"aeroway":{
+			"line-width": (11,1.0, 14,2.0),
+			"line-color": (0.5, 0.5, 0.7),
 			},
 		}
 
 	# https://wiki.openstreetmap.org/wiki/Key:highway
 	styles_z14_to_z18 = {
-		'motorway':{
-			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,8.0, 18,20.0),
-			'overline-color':road_color[0],
+		"motorway":{
+			"line-color":(0.0, 0.0, 0.0),			# black casing
+			"line-width":(14,8.0, 18,20.0),
+			"overline-color":road_color[0],
 			},
-		'trunk':{
-			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,8.0, 18,20.0),
-			'overline-color':road_color[1],
+		"trunk":{
+			"line-color":(0.0, 0.0, 0.0),			# black casing
+			"line-width":(14,8.0, 18,20.0),
+			"overline-color":road_color[1],
 			},
-		'primary':{
-			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,6.0, 18,18.0),
-			'overline-color':road_color[2],
+		"primary":{
+			"line-color":(0.0, 0.0, 0.0),			# black casing
+			"line-width":(14,6.0, 18,18.0),
+			"overline-color":road_color[2],
 			},
-		'secondary':{
-			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,4.0, 18,16.0),
-			'overline-color':road_color[3],
+		"secondary":{
+			"line-color":(0.0, 0.0, 0.0),			# black casing
+			"line-width":(14,4.0, 18,16.0),
+			"overline-color":road_color[3],
 			},
-		'tertiary':{
-			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,3.0, 18,14.0),
-			'overline-color':road_color[4],
+		"tertiary":{
+			"line-color":(0.0, 0.0, 0.0),			# black casing
+			"line-width":(14,3.0, 18,14.0),
+			"overline-color":road_color[4],
 			},
-		'road':{	# FIXME: make different
-			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,2.0, 18,12.0),
-			'overline-color':road_color[5],
+		"road":{	# FIXME: make different
+			"line-color":(0.0, 0.0, 0.0),			# black casing
+			"line-width":(14,2.0, 18,12.0),
+			"overline-color":road_color[5],
 			},
-		'construction':{
-			'line-color': (0.5, 0.5, 0.5),
-			'line-width': (14,2.0, 18,12.0),
-			'line-dasharray': (10,3),
+		"construction":{
+			"line-color": (0.5, 0.5, 0.5),
+			"line-width": (14,2.0, 18,12.0),
+			"line-dasharray": (10,3),
 			},
-		'unclassified':{
-			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,2.0, 18,12.0),
-			'overline-color':road_color[5],
+		"unclassified":{
+			"line-color":(0.0, 0.0, 0.0),			# black casing
+			"line-width":(14,2.0, 18,12.0),
+			"overline-color":road_color[5],
 			},
-		'residential':{
-			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,2.0, 18,12.0),
-			'overline-color':road_color[6],
+		"residential":{
+			"line-color":(0.0, 0.0, 0.0),			# black casing
+			"line-width":(14,2.0, 18,12.0),
+			"overline-color":road_color[6],
 			},
-		'living_street':{
-			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,2.0, 18,12.0),
-			'overline-dasharray':(5,1),
-			'overline-color':road_color[6],
+		"living_street":{
+			"line-color":(0.0, 0.0, 0.0),			# black casing
+			"line-width":(14,2.0, 18,12.0),
+			"overline-dasharray":(5,1),
+			"overline-color":road_color[6],
 			},
-		'pedestrian':{
-			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,2.0, 18,12.0),
-			'overline-dasharray':(4,2),
-			'overline-color':road_color[6],
+		"pedestrian":{
+			"line-color":(0.0, 0.0, 0.0),			# black casing
+			"line-width":(14,2.0, 18,12.0),
+			"overline-dasharray":(4,2),
+			"overline-color":road_color[6],
 			},
-		'service':{
-			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,1.2, 18,9.0),
-			'overline-color':road_color[6],
+		"service":{
+			"line-color":(0.0, 0.0, 0.0),			# black casing
+			"line-width":(14,1.2, 18,9.0),
+			"overline-color":road_color[6],
 			},
-		'abandoned':{
-			'line-color':(0.0, 0.0, 0.0),			# black casing
-			'line-width':(14,1.2, 18,9.0),
-			'line-dasharray':(2,8),
-			'overline-color':(1.0, 1.0, 1.0),		# white fill
+		"abandoned":{
+			"line-color":(0.0, 0.0, 0.0),			# black casing
+			"line-width":(14,1.2, 18,9.0),
+			"line-dasharray":(2,8),
+			"overline-color":(1.0, 1.0, 1.0),		# white fill
 			},
-		'track':{
-			'line-color': (0.75, 0.75, 0.75),
-			'line-width': (14,1.2, 18,9.0),
+		"track":{
+			"line-color": (0.75, 0.75, 0.75),
+			"line-width": (14,1.2, 18,9.0),
 			},
-		'cycleway':{
-			'line-color': (0.75, 0.5, 0.5),
-			'line-width': (14,0.75, 18,4.0),
+		"cycleway":{
+			"line-color": (0.75, 0.5, 0.5),
+			"line-width": (14,0.75, 18,4.0),
 			},
-		'bridleway':{
-			'line-color': (0.5, 0.3, 0.3),
-			'line-width': (14,0.75, 18,4.0),
+		"bridleway":{
+			"line-color": (0.5, 0.3, 0.3),
+			"line-width": (14,0.75, 18,4.0),
 			},
-		'path':{
-			'line-color': (0.5, 0.3, 0.3),
-			'line-width': (14,0.75, 18,4.0),
+		"path":{
+			"line-color": (0.5, 0.3, 0.3),
+			"line-width": (14,0.75, 18,4.0),
 			},
-		'steps':{
-			'line-color': (0.0, 0.0, 0.0),
-			'line-width': (14,0.75, 18,4.0),
-			'line-dasharray':(2,2),
+		"steps":{
+			"line-color": (0.0, 0.0, 0.0),
+			"line-width": (14,0.75, 18,4.0),
+			"line-dasharray":(2,2),
 			},
-		'footway':{
-			'line-color': (0.5, 0.3, 0.3),
-			'line-width': (14,0.5, 18,2.0),
+		"footway":{
+			"line-color": (0.5, 0.3, 0.3),
+			"line-width": (14,0.5, 18,2.0),
 			},
-		'railway':{
-			'line-width': (14,2.5, 18,10.0),
-			'line-color': (0.0, 0.0, 0.0),
-			'line-dasharray': (1, 12),
-			'overline-width': (14,0.5, 18,2.0),
-			'overline-color': (0.0, 0.0, 0.0),
+		"railway":{
+			"line-width": (14,2.5, 18,10.0),
+			"line-color": (0.0, 0.0, 0.0),
+			"line-dasharray": (1, 12),
+			"overline-width": (14,0.5, 18,2.0),
+			"overline-color": (0.0, 0.0, 0.0),
 			},
-		'aeroway':{
-			'line-width': (14,6.0, 18,16.0),
-			'line-color': (0.5, 0.5, 0.7),
+		"aeroway":{
+			"line-width": (14,6.0, 18,16.0),
+			"line-color": (0.5, 0.5, 0.7),
 			},
 		}
 	def choose_line_style(self, properties):
-		#return {'line-width':1, 'line-color':(0.0, 1.0, 0.0)}
+		#return {"line-width":1, "line-color":(0.0, 1.0, 0.0)}
 
-		way_type = properties.get('highway')
-		if way_type is None and 'railway' in properties:
-			way_type = 'railway'
-		if way_type is None and 'aeroway' in properties:
-			way_type = 'aeroway'
+		way_type = properties.get("highway")
+		if way_type is None and "railway" in properties:
+			way_type = "railway"
+		if way_type is None and "aeroway" in properties:
+			way_type = "aeroway"
 		if self.zoom >= 14:
 			style = self.styles_z14_to_z18.get(way_type)
 		elif self.zoom >= 11:
@@ -374,7 +365,7 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 			style = self.styles_z6_to_z10.get(self.road_type_simplifier.get(way_type,way_type))
 		if style is None:
 			print("Warning: no style for:", way_type, properties)
-			style = {'line-width':(0,10, 16,10), 'line-color':(0.0, 1.0, 0.0)}		# error indicator
+			style = {"line-width":(0,10, 16,10), "line-color":(0.0, 1.0, 0.0)}		# error indicator
 
 		style = style.copy()
 
@@ -382,20 +373,20 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 		line_width = self.zoom_feature(style["line-width"])
 
 		# make link roads smaller
-		if properties.get('is_link') == 'yes':
+		if properties.get("is_link") == "yes":
 			line_width *= 0.7
 
-		if 'overline-width' in style:
-			style['overline-width'] = self.zoom_feature(style['overline-width'])
-		elif 'overline-color' in style:
-			style['overline-width'] = line_width * 0.9
+		if "overline-width" in style:
+			style["overline-width"] = self.zoom_feature(style["overline-width"])
+		elif "overline-color" in style:
+			style["overline-width"] = line_width * 0.9
 
 		# At high zoom levels represent bridges by making their casings wider
-		if self.zoom > 14 and properties.get('is_bridge') == 'yes':
+		if self.zoom > 14 and properties.get("is_bridge") == "yes":
 			line_width *= 1.30
 
 		style.update({
-			'line-width': line_width,
+			"line-width": line_width,
 			})
 
 		return style
@@ -404,33 +395,32 @@ class MapOsmRoadsTile(MapGeoJSONTile):
 		self.start_clipping(ctx, scale)
 		ctx.scale(scale, scale)
 		for id, line, name, style in self.lines:
-			if 'line-width' in style:
-				#draw_line_string(ctx, self.scale_points(line, scale))
+			if "line-width" in style:
 				draw_line_string(ctx, line)
-				ctx.set_line_width(style['line-width'])
-				ctx.set_source_rgba(*style['line-color'])
-				ctx.set_dash(style.get('line-dasharray', ()))
-				ctx.set_line_join(self.line_join[style.get('line-join', 'miter')])
-				ctx.set_line_cap(self.line_cap[style.get('line-cap', 'butt')])
+				ctx.set_line_width(style["line-width"])
+				ctx.set_source_rgba(*style["line-color"])
+				ctx.set_dash(style.get("line-dasharray", ()))
+				ctx.set_line_join(self.line_join[style.get("line-join", "miter")])
+				ctx.set_line_cap(self.line_cap[style.get("line-cap", "butt")])
 				ctx.stroke()
+
 	def draw2(self, ctx, scale):
 		self.start_clipping(ctx, scale)
 		ctx.scale(scale, scale)
 		for id, line, name, style in self.lines:
-			if 'overline-width' in style:
-				#draw_line_string(ctx, self.scale_points(line, scale))
+			if "overline-width" in style:
 				draw_line_string(ctx, line)
-				ctx.set_line_width(style.get('overline-width'))
-				ctx.set_source_rgba(*style.get('overline-color'))
-				ctx.set_dash(style.get('overline-dasharray', ()))
-				ctx.set_line_join(self.line_join[style.get('overline-join', 'miter')])
-				ctx.set_line_cap(self.line_cap[style.get('overline-cap', 'butt')])
+				ctx.set_line_width(style.get("overline-width"))
+				ctx.set_source_rgba(*style.get("overline-color"))
+				ctx.set_dash(style.get("overline-dasharray", ()))
+				ctx.set_line_join(self.line_join[style.get("overline-join", "miter")])
+				ctx.set_line_cap(self.line_cap[style.get("overline-cap", "butt")])
 				ctx.stroke()
 
-tilesets.append(MapTilesetVector('osm-vector-roads',
+tilesets.append(MapTilesetVector("osm-vector-roads",
 	tile_class=MapOsmRoadsTile,
 	url_template="tiles/osm-vector-roads/{z}/{x}/{y}.geojson", 
-	attribution=u"Map © OpenStreetMap contributors",
+	attribution="Map © OpenStreetMap contributors",
 	zoom_min=6,
 	))
 
@@ -441,13 +431,13 @@ class MapOsmRoadLabelsTile(MapGeoJSONTile):
 	label_lines = True
 
 	fontsizes = {
-		'motorway':     (10,8, 16,14),
-		'trunk':        (10,8, 16,14),
-		'primary':      (10,8, 16,12),
-		'secondary':    (10,4, 16,11),
-		'tertiary':     (10,4, 16,10),
-		'residential':  (10,3, 16,8),
-		'unclassified': (10,3, 16,8),
+		"motorway":     (10,8, 16,14),
+		"trunk":        (10,8, 16,14),
+		"primary":      (10,8, 16,12),
+		"secondary":    (10,4, 16,11),
+		"tertiary":     (10,4, 16,10),
+		"residential":  (10,3, 16,8),
+		"unclassified": (10,3, 16,8),
 		}
 
 	abbreviations = {
@@ -460,16 +450,16 @@ class MapOsmRoadLabelsTile(MapGeoJSONTile):
 		}
 
 	def choose_line_label_text(self, properties):
-		name = properties['name']
+		name = properties["name"]
 		m = re.search(r"^(.+\s)(\S+)$", name)
 		if m:
 			return m.group(1) + self.abbreviations.get(m.group(2),m.group(2))
 		return name
 
 	def choose_line_style(self, properties):
-		if properties.get('name') is not None:
-			highway = properties['highway']
-			rule = self.fontsizes.get(highway, self.fontsizes['unclassified'])
+		if properties.get("name") is not None:
+			highway = properties["highway"]
+			rule = self.fontsizes.get(highway, self.fontsizes["unclassified"])
 			return rule
 		return None
 
@@ -492,10 +482,10 @@ class MapOsmRoadLabelsTile(MapGeoJSONTile):
 			center = self.scale_point(center, scale)
 			draw_highway_shield(ctx, center[0], center[1], ref, size=shield_size)
 
-tilesets.append(MapTilesetVector('osm-vector-road-labels',
+tilesets.append(MapTilesetVector("osm-vector-road-labels",
 	tile_class=MapOsmRoadLabelsTile,
 	url_template="tiles/osm-vector-road-labels/{z}/{x}/{y}.geojson", 
-	attribution=u"Map © OpenStreetMap contributors",
+	attribution="Map © OpenStreetMap contributors",
 	zoom_min=10,
 	zoom_max=16,
 #	zoom_substitutions={
@@ -508,43 +498,43 @@ tilesets.append(MapTilesetVector('osm-vector-road-labels',
 
 class MapOsmAdminBordersTile(MapGeoJSONTile):
 	clip = 2
-	sort_key = 'admin_level'
+	sort_key = "admin_level"
 	# http://wiki.openstreetmap.org/wiki/United_States_admin_level
 	styles = {
 		4: { 	# admin_level 4: state
-			'line-color': (0.0, 0.0, 0.0),
-			'line-width': (6, 0.25, 14, 1.0),
-			'line-dasharray': (10, 5),
+			"line-color": (0.0, 0.0, 0.0),
+			"line-width": (6, 0.25, 14, 1.0),
+			"line-dasharray": (10, 5),
 			},
 		5: {	# admin_level 5: New York City
-			'line-color': (0.0, 0.0, 0.0),
-			'line-width': (6, 0.1, 14, 0.75), 
-			'line-dasharray': (8, 4),
+			"line-color": (0.0, 0.0, 0.0),
+			"line-width": (6, 0.1, 14, 0.75), 
+			"line-dasharray": (8, 4),
 			},
 		6: {	# admin_level 6: county
-			'line-color': (0.0, 0.0, 0.0),
-			'line-width': (6, 0.1, 14, 0.75), 
-			'line-dasharray': (6, 3),
+			"line-color": (0.0, 0.0, 0.0),
+			"line-width": (6, 0.1, 14, 0.75), 
+			"line-dasharray": (6, 3),
 			},
 		7: {	# admin_level 7: civil township (large structure in some US states)
-			'line-color': (0.0, 0.0, 0.0),
-			'line-width': (6, 0.1, 14, 0.75),
-			'line-dasharray': (5, 3),
+			"line-color": (0.0, 0.0, 0.0),
+			"line-width": (6, 0.1, 14, 0.75),
+			"line-dasharray": (5, 3),
 			},
 		8: {	# admin_level 8: city or town
-			'line-color': (0.0, 0.0, 0.0),
-			'line-width': (6, 0.05, 14, 0.5),
-			'line-dasharray': (4,2),
+			"line-color": (0.0, 0.0, 0.0),
+			"line-width": (6, 0.05, 14, 0.5),
+			"line-dasharray": (4,2),
 			},
 		9: {	# admin_level 9: ward
-			'line-color': (0.0, 0.0, 0.0),
-			'line-width': (6, 0.02, 14, 0.25),
-			'line-dasharray': (2,2),
+			"line-color": (0.0, 0.0, 0.0),
+			"line-width": (6, 0.02, 14, 0.25),
+			"line-dasharray": (2,2),
 			},
 		10: {	# admin_level 10: neighborhood
-			'line-color': (0.0, 0.0, 0.0),
-			'line-width': (6, 0.02, 14, 0.25),
-			'line-dasharray': (2,2),
+			"line-color": (0.0, 0.0, 0.0),
+			"line-width": (6, 0.02, 14, 0.25),
+			"line-dasharray": (2,2),
 			},
 		}
 	def choose_line_style(self, properties):
@@ -561,11 +551,10 @@ class MapOsmAdminBordersTile(MapGeoJSONTile):
 		self.start_clipping(ctx, scale)
 		ctx.scale(scale, scale)
 		for id, line, properties, style in reversed(self.lines):
-			#draw_line_string(ctx, self.scale_points(line, scale))
 			draw_line_string(ctx, line)
 			stroke_with_style(ctx, style)
 
-tilesets.append(MapTilesetVector('osm-vector-admin-borders',
+tilesets.append(MapTilesetVector("osm-vector-admin-borders",
 	tile_class=MapOsmAdminBordersTile,
 	url_template="tiles/osm-vector-admin-borders/{z}/{x}/{y}.geojson",
 	zoom_min=4,
@@ -576,7 +565,7 @@ tilesets.append(MapTilesetVector('osm-vector-admin-borders',
 
 class MapOsmPoisTile(MapGeoJSONTile):
 	label_style = {
-		'font-size':8,
+		"font-size":8,
 		}
 	def __init__(self, layer, filename, zoom, x, y, data=None):
 		if layer.tileset.symbols is None:
@@ -602,26 +591,26 @@ class MapOsmPoisTile(MapGeoJSONTile):
 			if label_text is not None:
 				draw_centered_label(ctx, x, y+10, label_text, style=self.label_style)
 
-tilesets.append(MapTilesetVector('osm-vector-pois',
+tilesets.append(MapTilesetVector("osm-vector-pois",
 	tile_class=MapOsmPoisTile,
 	url_template="tiles/osm-vector-pois/{z}/{x}/{y}.geojson", 
-	attribution=u"Map © OpenStreetMap contributors",
+	attribution="Map © OpenStreetMap contributors",
 	zoom_min=15,
 	))
 
 #-----------------------------------------------------------------------------
 
 class MapOsmPlacesTile(MapGeoJSONTile):
-	#sort_key = 'sort_key'
+	#sort_key = "sort_key"
 	place_label_sizes = {
-		'state':    (6, 12, 16, 32),		# comes in at z5, goes out at z13
-		'county':   (6, 8,  16, 18),		# comes in at z8, goes out at z10
-		'city':     (6, 6,  16, 16),		# comes in at z7
-		'town':     (6, 6,  16, 12),		# comes in at z10
-		'village':  (6, 4,  16, 10),		# comes in at z13
-		'hamlet':   (6, 4,  16, 10),
-		'suburb':   (6, 4,  16, 10),
-		'locality': (6, 4,  16, 10),
+		"state":    (6, 12, 16, 32),		# comes in at z5, goes out at z13
+		"county":   (6, 8,  16, 18),		# comes in at z8, goes out at z10
+		"city":     (6, 6,  16, 16),		# comes in at z7
+		"town":     (6, 6,  16, 12),		# comes in at z10
+		"village":  (6, 4,  16, 10),		# comes in at z13
+		"hamlet":   (6, 4,  16, 10),
+		"suburb":   (6, 4,  16, 10),
+		"locality": (6, 4,  16, 10),
 		}
 	def choose_point_style(self, properties):
 		#print("place:", properties)
@@ -631,10 +620,10 @@ class MapOsmPlacesTile(MapGeoJSONTile):
 				print("Warning: unrecognized place type:", properties)
 			else:
 				return {
-					'font-size': self.zoom_feature(label_size),
-					'font-weight': 'bold',
-					'color': (0.0, 0.0, 0.0),
-					'halo': True,
+					"font-size": self.zoom_feature(label_size),
+					"font-weight": "bold",
+					"color": (0.0, 0.0, 0.0),
+					"halo": True,
 					}
 		return None
 	def draw1(self, ctx, scale):
@@ -661,7 +650,7 @@ class MapOsmPlacesTile(MapGeoJSONTile):
 			else:
 				draw_centered_label(ctx, x, y, label_text, style=style)
 
-tilesets.append(MapTilesetVector('osm-vector-places',
+tilesets.append(MapTilesetVector("osm-vector-places",
 	tile_class=MapOsmPlacesTile,
 	url_template="tiles/osm-vector-places/{z}/{x}/{y}.geojson",
 	zoom_min=4,
@@ -700,7 +689,7 @@ class MapOsmTile(object):
 		if tile is not None:
 			tile.draw(ctx, scale, i)
 
-tilesets.append(MapTilesetVector('osm-vector',
+tilesets.append(MapTilesetVector("osm-vector",
 	tile_class=MapOsmTile,
 	url_template="tiles/osm-vector/{z}/{x}/{y}.geojson",
 	zoom_min=4,

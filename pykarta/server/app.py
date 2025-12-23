@@ -22,21 +22,21 @@ from pykarta.server.modules.tiles_osm_vec import app as app_tiles_osm_vec
 
 # Map paths to data provider modules
 routes = {
-		'geocoders/parcel': app_geocoder_parcel,
-		'geocoders/openaddresses': app_geocoder_openaddresses,
-		'tiles/parcels': app_tiles_parcels,
-		'tiles': app_tiles_osm_vec,
+		"geocoders/parcel": app_geocoder_parcel,
+		"geocoders/openaddresses": app_geocoder_openaddresses,
+		"tiles/parcels": app_tiles_parcels,
+		"tiles": app_tiles_osm_vec,
 		None: app_not_found,
 		}
 
 # The WSGI app
 def app(environ, start_response):
-	stderr = environ['wsgi.errors']
+	stderr = environ["wsgi.errors"]
 
 	# In production the server administrator will have set DATADIR.
-	if not 'DATADIR' in environ:
+	if not "DATADIR" in environ:
 		# During testing we use this.
-		environ['DATADIR'] = os.environ['HOME'] + "/geo_data/processed"
+		environ["DATADIR"] = os.environ["HOME"] + "/geo_data/processed"
 
 	# /tiles/<tileset>/
 	# /geocoders/<geocoder>/
@@ -48,14 +48,14 @@ def app(environ, start_response):
 		# Level 2 mounts such as /tiles/parcels/
 		app = routes.get("%s/%s" % (m.group(1), m.group(2)))
 		if app is not None:
-			environ['SCRIPT_NAME'] += ("/%s/%s" % (m.group(1), m.group(2)))
-			environ['PATH_INFO'] = m.group(3)
+			environ["SCRIPT_NAME"] += ("/%s/%s" % (m.group(1), m.group(2)))
+			environ["PATH_INFO"] = m.group(3)
 		else:
 			# Level 1 mounts such as /tiles/
 			app = routes.get(m.group(1))
 			if app is not None:
-				environ['SCRIPT_NAME'] += ("/%s" % m.group(1))
-				environ['PATH_INFO'] = ("/%s%s" % (m.group(2), m.group(3)))
+				environ["SCRIPT_NAME"] += ("/%s" % m.group(1))
+				environ["PATH_INFO"] = ("/%s%s" % (m.group(2), m.group(3)))
 			else:
 				app = routes[None]
 	return app(environ, start_response)
@@ -71,8 +71,8 @@ if __name__ == "__main__":
 		def __init__(self, app):
 			self.app = app
 		def __call__(self, environ, start_response):
-			environ['DATADIR'] = os.environ['DATADIR']
+			environ["DATADIR"] = os.environ["DATADIR"]
 			return self.app(environ, start_response)
 	app = EnvInsert(app)
 
-	run_simple('0.0.0.0', 5000, app, threaded=False)
+	run_simple("0.0.0.0", 5000, app, threaded=False)

@@ -50,19 +50,26 @@ def file_age_in_days(filename):
 	return (float(time.time() - stat_result.st_mtime) / 86400.0)
 
 # The weakref module is unable to create a reference to a bound method. This can.
-if sys.version_info < (3,0):		# FIXME: implement for Python3
+if sys.version_info >= (3,0):
+	from weakref import WeakMethod
+	class BoundMethodProxy:
+		def __init__(self, bound_method):
+			self.m = WeakMethod(bound_method)
+		def __call__(self, *args, **kwargs):
+			return self.m()(*args, **kwargs)
+else:
 	import weakref
 	import new
 	class BoundMethodProxy(object):
 		def __init__(self, bound_method):
-			self.im_self_ref = weakref.ref(bound_method.im_self)
-			self.im_func = bound_method.im_func
-			self.im_class = bound_method.im_class
+			self.im_self_ref = weakref.ref(bound_method.__self__)
+			self.__func__ = bound_method.__func__
+			self.__self__.__class__ = bound_method.__self__.__class__
 		def __call__(self, *args, **kwargs):
 			obj = self.im_self_ref()
 			if obj is None:
 				raise ReferenceError
-			return new.instancemethod(self.im_func, obj, self.im_class)(*args, **kwargs)
+			return new.instancemethod(self.__func__, obj, self.__self__.__class__)(*args, **kwargs)
 
 # How many tiles are covered by a rectangle of the indicated size (in tiles)
 # taken to the indicated number of zoom levels?

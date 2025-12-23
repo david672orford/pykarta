@@ -1,12 +1,19 @@
 # pykarta/draw/labels_lines.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 25 May 2018
+# Copyright 2013--2021, Trinity College
+# Last modified: 26 December 2021
 
-import cairo
 import math
 import re
-import pango
-import pangocairo
+
+try:
+	import gi
+	gi.require_version('PangoCairo', '1.0')
+	import cairo
+	from gi.repository import Pango as pango, PangoCairo as pangocairo
+except ImportError:		# Python 2
+	import cairo
+	import pango
+	import pangocairo
 
 from .shapes import svg_path
 
@@ -170,7 +177,7 @@ def place_line_shields(line):
 		center = (p1[0] + dx/2.0, p1[1] + dy/2.0)
 		if min(center[0],center[1]) >= 0 and max(center[0],center[1]) < 256:	# if within tile
 			positions.append((distance, center))
-	return map(lambda i: i[1], sorted(positions, key=lambda i: i[0], reverse=True))
+	return [i[1] for i in sorted(positions, key=lambda i: i[0], reverse=True)]
 
 #============================================================================
 # Draw the text inside a generic highway shield.

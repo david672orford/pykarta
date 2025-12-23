@@ -1,0 +1,30 @@
+#! /usr/bin/python3
+# Extract the administrative border of Hampshire county from an OSM file
+# producing a new OSM file as output
+
+import sys, os
+sys.path.insert(1, os.path.join(os.path.dirname(__file__), "..", ".."))
+from pykarta.formats.osm_reader import OsmReader
+from pykarta.formats.osm_writer import OsmWriter
+
+osm_in = OsmReader(open("TOWNSSURVEY_POLY.osm", "r"))
+osm_out = OsmWriter(open("output.osm", "w"), "PyKarta osm2osm-county")
+desired_county = "Hampshire"
+
+for node in osm_in.nodes:
+	print("node", node.id)
+	osm_out.append_node(node)
+
+for way in osm_in.ways:
+	print("way", way.id)
+	if way.osm_tags.is_tagged("addr:county", desired_county):
+		print(" matches")
+		osm_out.append_way(way)
+
+for relation in osm_in.relations:
+	print("relation", relation.id)
+	if relation.osm_tags.is_tagged("addr:county", desired_county):
+		print(" matches")
+		osm_out.append_relation(relation)
+
+osm_out.save()

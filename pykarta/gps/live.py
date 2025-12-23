@@ -1,13 +1,13 @@
 #! /usr/bin/python
 # pykarta/gps/live.py
 # GPS receiver support
-# Copyright 2013, 2014, 2015, Trinity College Computing Center
-# Last modified: 16 January 2015
+# Copyright 2013--2023, Trinity College Computing Center
+# Last modified: 26 March 2023
 
 import os
 import sys
 import re
-import gobject
+from gi.repository import GObject
 import subprocess
 import threading
 
@@ -55,7 +55,7 @@ class GPSlistenerBase(object):
 
 	def debug(self, level, message):
 		if self.debug_level >= level:
-			print message
+			print(message)
 
 class GPSlistenerGpsd(GPSlistenerBase):
 	def __init__(self, **kwargs):
@@ -79,14 +79,14 @@ class GPSlistenerGpsd(GPSlistenerBase):
 			}
 		if len(interface) == 2:
 			params['host'], params['port'] = interface[1].split(':')
-		print "  gps.gps(", params, ")"
+		print("  gps.gps(", params, ")")
 		try:
 			self.debug(1, "Connecting to GPSd...")
 			self.gpsd = gps.gps(**params)
 		except Exception as e:
 			raise BadConfigOther("%s: %s" % (type(e).__name__, str(e)))
 
-		self.watch_in = gobject.io_add_watch(self.gpsd.sock, gobject.IO_IN, self.packet)
+		self.watch_in = GObject.io_add_watch(self.gpsd.sock, GObject.IO_IN, self.packet)
 
 	# Called whenever a packet is received from GPSd
 	def packet(self, source, condition):
@@ -111,7 +111,7 @@ class GPSlistenerGpsd(GPSlistenerBase):
 	# Cleanly shut down the listener
 	def close(self):
 		if self.watch_in:
-			gobject.source_remove(self.watch_in)
+			GObject.source_remove(self.watch_in)
 			self.watch_in = None
 
 		if self.gpsd:
@@ -160,12 +160,12 @@ class GPSlistenerGpsbabel(GPSlistenerBase):
 			fix.lon = float(lon)
 			fix.heading = float(heading)
 			fix.speed = float(speed)
-			gobject.idle_add(lambda: self.position_callback(fix, None), priority=gobject.PRIORITY_HIGH)
+			GObject.idle_add(lambda: self.position_callback(fix, None), priority=GObject.PRIORITY_HIGH)
 		if self.terminating:
 			error = None
 		else:
 			error = "Gpsbabel terminated unexpectedly"
-		gobject.idle_add(lambda: self.position_callback(None, error), priority=gobject.PRIORITY_HIGH)
+		GObject.idle_add(lambda: self.position_callback(None, error), priority=GObject.PRIORITY_HIGH)
 		self.debug(3, "GPSBabel read thread terminating.")
 
 	# Cleanly shut down the listener
@@ -181,16 +181,16 @@ class GPSlistenerGpsbabel(GPSlistenerBase):
 if __name__ == "__main__":
 	def callback(fix, error_detail):
 		if fix:
-			print "Fix: %s" % str(fix)
+			print("Fix: %s" % str(fix))
 		else:
-			print "Connexion to GPS receiver lost: %s" % error_detail
-	gobject.threads_init()
+			print("Connexion to GPS receiver lost: %s" % error_detail)
+	GObject.threads_init()
 	gps_obj = GPSlistener(
 		#interface="gpsd",
 		interface="gpsbabel,usb:,garmin",
 		position_callback=callback,
 		debug_level=5
 		)
-	loop = gobject.MainLoop()
+	loop = GObject.MainLoop()
 	loop.run()
 

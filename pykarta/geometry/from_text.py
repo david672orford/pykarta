@@ -14,20 +14,20 @@ from . import Point
 # \u2019 -- single closing quote
 # \u201d -- double closing quote
 def PointFromText(coords_text):
-	if not re.search(u'^[\(\-0-9\.°\'\u2019\u2032"\u201d\u2033NSEW, \)]+$', coords_text, flags=re.IGNORECASE):
+	if not re.search('^[\(\-0-9\.°\'\\u2019\\u2032"\\u201d\\u2033NSEW, \)]+$', coords_text, flags=re.IGNORECASE):
 		return None
 
 	#print "Pasted coordinates:", coords_text
 
 	# Make the format more standard
 	coords_text = coords_text.upper()						# nsew -> NSEW
-	coords_text = coords_text.replace(u"(", u"")			# remove parenthesis
-	coords_text = coords_text.replace(u")", u"")
+	coords_text = coords_text.replace("(", "")			# remove parenthesis
+	coords_text = coords_text.replace(")", "")
 	
-	coords_text = coords_text.replace(u"'", u"\u2032")		# ASCII single quote (apostroph) to prime
-	coords_text = coords_text.replace(u"\u2019", u"\u2032")	# right single quote to prime
-	coords_text = coords_text.replace(u'"', u'\u2033')		# ASCII double quote to double prime
-	coords_text = coords_text.replace(u'\u201d', u'\u2033')	# right double quote to double prime
+	coords_text = coords_text.replace("'", "\\u2032")		# ASCII single quote (apostroph) to prime
+	coords_text = coords_text.replace("\\u2019", "\\u2032")	# right single quote to prime
+	coords_text = coords_text.replace('"', '\\u2033')		# ASCII double quote to double prime
+	coords_text = coords_text.replace('\\u201d', '\\u2033')	# right double quote to double prime
 
 	words = _split_coords_text(coords_text)
 	lat = _parse_degrees(words[0], "NS")
@@ -54,7 +54,7 @@ def _split_coords_text(coords_text):
 	raise Exception("Two coordinates required")
 
 def _parse_degrees(degrees_string, directions):
-	degrees_string = degrees_string.replace(u" ", u"")			# remove spaces
+	degrees_string = degrees_string.replace(" ", "")			# remove spaces
 
 	sign = 1.0
 	if directions[0] in degrees_string:		# N or E
@@ -64,19 +64,19 @@ def _parse_degrees(degrees_string, directions):
 		sign = -1.0
 
 	# Decimal degrees signed
-	m = re.search(u'^([-\d\.]+)°?$', degrees_string)
+	m = re.search('^([-\d\.]+)°?$', degrees_string)
 	if m:
 		return float(m.group(1)) * sign
 
 	# Degrees, minutes, seconds
-	m = re.search(u'^(\d+)°(\d+)\u2032([\d\.]+)\u2033$', degrees_string)
+	m = re.search('^(\d+)°(\d+)\\u2032([\d\.]+)\\u2033$', degrees_string)
 	if m:
 		degrees = int(m.group(1))
 		degrees += int(m.group(2)) / 60.0
 		degrees += float(m.group(3)) / 3600.0
 		return degrees * sign
 
-	m = re.search(u'^(\d+)°([\d\.]+)\u2032?$', degrees_string)
+	m = re.search('^(\d+)°([\d\.]+)\\u2032?$', degrees_string)
 	if m:
 		degrees = int(m.group(1))
 		degrees += float(m.group(2)) / 60.0

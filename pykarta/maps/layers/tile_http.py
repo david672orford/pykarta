@@ -1,18 +1,19 @@
 # encoding=utf-8
 # pykarta/maps/layers/tile_http.py
-# Copyright 2013--2019, Trinity College
-# Last modified: 1 April 2019
+# Copyright 2013--2023, Trinity College
+# Last modified: 1 April 2023
+
 
 import os
 import errno
 import random
-import httplib
 import threading
 import time
 import socket
-import gobject
 import gzip
-from StringIO import StringIO
+import http.client
+from io import StringIO
+from gi.repository import GObject
 
 from pykarta.misc.http import http_date
 from pykarta.maps.layers.base import MapTileLayer, MapTileError
@@ -21,6 +22,7 @@ from pykarta.misc import file_age_in_days, BoundMethodProxy, NoInet, tile_count,
 #=============================================================================
 # TMS tile layer loaded over HTTP
 #=============================================================================
+
 class MapTileLayerHTTP(MapTileLayer):
 	def __init__(self, tileset, options={}):
 		MapTileLayer.__init__(self, tileset.tile_class)
@@ -109,7 +111,7 @@ class MapTileLayerHTTP(MapTileLayer):
 	# not give them a high priority, then new times will not be added
 	# as we are dragging the map.
 	def tile_loaded_cb(self, *args):
-		gobject.idle_add(lambda: self.tile_loaded_cb_idle(*args), priority=gobject.PRIORITY_HIGH)
+		GObject.idle_add(lambda: self.tile_loaded_cb_idle(*args), priority=GObject.PRIORITY_HIGH)
 	def tile_loaded_cb_idle(self, zoom, x, y, modified):
 		self.feedback.debug(2, "Tile received: %d %d,%d %s" % (zoom, x, y, str(modified)))
 
@@ -133,7 +135,7 @@ class MapTileLayerHTTP(MapTileLayer):
 				# If last tile arrived before timer expired,
 				if self.timer is not None:
 					self.feedback.debug(5, " Canceling timer")
-					gobject.source_remove(self.timer)
+					GObject.source_remove(self.timer)
 					self.timer = None
 
 				# If at least one tile is new or modified,
@@ -145,7 +147,7 @@ class MapTileLayerHTTP(MapTileLayer):
 			else:
 				self.feedback.debug(5, " %d tiles to go" % self.missing_tiles[zoom])
 				if self.timer == None:
-					self.timer = gobject.timeout_add(self.tile_wait, self.timer_expired)
+					self.timer = GObject.timeout_add(self.tile_wait, self.timer_expired)
 
 	def tile_in_view(self, zoom, x, y):
 		if zoom != self.int_zoom:
@@ -177,7 +179,7 @@ class MapTileLayerHTTP(MapTileLayer):
 			# Start downloading
 			x_start, x_end, y_start, y_end = self.tile_ranges
 			total = tile_count(x_end-x_start+1, y_end-y_start+1, max_zoom-self.int_zoom+1)
-			print "Will download %d tiles" % total
+			print("Will download %d tiles" % total)
 			if total > 0:
 				count = 0
 				for z in range(self.int_zoom, max_zoom+1):
@@ -212,9 +214,9 @@ class MapTileLayerHTTP(MapTileLayer):
 		self.cache_surface = None
 
 #=============================================================================
-# Download tiles using HTTP
-# This uses httplib rather than urllib2 because the latter does not support
-# persistent connexions.
+# Downloader for getting tiles over HTTP/HTTPS
+# We use the lower-level HTTP library http.client rather than urllib.request
+# because the latter does not support persistent connexions.
 #=============================================================================
 
 class MapTileDownloader(object):
@@ -309,7 +311,7 @@ class MapTileDownloader(object):
 
 	# This tile downloader is no longer needed. Shut down the background threads.
 	def __del__(self):
-		#print "Destroying tile downloader..."
+		#print("Destroying tile downloader...")
 		if self.queue is not None:
 			# Tell the threads to stop
 			self.enqueue(None, clear=True)
@@ -333,8 +335,9 @@ class MapTileDownloaderThread(threading.Thread):
 		self.queue = parent.queue
 		self.tileset = parent.tileset
 		self.done_callback = parent.done_callback
-		self.hostname = self.tileset.get_hostname()
+		self.rotated_hostname = self.tileset.get_rotated_hostname()
 
+	# Thread body
 	def run(self):
 		while True:
 			self.syncer.acquire()
@@ -357,22 +360,23 @@ class MapTileDownloaderThread(threading.Thread):
 			self.conn.close()
 		self.feedback.debug(2, " Thread %s exiting..." % self.name)
 
-	def url(self, remote_filename):
-		return "%s://%s%s" % (self.tileset.url_template.scheme, self.hostname, remote_filename)
-
+	# Handle one tile request
 	def download_tile_worker(self, zoom, x, y, local_filename, remote_filename, statbuf):
-		debug_args = (self.tileset.key, zoom, x, y)
-		self.feedback.debug(2, "Thread %s downloading tile %s %d/%d/%d" % ((self.name,) + debug_args))
+		self.feedback.debug(2, "Thread %s downloading tile %s %d/%d/%d" % (self.name, self.tileset.key, zoom, x, y))
+		debug_args = (
+			self.tileset.key,
+			"%s://%s%s" % (self.tileset.url_template.scheme, self.rotated_hostname, remote_filename)
+			)
 
 		# Download the tile. This uses a persistent connection.
 		try:
 			# Connect if we are not connected already.
 			if self.conn is None:
-				self.feedback.debug(3, " Thread %s opening HTTP connexion to %s..." % (self.name, self.hostname))
+				self.feedback.debug(3, " Thread %s opening HTTP connexion to %s..." % (self.name, self.rotated_hostname))
 				if self.tileset.url_template.scheme == "https":
-					self.conn = httplib.HTTPSConnection(self.hostname, timeout=30)
+					self.conn = http.client.HTTPSConnection(self.rotated_hostname, timeout=30)
 				else:
-					self.conn = httplib.HTTPConnection(self.hostname, timeout=30)
+					self.conn = http.client.HTTPConnection(self.rotated_hostname, timeout=30)
 
 			# Build the HTTP request headers
 			hdrs = {}
@@ -394,37 +398,37 @@ class MapTileDownloaderThread(threading.Thread):
 				# This 302 handling has not been tested.
 				response_body = response.read()
 				location = response.getheader("location")
-				print "Redirect to:", location
+				print("Redirect to:", location)
 				assert location.startswith("/")		# FIXME
 				redirect_count += 1
 				if redirect_count > 5:
-					self.feedback.error(_("Tile %s/%d/%d/%d: Redirect loop") % debug_args)
+					self.feedback.error(_("Tile %s %s: Redirect loop") % debug_args)
 					self.conn = None	# close connexion
 					return True			# give up on tile
 				remote_filename = location
 
-		except socket.gaierror, msg:
-			self.feedback.error(_("Tile %s/%d/%d/%d: Address lookup error: %s: %s") % (debug_args + (self.hostname, msg)))
+		except socket.gaierror as msg:
+			self.feedback.error(_("Tile %s %s: address lookup error: %s") % (debug_args + (msg,)))
 			raise NoInet
-		except socket.error, msg:
-			self.feedback.error(_("Tile %s/%d/%d/%d: socket error: %s") % (debug_args + (msg,)))
+		except socket.error as msg:
+			self.feedback.error(_("Tile %s %s: socket error: %s") % (debug_args + (msg,)))
 			self.conn = None		# close
 			return False
-		except httplib.BadStatusLine:
-			self.feedback.error(_("Tile %s/%d/%d/%d: BadStatusLine") % debug_args)
+		except http.client.BadStatusLine:
+			self.feedback.error(_("Tile %s %s: BadStatusLine") % debug_args)
 			self.conn = None		# close
 			return False
-		except httplib.ResponseNotReady:
-			self.feedback.error(_("Tile %s/%d/%d/%d: no response") % debug_args)
+		except http.client.ResponseNotReady:
+			self.feedback.error(_("Tile %s/%s: no response") % debug_args)
 			self.conn = None		# close
 			return False
 
 		content_length = response.getheader("content-length")
 		content_type = response.getheader("content-type")
-		self.feedback.debug(5, "  %s/%d/%d/%d: %d %s %s %s bytes" % (debug_args + (response.status, response.reason, content_type, str(content_length))))
+		self.feedback.debug(5, "  %s %s response: %d %s %s %s bytes" % (debug_args + (response.status, response.reason, content_type, str(content_length))))
 
 		if response.status == 304:
-			self.feedback.debug(1, "  %s/%d/%d/%d: not modified" % debug_args)
+			self.feedback.debug(1, "  %s %s: not modified" % debug_args)
 			response.read()					# discard
 			fh = open(local_filename, "a")	# touch
 			fh.close()
@@ -432,7 +436,7 @@ class MapTileDownloaderThread(threading.Thread):
 
 		else:
 			if response.status != 200:
-				self.feedback.debug(1, "  %s/%d/%d/%d: %s: unacceptable response status: %d %s" % (debug_args + (self.url(remote_filename), response.status, response.reason)))
+				self.feedback.debug(1, "  %s %s: unacceptable response status: %d %s" % (debug_args + (response.status, response.reason)))
 				response_body = response.read()
 				if response_body != "" and content_type is not None and content_type.startswith("text/"):
 					self.feedback.debug(1, "%s" % response_body.strip())
@@ -446,11 +450,11 @@ class MapTileDownloaderThread(threading.Thread):
 					sample = ": %s" % response_body.strip()[:50]
 				else:
 					sample = ""
-				self.feedback.debug(1, "  %s/%d/%d/%d: non-image MIME type: %s: %s" % (debug_args + (content_type, sample)))
+				self.feedback.debug(1, "  %s %s: non-image MIME type: %s: %s" % (debug_args + (content_type, sample)))
 				return True	 				# give up on tile
 	
 			if content_length is not None and int(content_length) == 0:
-				self.feedback.debug(1, "  %s/%d/%d/%d: empty response" % debug_args)
+				self.feedback.debug(1, "  %s %s: empty response" % debug_args)
 				response.read()
 				return True					# give up on tile
 	
@@ -460,7 +464,7 @@ class MapTileDownloaderThread(threading.Thread):
 				# This may fail if another thread creates.
 				try:
 					os.makedirs(local_dirname)
-				except OSError, e:
+				except OSError as e:
 					if e.errno != errno.EEXIST:
 						raise
 	
@@ -469,14 +473,14 @@ class MapTileDownloaderThread(threading.Thread):
 			try:
 				cachefile.write(response.read())
 			except socket.timeout:		# FIXME: socket is sometimes None. Why?
-				self.feedback.debug(1, "  %s/%d/%d/%d: Socket timeout" % debug_args)
+				self.feedback.debug(1, "  %s %s: Socket timeout" % debug_args)
 				self.feedback.error(_("Timeout during download"))
 				self.conn = None		# close
 				return False
 			try:
 				cachefile.close()
-			except OSError, e:
-				print "FIXME: OSError: %d" % e.errno
+			except OSError as e:
+				print("FIXME: OSError: %d" % e.errno)
 
 			modified = True
 	
@@ -514,7 +518,7 @@ class MapCacheCleaner(threading.Thread):
 
 	def run(self):
 		time.sleep(5)		# wait until after startup
-		print "Cache cleaner: starting"
+		print("Cache cleaner: starting")
 
 		tilesets = []
 		tilesets_count = 0
@@ -524,15 +528,15 @@ class MapCacheCleaner(threading.Thread):
 			if os.path.exists(touchfile):
 				statbuf = os.stat(touchfile)
 				if statbuf.st_mtime < self.scan_if_before:
-					#print "Cache cleaner: %s due for cleaning" % tileset
+					#print("Cache cleaner: %s due for cleaning" % tileset)
 					tilesets.append(tileset)
 				else:
-					#print "Cache cleaner: %s cleaned too recently" % tileset
+					#print("Cache cleaner: %s cleaned too recently" % tileset)
 					pass
 			else:
-				#print "Cache cleaner: %s never cleaned" % tileset
+				#print("Cache cleaner: %s never cleaned" % tileset)
 				tilesets.append(tileset)
-		print "Cache cleaner: %d of %d tilesets need cleaning" % (len(tilesets), tilesets_count)
+		print("Cache cleaner: %d of %d tilesets need cleaning" % (len(tilesets), tilesets_count))
 
 		random.shuffle(tilesets)
 
@@ -540,7 +544,7 @@ class MapCacheCleaner(threading.Thread):
 			cachedir = os.path.join(self.cache_root, tileset)
 			touchfile = os.path.join(cachedir, ".last-cleaned")
 
-			print "Cache cleaner: cleaning %s..." % tileset
+			print("Cache cleaner: cleaning %s..." % tileset)
 			total = 0
 			deleted = 0
 			for dirpath, dirnames, filenames in os.walk(cachedir, topdown=False):
@@ -557,17 +561,17 @@ class MapCacheCleaner(threading.Thread):
 					total += 1
 				for dirname in dirnames:
 					path = os.path.join(dirpath, dirname)
-					#print "rmdir(\"%s\")" % path
+					#print("rmdir(\"%s\")" % path)
 					try:
 						os.rmdir(path)
 					except OSError:
-						#print "  Not empty"
+						#print("  Not empty")
 						pass
 				time.sleep(self.directory_delay)
 
-			print "Cache cleaner: %d of %d tiles removed from %s" % (deleted, total, tileset)
+			print("Cache cleaner: %d of %d tiles removed from %s" % (deleted, total, tileset))
 			if deleted == total:
-				print "Cache cleaner: removing empty cache %s..." % tileset
+				print("Cache cleaner: removing empty cache %s..." % tileset)
 				if os.path.exists(touchfile):
 					os.unlink(touchfile)
 				os.rmdir(cachedir)
@@ -576,7 +580,7 @@ class MapCacheCleaner(threading.Thread):
 
 			time.sleep(self.tileset_delay)
 
-		print "Cache cleaner: finished"
+		print("Cache cleaner: finished")
 
 # Substitute for MapTileDownloader() for use when the map is in offline mode.
 class MapTileCacheLoader(object):

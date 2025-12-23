@@ -9,7 +9,7 @@
 # servers, so we will not be actually using this.
 #
 
-from tilesets_base import tilesets, MapTileset
+from .tilesets_base import tilesets, MapTileset
 
 class MapTilesetGoogle(MapTilesetRaster):
 	def __init__(self, key, **kwargs):

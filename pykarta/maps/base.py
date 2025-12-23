@@ -1,9 +1,10 @@
 # encoding=utf-8
 #=============================================================================
 # pykarta/maps/base.py
-# Copyright 2013, 2014, 2015, Trinity College
-# Last modified: 3 February 2015
+# Copyright 2013--2021, Trinity College
+# Last modified: 26 December 2021
 #=============================================================================
+
 
 import os
 import sys
@@ -105,7 +106,7 @@ class MapBase(object):
 				x - (self.width  / 2.0 / 256.0),
 				y - (self.height / 2.0 / 256.0),
 				)
-			#print "Map top left:", self.top_left_pixel
+			#print("Map top left:", self.top_left_pixel)
 	
 			self.queue_draw()
 
@@ -131,14 +132,14 @@ class MapBase(object):
 
 	# Apply project_point() to a list of points
 	def project_points(self, points):
-		return map(self.project_point, points)
+		return list(map(self.project_point, points))
 
 	# Take a list of points which have already been passed through
 	# project_to_tilespace() return a new list with them converted
 	# to coordinates according to the current viewport.
 	def scale_points(self, projected_points):
 		n = 2 ** self.zoom
-		return map(lambda p: (int((p[0] * n - self.top_left_pixel[0]) * 256), int((p[1] * n - self.top_left_pixel[1]) * 256)), projected_points)
+		return list([(int((p[0] * n - self.top_left_pixel[0]) * 256), int((p[1] * n - self.top_left_pixel[1]) * 256)) for p in projected_points])
 
 	# Convert screen coordinates to latitude and longitude.
 	# Returns: (lat, lon)
@@ -238,7 +239,7 @@ class MapBase(object):
 	def set_center_damped(self, lat, lon, pixels=1.0):
 		pos_threshold = 360.0 / 256.0 / (2.0 ** self.zoom) / pixels
 		if abs(lat - self.lat) >= pos_threshold or (abs(lon - self.lon) % 360.0) >= pos_threshold:
-			print "Damped map move"
+			#print("Damped map move")
 			self.set_center(lat, lon)
 
 	# Return the current center point and zoom level of the map.
@@ -288,14 +289,14 @@ class MapBase(object):
 				else:
 					page_landscape = self.width > self.height
 				extent_landscape = width > height
-				print " extent_landscape:", extent_landscape
-				print " page_landscape:", page_landscape
+				print(" extent_landscape:", extent_landscape)
+				print(" page_landscape:", page_landscape)
 				self.set_rotation(extent_landscape != page_landscape and self.oblongness(width, height) > 0.1)
 
 			x_zoom_diff = math.log(float(width) / float(self.width - 2*padding), 2)
 			y_zoom_diff = math.log(float(height) / float(self.height - 2*padding), 2)
-			#print "x_zoom_diff:", x_zoom_diff
-			#print "y_zoom_diff:", y_zoom_diff
+			#print("x_zoom_diff:", x_zoom_diff)
+			#print("y_zoom_diff:", y_zoom_diff)
 			self.set_zoom(16 - max(x_zoom_diff, y_zoom_diff))
 
 	@staticmethod
@@ -303,7 +304,7 @@ class MapBase(object):
 		smaller_dimension = min(width, height)
 		larger_dimension = max(width, height)
 		result = float(larger_dimension - smaller_dimension) / float(smaller_dimension)
-		print " oblongness:", width, height, result
+		print(" oblongness:", width, height, result)
 		return result
 
 	# If the indicated point is not within the viewport, zoom out
@@ -459,7 +460,8 @@ class MapBase(object):
 		self.feedback.debug(1, "set_tile_source(%s)" % str(tile_source))
 
 		# Accept either a string or a list of strings.
-		if isinstance(tile_source, basestring):
+		#if isinstance(tile_source, basestring):
+		if isinstance(tile_source, str):
 			tile_source = [tile_source]
 
 		# Expand layer sets into their component layers.
@@ -521,19 +523,19 @@ class MapFeedback(object):
 		self.steps = 1
 
 	def __del__(self):
-		print "Map: feedback deallocated"
+		print("Map: feedback deallocated")
 
 	def debug(self, level, message):
 		if self.debug_callback:
 			self.debug_callback(level, message)
 		elif level <= self.debug_level:
-			print "Map:", message
+			print("Map:", message)
 
 	def error(self, message):
 		if self.progress_callback:
 			self.progress_callback(None, None, message)
 		else:
-			print "Map Error:", message
+			print("Map Error:", message)
 
 	def progress_step(self, step=0, steps=1):
 		self.step = step
@@ -544,7 +546,7 @@ class MapFeedback(object):
 			fraction = (self.step / float(self.steps)) + float(finished) / float(total) / float(self.steps)
 			self.progress_callback(fraction, 1.0, message)
 		else:
-			print "Map Progress: %f of %f: %s" % (finished, total, message)
+			print("Map Progress: %f of %f: %s" % (finished, total, message))
 
 #=============================================================================
 # Map which can be drawn directly on a Cairo context. This is used when

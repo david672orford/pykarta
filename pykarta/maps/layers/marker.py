@@ -43,7 +43,7 @@ class MapLayerMarker(MapLayer):
 
 	def get_bbox(self):
 		bbox = BoundingBox()
-		for marker_group in self.markers.values():
+		for marker_group in list(self.markers.values()):
 			for marker in marker_group:
 				bbox.add_point(Point(marker.lat, marker.lon))
 		return bbox

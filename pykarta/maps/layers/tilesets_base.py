@@ -1,11 +1,15 @@
 # encoding=utf-8
 # pykarta/maps/layers/tilesets_base.py
-# Copyright 2013--2019, Trinity College
-# Last modified: 1 April 2019
+# Copyright 2013--2021, Trinity College
+# Last modified: 26 December 2021
 
 import time
-from urllib import urlencode
-from urlparse import urlparse
+
+try:
+	from urllib.parse import urlencode, urlparse
+except ImportError:		# Python 2
+	from urllib.parse import urlencode
+	from urllib.parse import urlparse
 
 import pykarta
 from pykarta.geometry.projection import unproject_from_tilespace
@@ -29,7 +33,7 @@ class MapTilesets(object):
 
 	# Return the keys in their original order.
 	def keys(self):
-		return map(lambda i: i.key, self.tilesets_list)
+		return [i.key for i in self.tilesets_list]
 
 # Describes a set of tiles
 class MapTileset(object):
@@ -102,7 +106,7 @@ class MapTileset(object):
 	# If the template calls for server rotation, this will handle it.
 	# Each downloader thread calls this, so they will get different
 	# host names.
-	def get_hostname(self):
+	def get_rotated_hostname(self):
 		self.server_number = ((self.server_number + 1) % len(self.subdomains))
 		return self.url_template.netloc.replace("{s}", self.subdomains[self.server_number])
 
@@ -118,7 +122,7 @@ class MapTileset(object):
 			path = path.replace("{api_key}", self.api_key)
 
 		# Basic (x, y) and zoom, Leaflet-style
-		path = path.replace('{z}', str(zoom)).replace('{x}', str(x)).replace('{y}', str(y))
+		path = path.replace("{z}", str(zoom)).replace("{x}", str(x)).replace("{y}", str(y))
 
 		## Quadtree (#Q in OsmGpsMap)
 		#if path.find("{Q}") != -1:

@@ -63,7 +63,7 @@ class GeojsonWriter(object):
 			'type': "Feature",
 			'geometry': {
 				'type': "Polygon",
-				'coordinates': [map(lambda i: [i[1], i[0]], vertexes)],
+				'coordinates': [[[i[1], i[0]] for i in vertexes]],
 				},
 			'properties': properties,
 			})
@@ -74,7 +74,7 @@ class GeojsonWriter(object):
 			'type': "Feature",
 			'geometry': {
 				'type': "LineString",
-				'coordinates': map(lambda i: [i[1], i[0]], vertexes),
+				'coordinates': [[i[1], i[0]] for i in vertexes],
 				},
 			'properties': properties,
 			})

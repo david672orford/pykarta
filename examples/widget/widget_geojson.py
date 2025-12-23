@@ -1,15 +1,15 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # pykarta/examples/widget_geojson.py
 # Simple GeoJSON editor
-# Last modified: 21 May 2018
+# Last modified: 26 March 2023
 
-import os
-import sys
+import os, sys
 sys.path.insert(1, "../..")
+#sys.path.insert(1, "../../..")
 
-import gtk
-import gobject
-import time
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 from pykarta.maps.widget import MapWidget, MapPrint
 from pykarta.maps.layers import MapLayerScale, MapLayerAttribution
@@ -24,17 +24,17 @@ from pykarta.maps.layers.geojson import MapLayerGeoJSON
 
 class DemoGUI(object):
 	def __init__(self):
-		window = gtk.Window()
+		window = Gtk.Window()
 		window.set_default_size(800, 600)
-		window.connect('delete-event', lambda window, event: gtk.main_quit())
-		main_box = gtk.HBox()
+		window.connect('delete-event', Gtk.main_quit)
+		main_box = Gtk.HBox()
 		window.add(main_box)
 
 		# Create the map widget
 		self.map_widget = MapWidget(
 			debug_level=0,
 			)
-		main_box.pack_start(self.map_widget)
+		main_box.pack_start(self.map_widget, expand=True, fill=True, padding=0)
 
 		# Load a marker symbol	
 		self.map_widget.symbols.add_symbol("Dot.svg")
@@ -51,11 +51,11 @@ class DemoGUI(object):
 		self.map_widget.add_osd_layer(MapLayerScale())
 		self.map_widget.add_osd_layer(MapLayerAttribution())
 
-		main_box.pack_start(gtk.VSeparator(), False, False)
+		main_box.pack_start(Gtk.VSeparator(), expand=False, fill=False, padding=0)
 
 		# Add some controls
-		button_bar = gtk.VBox()
-		main_box.pack_start(button_bar, False, False, 5)
+		button_bar = Gtk.VBox()
+		main_box.pack_start(button_bar, expand=False, fill=False, padding=5)
 
 		tools =	(
 				("Select/Drag", MapToolSelect()),
@@ -69,23 +69,23 @@ class DemoGUI(object):
 		tool_i = 0
 		first_button = None
 		for name, obj in tools:
-			button = gtk.RadioButton(group=first_button, label=name)
+			button = Gtk.RadioButton(group=first_button, label=name)
 			if first_button is None:
 				first_button = button
-			button_bar.pack_start(button, False, False)
+			button_bar.pack_start(button, expand=False, fill=False, padding=0)
 			button.connect("toggled", lambda widget, i: not widget.get_active() or vector_layer.set_tool(tools[i][1]), tool_i)
 			tool_i += 1
 		
 		vector_layer.set_tool(tools[0][1])
 
 		# Add a Print button
-		button = gtk.Button(label="Print")
-		button_bar.pack_start(button, False, False)
+		button = Gtk.Button(label="Print")
+		button_bar.pack_start(button, expand=False, fill=False, padding=0)
 		button.connect("clicked", self.on_print, window)
 
 		# Add a Save button
-		button = gtk.Button(label="Save")
-		button_bar.pack_start(button, False, False)
+		button = Gtk.Button(label="Save")
+		button_bar.pack_start(button, expand=False, fill=False, padding=0)
 		button.connect("clicked", self.on_save)
 		
 		window.show_all()
@@ -94,25 +94,23 @@ class DemoGUI(object):
 		self.map_widget.set_center_and_zoom(lat, lon, zoom)
 		
 	def on_print(self, widget, window):
-		print "Print!"
+		print("Print!")
 		printer = MapPrint(self.map_widget, main_window=window)
-		print printer.do_print()
+		print(printer.do_print())
 
 	def on_save(self, widget):
-		print "Save!"
+		print("Save!")
 		vector_layer = self.map_widget.get_layer("vector")
-		with open("test_saved.geojson", "w") as fh
+		with open("test_saved.geojson", "w") as fh:
 			vector_layer.save_geojson(fh)
 	
 #-----------------------------------
 # Startup
 #-----------------------------------
 
-gobject.threads_init()
-
 gui = DemoGUI()
 
 gui.set_center_and_zoom(42.125, -72.75, 12) 			# Westfield, Mass
 
-gtk.main()
+Gtk.main()
 

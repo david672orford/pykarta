@@ -1,9 +1,9 @@
 # pykarta/maps/layers/vector.py
 # An editable vector layer
-# Copyright 2013--2017, Trinity College
-# Last modified: 2 February 2017
+# Copyright 2013--2021, Trinity College
+# Last modified: 2 January 2022
 
-import gtk
+from gi.repository import Gtk, Gdk
 import cairo
 import math
 import weakref
@@ -117,7 +117,7 @@ class MapLayerVector(MapLayer):
 					i = obj.get_draggable_point(gdkevent)
 					if i is not None:
 						self.dragger = MapDragger(obj, i)
-						self.containing_map.set_cursor(gtk.gdk.FLEUR)
+						self.containing_map.set_cursor(Gdk.FLEUR)
 						#break
 						# We bail out here so that if the select tool is active, we will not
 						# accidently select a nearby object when we move or delete a point.
@@ -339,7 +339,7 @@ class MapVectorMarker(MapVectorObj):
 class MapVectorLineString(MapVectorObj):
 	min_points = 2
 	def __init__(self, line_string, properties=None, style=None):
-		MapVectorObj.__init__(self, properties)
+		super().__init__(properties)
 		if isinstance(line_string, LineString):
 			self.geometry = line_string
 		else:
@@ -375,7 +375,7 @@ class MapVectorPolygon(MapVectorObj):
 	min_points = 3
 	unclosed = 0
 	def __init__(self, polygon, properties=None, style=None):
-		MapVectorObj.__init__(self, properties)
+		super().__init__(properties)
 		if isinstance(polygon, Polygon):
 			self.geometry = polygon
 		else:
@@ -442,7 +442,7 @@ class MapVectorBoundingBox(MapVectorObj):
 	x_map = (3, 2, 1, 0)
 	y_map = (1, 0, 3, 2)
 	def __init__(self, bbox, properties=None, style=None):
-		MapVectorObj.__init__(self, properties)
+		super().__init__(properties)
 		self.orig_bbox = bbox
 		self.geometry = Polygon((
 			Point(bbox.max_lat, bbox.min_lon),		# NW
@@ -529,7 +529,7 @@ class MapToolSelect(MapToolBase):
 	def on_button_release(self, gdkevent):
 		if self.down:
 			lat_lon = self.layer.containing_map.unproject_point(gdkevent.x, gdkevent.y)
-			if gdkevent.state & gtk.gdk.CONTROL_MASK:
+			if gdkevent.get_state() & Gdk.ModifierType.CONTROL_MASK:
 				objs = self.layer.visible_objs				# bottom to top layer
 			else:
 				objs = reversed(self.layer.visible_objs)	# top to bottom layer
@@ -543,7 +543,7 @@ class MapToolSelect(MapToolBase):
 # destructive power from the fact that the default tool done handler treats
 # it differently.
 class MapToolDelete(MapToolSelect):
-	cursor = gtk.gdk.X_CURSOR
+	cursor = Gdk.CursorType.X_CURSOR
 
 # All drawing tools are derived from this.
 class MapDrawBase(MapToolBase):
@@ -562,19 +562,19 @@ class MapDrawBase(MapToolBase):
 # Place a new map marker.
 class MapDrawMarker(MapDrawBase):
 	use_snapping = True
-	cursor = gtk.gdk.PENCIL
+	cursor = Gdk.CursorType.PENCIL
 	def on_button_press(self, gdkevent, x, y, pt):
 		self.fire_done(MapVectorMarker(pt, self.style))
 		return True
 
 class MapDrawLineString(MapDrawBase):
 	use_snapping = True
-	cursor = gtk.gdk.PENCIL
+	cursor = Gdk.CursorType.PENCIL
 	def on_button_press(self, gdkevent, x, y, pt):
 		self.projected_points.append((x,y))
 		self.points.append(pt)
 		self.hover_point = None
-		if gdkevent.state & gtk.gdk.SHIFT_MASK:	# shift-click for last point
+		if gdkevent.get_state() & Gdk.ModifierType.SHIFT_MASK:	# shift-click for last point
 			self.fire_done(MapVectorLineString(self.points, self.style))
 		self.layer.redraw()
 		return True
@@ -590,7 +590,7 @@ class MapDrawLineString(MapDrawBase):
 
 class MapDrawPolygon(MapDrawBase):
 	use_snapping = True
-	cursor = gtk.gdk.PENCIL
+	cursor = Gdk.CursorType.PENCIL
 	def on_button_press(self, gdkevent, x, y, pt):
 		done = False
 		if len(self.projected_points) >= 3 and points_close((x, y), self.projected_points[0]):
@@ -599,7 +599,7 @@ class MapDrawPolygon(MapDrawBase):
 			self.projected_points.append((x, y))
 			self.points.append(pt)
 			self.hover_point = None
-			if gdkevent.state & gtk.gdk.SHIFT_MASK:
+			if gdkevent.get_state() & Gdk.ModifierType.SHIFT_MASK:
 				done = True
 		if done:
 			self.fire_done(MapVectorPolygon(self.points, self.style))
@@ -617,7 +617,7 @@ class MapDrawPolygon(MapDrawBase):
 			pykarta.draw.stroke_with_style(ctx, {"line-width":1,"line-dasharray":(3,2)})
 
 class MapDrawBoundingBox(MapDrawBase):
-	cursor = gtk.gdk.SIZING
+	cursor = Gdk.CursorType.SIZING
 	def on_button_press(self, gdkevent, x, y, pt):
 		self.projected_points = [(x,y)]
 		self.points = [pt]

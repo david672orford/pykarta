@@ -1,13 +1,21 @@
 # pykarta/maps/symbols.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 15 May 2018
+# Copyright 2013--2021, Trinity College
+# Last modified: 26 December 2021
 
 import os
 import re
+import logging
+
 import cairo
 
-import pykarta.fallback.rsvg as rsvg
+#import pykarta.fallback.rsvg as rsvg
+import gi
+gi.require_version('Rsvg', '2.0')
+from gi.repository import Rsvg as rsvg	
+
 from pykarta.maps.image_loaders import pixbuf_from_file, surface_from_pixbuf
+
+logger = logging.getLogger(__name__)
 
 #========================================================================
 # SVG Map Symbols
@@ -27,6 +35,7 @@ class MapSymbolSet(object):
 	def __init__(self):
 		self.symbols = {}
 		self.scaler = MapSymbolScaler()
+		self.add_symbol(os.path.join(os.path.dirname(__file__), "default-marker.svg"))
 
 	# Load an SVG icon which will later be identified by name.
 	# The name and offset (for placement relative to its stated
@@ -35,6 +44,7 @@ class MapSymbolSet(object):
 		symbol = MapSymbol(filename, self.scaler)
 		self.symbols[symbol.name] = symbol
 
+	# Same as above, only with a different renderer for raster files
 	def add_raster_symbol(self, filename):
 		symbol = MapRasterSymbol(filename)
 		self.symbols[symbol.name] = symbol
@@ -45,10 +55,14 @@ class MapSymbolSet(object):
 	def get_symbol(self, name, default=None):
 		if name in self.symbols:
 			return self.symbols[name]
-		elif default is not None and default in self.symbols:
-			return self.symbols[default]
 		else:
-			return None
+			logger.info("Symbol \"%s\" is not in the map's symbol set, using default" % name)
+			if default is not None:
+				if default in self.symbols:
+					return self.symbols[default]
+				else:
+					logger.warning("User-specified default symbol \"%s\" is in the map's symbol set" % default)
+			return self.symbols['default-marker']
 
 	# Get all of the map symbols rendered into pixbufs.
 	# This is for controls which allow the user to pick a symbol.
@@ -81,14 +95,19 @@ class MapSymbol(object):
 			self.name = base
 			self.anchor = None
 
-	# Load the SVG description of the symbol from the file (if it has not
-	# been loaded already).
+	# Load the SVG drawing of the symbol from the file
+	# (if it has not been loaded already).
 	def get_svg(self):
 		if self.svg is None:
-			self.svg = rsvg.Handle(self.filename)
+			#self.svg = rsvg.Handle(self.filename)
+			handle = self.svg = rsvg.Handle()
+			self.svg = handle.new_from_file(self.filename)
+			
 			if self.svg is None:
 				raise AssertionError("Failed to load SVG file: %s" % filename)
-			self.width, self.height = self.svg.get_dimension_data()[:2]
+			#self.width, self.height = self.svg.get_dimension_data()[:2]
+			dim = self.svg.get_dimensions()
+			self.width, self.height = dim.width, dim.height
 		if self.anchor is None:
 			self.anchor = (self.width / 2, self.height / 2)
 		return self.svg
@@ -124,7 +143,7 @@ class MapSymbol(object):
 class MapSymbolScreenRenderer(object):
 	def __init__(self, symbol, scale):
 		svg = symbol.get_svg()
-		self.anchor_x, self.anchor_y = map(lambda n: n * scale, symbol.anchor)
+		self.anchor_x, self.anchor_y = [n * scale for n in symbol.anchor]
 
 		width = int(symbol.width*scale)
 		height = int(symbol.height*scale)
@@ -164,7 +183,7 @@ class MapSymbolPrintRenderer(object):
 	def __init__(self, symbol, scale):
 		self.symbol = symbol
 		self.svg = symbol.get_svg()
-		self.anchor_x, self.anchor_y = map(lambda n: n * scale, symbol.anchor)
+		self.anchor_x, self.anchor_y = [n * scale for n in symbol.anchor]
 		self.scale = scale
 		self.label_offset = symbol.width*scale*0.7 - self.anchor_x
 		self.x_size = symbol.width * 1.0

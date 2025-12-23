@@ -1,8 +1,7 @@
 # pykarta/geometry/route.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 15 May 2018
+# Copyright 2013--2023, Trinity College
+# Last modified: 26 May 2023
 
-from __future__ import print_function
 import math
 from . import LineString
 from .distance import points_distance_pythagorian, points_bearing

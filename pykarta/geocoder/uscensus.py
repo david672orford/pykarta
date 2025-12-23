@@ -2,9 +2,9 @@
 # Copyright 2013--2018, Trinity College Computing Center
 # Last modified: 15 May 2018
 
-from __future__ import print_function
+
 import json
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import re
 
 from .geocoder_base import GeocoderBase, GeocoderResult

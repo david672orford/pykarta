@@ -52,7 +52,7 @@ class KmlWriter:
 	def write_poi(self, lat, lon, **args):
 		self.fh.write("<Placemark>\n")
 		for i in ("name", "description", "styleUrl"):
-			if args.has_key(i):
+			if i in args:
 				self.fh.write(" <%s>%s</%s>\n" % (i, self.encode(args[i]), i))
 		self.fh.write(" <Point><coordinates>%s,%s</coordinates></Point>\n" % (repr(lon), repr(lat)))
 		self.fh.write("</Placemark>\n")
@@ -68,7 +68,7 @@ class KmlWriter:
 	def write_polygon(self, points, **args):
 		self.fh.write("<Placemark>\n")
 		for i in ("name", "description"):
-			if args.has_key(i):
+			if i in args:
 				self.fh.write(" <%s>%s</%s>\n" % (i, self.encode(args[i]), i))
 		self.fh.write("<styleUrl>#border</styleUrl>\n")
 		self.fh.write(" <Polygon>\n")

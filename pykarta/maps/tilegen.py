@@ -4,7 +4,7 @@
 
 import cairo
 import os
-import StringIO
+import io
 import re
 
 from pykarta.maps import MapBase
@@ -43,7 +43,7 @@ class MapTilegen(MapBase):
 		if self.re_blank_surface.match(data):
 			return None
 		else:
-			sio = StringIO.StringIO()
+			sio = io.StringIO()
 			surface.write_to_png(sio)
 			return sio.getvalue()
 
@@ -54,14 +54,14 @@ class MapTilegen(MapBase):
 		for layer in self.layers_ordered:
 			bbox.add_bbox(layer.get_bbox())
 
-		x_start, y_start = map(int, project_to_tilespace(bbox.max_lat, bbox.min_lon, zoom_start))
-		x_stop, y_stop = map(int, project_to_tilespace(bbox.min_lat, bbox.max_lon, zoom_start))
+		x_start, y_start = list(map(int, project_to_tilespace(bbox.max_lat, bbox.min_lon, zoom_start)))
+		x_stop, y_stop = list(map(int, project_to_tilespace(bbox.min_lat, bbox.max_lon, zoom_start)))
 		total = tile_count(x_stop-x_start+1, y_stop-y_start+1, zoom_stop-zoom_start+1)
 
 		count = 0
 		for zoom in range(zoom_start, zoom_stop+1):
-			x_start, y_start = map(int, project_to_tilespace(bbox.max_lat, bbox.min_lon, zoom))
-			x_stop, y_stop = map(int, project_to_tilespace(bbox.min_lat, bbox.max_lon, zoom))
+			x_start, y_start = list(map(int, project_to_tilespace(bbox.max_lat, bbox.min_lon, zoom)))
+			x_stop, y_stop = list(map(int, project_to_tilespace(bbox.min_lat, bbox.max_lon, zoom)))
 			for x in range(x_start-1, x_stop+2):
 				for y in range(y_start-1, y_stop+2):
 					#print "render_tile(%d, %d, %d)" % (x, y, zoom)

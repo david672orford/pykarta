@@ -2,10 +2,10 @@
 # Copyright 2013--2018, Trinity College Computing Center
 # Last modified: 15 May 2018
 
-from __future__ import print_function
+
 import json
 try:
-	from urllib import quote_plus
+	from urllib.parse import quote_plus
 except ImportError:
 	from urllib.parse import quote_plus
 

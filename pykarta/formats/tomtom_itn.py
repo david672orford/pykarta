@@ -1,14 +1,14 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # pykarta/formats/tomtom_itn.py
-# Copyright 2013, 2014, Trinity College Computing Center
-# Last modified: 1 September 2014
+# Copyright 2013--2023, Trinity College Computing Center
+# Last modified: 26 March 2023
 
 # See:
 # http://www.tomtom.com/lib/doc/TomTomTips/index.html?itinerary_as_text_file.htm
 
 class ItnPoint(object):
 	def __init__(self, *args):
-		self.lat, self.lon, self.description, self.stopover = args	
+		self.lat, self.lon, self.description, self.stopover = args
 		self.description = self.description.replace("\r", " ").replace("\n", " ")
 
 class ItnReader(object):
@@ -20,7 +20,7 @@ class ItnReader(object):
 			if len(line) != 5:
 				raise AssertionError("Corrupt ITN file")
 			point = ItnPoint(int(line[1])/100000.0, int(line[0])/100000.0, line[2], int(line[3]) & 2)
-			self.points.append(point)			
+			self.points.append(point)	
 	def __iter__(self):
 		for point in self.points:
 			yield point
@@ -53,7 +53,7 @@ class ItnWriter(object):
 				flags = 3
 			else:
 				flags = 1
-		
+
 			self.fh.write("%d|%d|%s|%d|\n" % (
 				int(point.lon * 100000),
 				int(point.lat * 100000),
@@ -68,11 +68,11 @@ if __name__ == "__main__":
 	writer.add(ItnPoint(42.20, -72.00, "End", False))
 	writer.write(sys.stdout)
 
-	print "========================================"
+	print("========================================")
 
 	reader = ItnReader(sys.stdin)
 	writer = ItnWriter(sys.stdout)
 	for point in reader.points:
 		writer.add(ItnPoint(point.lat, point.lon, point.description, point.stopover))
 	writer.save()
-	
+

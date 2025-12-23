@@ -2,7 +2,7 @@
 # Copyright 2013--2019, Trinity College Computing Center
 # Last modified: 22 October 2019
 
-from __future__ import print_function
+
 import json
 import pykarta
 from .geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
@@ -32,7 +32,7 @@ class GeocoderBing(GeocoderBase):
 			'countryRegion': countrycode,
 			'adminDistrict': address[self.f_state],
 			'locality': address[self.f_city].encode("utf-8"),
-			'addressLine': (u"%s %s" % (address[self.f_house_number], address[self.f_street])).encode("utf-8"),
+			'addressLine': ("%s %s" % (address[self.f_house_number], address[self.f_street])).encode("utf-8"),
 			}
 		if address[self.f_postal_code] != "":
 			query['postalCode'] = address[self.f_postal_code]

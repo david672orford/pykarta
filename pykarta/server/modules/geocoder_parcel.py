@@ -6,7 +6,7 @@ import os, json, time
 from pykarta.server.dbopen import dbopen
 import threading
 try:
-	from urllib import unquote_plus
+	from urllib.parse import unquote_plus
 except ImportError:
 	from urllib.parse import unquote_plus
 

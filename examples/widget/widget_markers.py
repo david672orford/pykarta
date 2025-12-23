@@ -1,21 +1,20 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # pykarta/examples/widget_markers.py
-# Last modified: 12 May 2018
+# Last modified: 25 March 2023
 
 import sys
 sys.path.insert(1, "../..")
 
-import gtk
-import gobject
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 from pykarta.maps.widget import MapWidget
 from pykarta.maps.layers.marker import MapLayerMarker
 from pykarta.maps.layers import MapLayerScale, MapLayerAttribution
 
-gobject.threads_init()
-
-window = gtk.Window()
+window = Gtk.Window()
 window.set_default_size(800, 800)
-window.connect('delete-event', lambda window, event: gtk.main_quit())
+window.connect('delete-event', Gtk.main_quit)
 
 map_widget = MapWidget(
 	tile_source = "osm-default",
@@ -46,4 +45,4 @@ map_widget.add_osd_layer(MapLayerAttribution())
 map_widget.set_center_and_zoom(42.125, -72.75, 13)
 
 # Run GTK+ main loop
-gtk.main()
+Gtk.main()

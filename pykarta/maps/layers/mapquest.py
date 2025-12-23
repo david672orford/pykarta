@@ -1,10 +1,10 @@
 # pykarta/maps/layers/mapquest.py
 # Mapquest layers
-# Copyright 2013, 2014, 2015, Trinity College
-# Last modified: 13 October 2015
+# Copyright 2013--2023, Trinity College
+# Last modified: 26 March 2023
 
-import gtk
-import urllib
+from gi.repository import Gtk
+import urllib.request, urllib.parse, urllib.error
 import math
 import json
 
@@ -61,8 +61,8 @@ class MapLayerTraffic(MapLayer):
 		# Download layer which overlays lines on roads.
 		int_zoom = min(int(zoom + 0.5), 18)
 		self.scale_factor = math.pow(2, zoom) / (1 << int_zoom)
-		print "Traffic int_zoom:", int_zoom
-		print "Traffic scale_factor:", self.scale_factor
+		print("Traffic int_zoom:", int_zoom)
+		print("Traffic scale_factor:", self.scale_factor)
 		self.map_height = self.containing_map.height
 		self.map_width = self.containing_map.width
 		self.image_height = self.map_height / self.scale_factor
@@ -76,15 +76,15 @@ class MapLayerTraffic(MapLayer):
 			'mapWidth': str(int(self.image_width)),
 			'mapScale': self.scales[int_zoom],
 			}
-		url = "http://www.mapquestapi.com/traffic/v1/flow?%s" % urllib.urlencode(params)
-		print "Traffic overlay URL:", url
+		url = "http://www.mapquestapi.com/traffic/v1/flow?%s" % urllib.parse.urlencode(params)
+		print("Traffic overlay URL:", url)
 		response = simple_urlopen(url, {})
 		content_length = int(response.getheader("content-length"))
-		print "content-length:", content_length
+		print("content-length:", content_length)
 		if content_length > 0:
 			data = response.read()
-			print "data length:", len(data)
-			loader = gtk.gdk.PixbufLoader()
+			print("data length:", len(data))
+			loader = GdkPixbuf.PixbufLoader()
 			loader.write(data)
 			try:
 				loader.close()	# fails due to incomplete GIF
@@ -100,11 +100,11 @@ class MapLayerTraffic(MapLayer):
 			'inFormat':'kvp',
 			'boundingBox':"%f,%f,%f,%f" % (bbox.max_lat, bbox.min_lon, bbox.min_lat, bbox.max_lon),
 			}
-		url = "http://www.mapquestapi.com/traffic/v1/incidents?%s" % urllib.urlencode(params)
-		print "Traffic incidents URL:", url
+		url = "http://www.mapquestapi.com/traffic/v1/incidents?%s" % urllib.parse.urlencode(params)
+		print("Traffic incidents URL:", url)
 		response = simple_urlopen(url, {})
 		self.incidents = json.loads(response.read())
-		print json.dumps(self.incidents, indent=4, separators=(',', ': '))
+		print(json.dumps(self.incidents, indent=4, separators=(',', ': ')))
 
 		self.visible_objs = []
 		for incident in self.incidents['incidents']:

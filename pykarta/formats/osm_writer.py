@@ -1,10 +1,10 @@
 #! /usr/bin/python
-# Copyright 2013--2017, Trinity College Computing Center
+# pykarta/formats/osm_writer.py
 # Reader and writer for OSM XML files
-# Written by David Chappell
-# Last modified: 11 May 2017
+# Copyright 2013--2023, Trinity College Computing Center
+# Last modified: 26 March 2023
 
-from osm_objs import OsmNode, OsmWay
+from .osm_objs import OsmNode, OsmWay
 
 class OsmWriter:
 	def __init__(self, writable_object, creator):
@@ -78,7 +78,7 @@ class OsmWriter:
 				elif member.type == "way":
 					self.append_way(member.ref)
 				else:
-					raise AssertionError, "Missing case"
+					raise AssertionError("Missing case")
 		return relation
 
 	def new_node_deduper(self, lat, lon, osm_tags=None):

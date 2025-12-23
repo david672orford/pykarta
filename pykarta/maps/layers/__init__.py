@@ -1,9 +1,9 @@
 # encoding=utf-8
 # pykarta/maps/layers/__init__.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 13 October 2015
+# Copyright 2013--2021, Trinity College
+# Last modified: 26 December 2021
 
-from tilesets_base import tilesets
+from .tilesets_base import tilesets
 from pykarta.maps.layers.builder import MapLayerBuilder
 from pykarta.maps.layers.tile_http import MapCacheCleaner, MapTileLayerHTTP
 from pykarta.maps.layers.osd import *

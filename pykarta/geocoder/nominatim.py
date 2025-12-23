@@ -3,7 +3,7 @@
 # Copyright 2013--2019, Trinity College Computing Center
 # Last modified: 22 October 2019
 
-from __future__ import print_function
+
 
 import xml.etree.cElementTree as ET
 import json
@@ -38,7 +38,7 @@ class GeocoderNominatim(GeocoderBase):
 			'polygon': '1',
 			# For 2071 Riverdale Street, West Springfield, MA 01089 including the ZIP code makes the results worse.
 			#'q': "%s %s, %s, %s %s" % (address[self.f_house_number], address[self.f_street], address[self.f_city], address[self.f_state], address[self.f_postal_code])
-			'q': (u"%s %s, %s, %s" % (address[self.f_house_number], address[self.f_street], address[self.f_city], address[self.f_state])).encode("utf-8")
+			'q': ("%s %s, %s, %s" % (address[self.f_house_number], address[self.f_street], address[self.f_city], address[self.f_state])).encode("utf-8")
 			}
 		if countrycode is not None:
 			query_hash['countrycodes'] = countrycode
@@ -221,14 +221,14 @@ class GeocoderNominatim(GeocoderBase):
 
 	@staticmethod
 	def place_bbox(place):
-		min_lat, max_lat, min_lon, max_lon = map(lambda i: float(i), (place.get('boundingbox')).split(','))
+		min_lat, max_lat, min_lon, max_lon = [float(i) for i in (place.get('boundingbox')).split(',')]
 		return BoundingBox((min_lon, min_lat, max_lon, max_lat))
 
 	@staticmethod
 	def place_polygon(place, bbox):
 		polygonpoints = place.get('polygonpoints')
 		if polygonpoints is not None:
-			return Polygon(map(lambda i: Point(float(i[1]), float(i[0])), json.loads(polygonpoints)[:-1]))
+			return Polygon([Point(float(i[1]), float(i[0])) for i in json.loads(polygonpoints)[:-1]])
 
 		# Sometime around January 2011 Nominatim stopped returning polygons for some objects.
 		# If there is no polygon, make one out of the bounding box.
