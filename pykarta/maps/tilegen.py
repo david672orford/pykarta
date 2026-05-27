@@ -18,10 +18,10 @@ from pykarta.geometry.projection import project_to_tilespace, unproject_from_til
 # them to a tile store using a tile store object provided by the caller.
 class MapTilegen(MapBase):
 	def __init__(self, writer, **kwargs):
-		kwargs['tile_source'] = None
+		kwargs["tile_source"] = None
 		MapBase.__init__(self, **kwargs)
 		self.writer = writer
-		self.re_blank_surface = re.compile('^\0+$')
+		self.re_blank_surface = re.compile(r"^\0+$")
 
 	# Render a single object and store it in the tile store.
 	def render_tile(self, x, y, zoom):
@@ -83,11 +83,11 @@ if __name__ == "__main__":
 	writer = MapMbtilesWriter(
 		"tilegen_test.mbtiles",
 		{
-		'name':'test',
-		'description':'test tileset',
-		'version':'1.0',
-		'type':'overlay',
-		'format':'png',
+		"name":"test",
+		"description":"test tileset",
+		"version":"1.0",
+		"type":"overlay",
+		"format":"png",
 		})
 	generator = MapTilegen(writer)
 	generator.symbols.add_symbol("layers/symbols/Dot.svg")

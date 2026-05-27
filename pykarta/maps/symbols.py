@@ -87,7 +87,7 @@ class MapSymbol(object):
 		# dir/Pin, Green.0x16.svg
 		basename = os.path.basename(filename)
 		base, ext = os.path.splitext(basename)
-		m = re.search('^(.+)\.(\d+)x(\d+)$', base)
+		m = re.search(r"^(.+)\.(\d+)x(\d+)$", base)
 		if m:
 			self.name = m.group(1)
 			self.anchor = [int(m.group(2)), int(m.group(3))]
