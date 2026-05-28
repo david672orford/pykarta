@@ -1,12 +1,7 @@
-#=============================================================================
-# pykarta/maps/widget.py
-# Copyright 2013--2022, Trinity College
-# Last modified: 2 January 2022
-#=============================================================================
-
+"""Map in an Gtk 3 widget"""
 
 import gi
-gi.require_version('Gtk', '3.0')
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk
 import math
 import cairo
@@ -44,8 +39,8 @@ class MapWidget(Gtk.DrawingArea, MapBase):
 		self.cursor = None
 		self.prev_window_config = None
 
-		#self.connect('expose-event', self.expose_event)
-		self.connect('draw', self.draw_event)
+		#self.connect("expose-event", self.expose_event)
+		self.connect("draw", self.draw_event)
 
 		self.set_events(
 			Gdk.EventMask.BUTTON_PRESS_MASK |
@@ -55,13 +50,13 @@ class MapWidget(Gtk.DrawingArea, MapBase):
 			Gdk.EventMask.SCROLL_MASK |
 			Gdk.EventMask.KEY_PRESS_MASK
 			)
-		self.connect('button-press-event', self.button_press_event)
-		self.connect('button-release-event', self.button_release_event)
-		self.connect('motion-notify-event', self.motion_notify_event)
-		self.connect('leave-notify-event', self.leave_notify_event)
-		self.connect('scroll-event', self.scroll_event_cb)
+		self.connect("button-press-event", self.button_press_event)
+		self.connect("button-release-event", self.button_release_event)
+		self.connect("motion-notify-event", self.motion_notify_event)
+		self.connect("leave-notify-event", self.leave_notify_event)
+		self.connect("scroll-event", self.scroll_event_cb)
 		self.connect("key_press_event", self.key_press_event)
-		self.connect('configure-event', self.configure_event)
+		self.connect("configure-event", self.configure_event)
 
 		# So we can receive keypress events
 		self.set_can_focus(True)
