@@ -1,6 +1,5 @@
 # pykarta/maps/symbols.py
-# Copyright 2013--2021, Trinity College
-# Last modified: 26 December 2021
+# Copyright 2013--2026, Trinity College
 
 import os
 import re
@@ -10,7 +9,7 @@ import cairo
 
 #import pykarta.fallback.rsvg as rsvg
 import gi
-gi.require_version('Rsvg', '2.0')
+gi.require_version("Rsvg", "2.0")
 from gi.repository import Rsvg as rsvg	
 
 from pykarta.maps.image_loaders import pixbuf_from_file, surface_from_pixbuf

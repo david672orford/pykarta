@@ -27,13 +27,13 @@ class GeocoderMulti(GeocoderBase):
 		GeocoderBase.__init__(self, **kwargs)
 		self.cache = GeocoderCache(**kwargs)
 		self.geocoders = [
-			(GeocoderSpreadsheet(**kwargs), True),
+			#(GeocoderSpreadsheet(**kwargs), True),
 			(GeocoderNominatim(**kwargs), False),
-			(GeocoderOpenAddresses(**kwargs), False),
-			(GeocoderParcel(**kwargs), False),
-			(GeocoderBing(**kwargs), False),
+			#(GeocoderOpenAddresses(**kwargs), False),
+			#(GeocoderParcel(**kwargs), False),
+			#(GeocoderBing(**kwargs), False),
 			#(GeocoderGoogle(**kwargs), False),
-			(GeocoderMassGIS(**kwargs), True),
+			#(GeocoderMassGIS(**kwargs), True),
 			#(GeocoderUsCensus(**kwargs), True),
 			]
 

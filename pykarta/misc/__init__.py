@@ -1,10 +1,8 @@
-# pykarta/misc/__init__.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 15 May 2018
-
 import os
 import time
 import sys
+
+from platformdirs import PlatformDirs
 
 # Exception raised when it seems the Internet connexion is down.
 class NoInet(Exception):
@@ -13,33 +11,8 @@ class NoInet(Exception):
 # Return the name of a directory where PyKarta may store cache files.
 def get_cachedir():
 	app_name = "PyKarta"
-
-	# If there is a directory called "Cache" at the same level as the "Code"
-	# directory, use that. This is for when the program is running from a thumbdrive.
-	if os.path.exists(os.path.join(sys.path[0], "..", "Cache")):
-		cachedir = os.path.join(sys.path[0], "..", "Cache")
-
-	# MacOSX
-	elif sys.platform == "darwin":
-		cachedir = os.path.join(os.getenv("HOME"), "Library", "Caches", app_name)
-
-	# MS-Windows
-	elif sys.platform == "win32":											# MS-Windows
-		appdata = os.getenv("APPDATA")
-		if appdata is None:
-			raise AssertionError("APPDATA not defined!")
-		cachedir = os.path.join(appdata, app_name)
-
-	# Unix
-	elif os.path.exists(os.path.join(os.getenv("HOME"), ".cache")):
-		cachedir = os.path.join(os.getenv("HOME"), ".cache", app_name)
-
-	# Fallback
-	else:
-		cachedir = os.path.join(sys.path[0], "..", "Cache")
-
-	#print "Cache directory:", cachedir
-	return cachedir
+	dirs = PlatformDirs(app_name, appauthor=False)
+	return dirs.user_cache_dir
 
 # How many days ago was this file modified?
 def file_age_in_days(filename):
@@ -81,6 +54,7 @@ def tile_count(width, height, zoom_levels):
 		height *= 2
 	return total
 
+# TODO: backport from Pyapp
 # Take the data from the handle and write it to the indicated file.
 # The file does not receive the indicted name until it is complete.
 class SaveAtomically(object):

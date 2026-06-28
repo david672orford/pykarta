@@ -1,13 +1,12 @@
 """Map in an Gtk 3 widget"""
 
-import gi
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Gdk
 import math
 import cairo
 import copy
 import time
-import sys
+from types import SimpleNamespace
+
+from gi.repository import Gtk, Gdk
 
 try:
 	import pyapp.i18n
@@ -16,8 +15,10 @@ except ImportError:
 	builtins.__dict__["_"] = lambda text: text
 
 from . import MapBase, MapCairo, MapFeedback
-from .layers import MapLayerBuilder, MapTileLayerHTTP
+from .layers import MapTileLayerHTTP
 from ..misc import BoundMethodProxy
+
+IS_GTK4 = hasattr(Gtk, "get_major_version") and Gtk.get_major_version() == 4
 
 #=============================================================================
 # Combine a MapBase and a Gtk.DrawingArea in order to create
@@ -35,40 +36,80 @@ class MapWidget(Gtk.DrawingArea, MapBase):
 
 		self.coordinates_cb = None
 		self.map_drag_start = None
-		self.drag_offset = None
+		self.drag_offset = [0, 0]
 		self.cursor = None
+		self.mouse_x = 0
+		self.mouse_y = 0
 		self.prev_window_config = None
 
-		#self.connect("expose-event", self.expose_event)
-		self.connect("draw", self.draw_event)
+		if IS_GTK4:
+			self.set_draw_func(
+				lambda widget, ctx, width, height, user_data=None: self.on_draw(widget, ctx))
 
-		self.set_events(
-			Gdk.EventMask.BUTTON_PRESS_MASK |
-			Gdk.EventMask.BUTTON_RELEASE_MASK |
-			Gdk.EventMask.POINTER_MOTION_MASK |
-			Gdk.EventMask.LEAVE_NOTIFY_MASK |
-			Gdk.EventMask.SCROLL_MASK |
-			Gdk.EventMask.KEY_PRESS_MASK
-			)
-		self.connect("button-press-event", self.button_press_event)
-		self.connect("button-release-event", self.button_release_event)
-		self.connect("motion-notify-event", self.motion_notify_event)
-		self.connect("leave-notify-event", self.leave_notify_event)
-		self.connect("scroll-event", self.scroll_event_cb)
-		self.connect("key_press_event", self.key_press_event)
-		self.connect("configure-event", self.configure_event)
+			self.connect("resize",
+				# FIXME: static resizing will be someone broken due to the lack of x and y
+				lambda controller, width, height: self.on_window_resize(0, 0, width, height))
 
-		# So we can receive keypress events
-		self.set_can_focus(True)
+			self.set_focusable(True)
+			key_ctrl = Gtk.EventControllerKey()
+			key_ctrl.connect("key-pressed",
+				lambda controller, keyval, keycode, state: self.on_keypress(keyval))
+			self.add_controller(key_ctrl)
 
-	# See http://www.pyGtk.org/articles/cairo-pygtk-widgets/cairo-pygtk-widgets.htm
-	def draw_event(self, widget, ctx):
+			gesture_click = Gtk.GestureClick()
+			gesture_click.connect("pressed",
+				lambda controller, n_press, x, y: self.on_mouse_button_pressed(controller.get_current_button(), x, y))
+			gesture_click.connect("released",
+				lambda controller, n_press, x, y: self.on_mouse_button_released(controller.get_current_button(), x, y))
+			self.add_controller(gesture_click)
+
+			motion_ctrl = Gtk.EventControllerMotion()
+			motion_ctrl.connect("motion",
+				lambda controller, x, y: self.on_mouse_motion(x, y))
+			motion_ctrl.connect("leave",
+				lambda controller: self.on_mouse_leave())
+			self.add_controller(motion_ctrl)
+
+			scroll_ctrl = Gtk.EventControllerScroll(flags=Gtk.EventControllerScrollFlags.VERTICAL)
+			scroll_ctrl.connect("scroll",
+				lambda controller, dx, dy: self.on_mouse_scroll(dy))
+			self.add_controller(scroll_ctrl)
+
+		else:	# Gtk3
+			self.connect("draw", self.on_draw)
+
+			self.set_events(
+				Gdk.EventMask.BUTTON_PRESS_MASK |
+				Gdk.EventMask.BUTTON_RELEASE_MASK |
+				Gdk.EventMask.POINTER_MOTION_MASK |
+				Gdk.EventMask.LEAVE_NOTIFY_MASK |
+				Gdk.EventMask.SCROLL_MASK |
+				Gdk.EventMask.KEY_PRESS_MASK
+				)
+			self.connect("configure-event",
+				lambda widget, gdkevent: self.on_window_resize(gdkevent.x, gdkevent.y, gdkevent.width, gdkevent.height))
+			self.set_can_focus(True)
+			self.connect("key_press_event",
+				lambda widget, gdkevent: self.on_keypress(gdkevent.keyval))
+			self.connect("scroll-event",
+				lambda widget, gdkevent: self.on_mouse_scroll(-1.0 if gdkevent.direction == Gdk.ScrollDirection.UP else 1.0))
+			self.connect("button-press-event",
+				lambda widget, gdkevent: self.on_mouse_button_pressed(gdkevent.button, gdkevent.x, gdkevent.y))
+			self.connect("button-release-event",
+				lambda widget, gdkevent: self.on_mouse_button_released(gdkevent.button, gdkevent.y, gdkevent.y))
+			self.connect("motion-notify-event",
+				lambda widget, gdkevent: self.on_mouse_motion(gdkevent.x, gdkevent.y))
+			self.connect("leave-notify-event",
+				lambda widget, gdkevent: self.on_mouse_leave())
+
+	def on_draw(self, widget, ctx):
+
 		# Set font antialiasing
-		fo = cairo.FontOptions()
+		#fo = cairo.FontOptions()
 		#fo.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
-		fo.set_hint_metrics(cairo.HINT_METRICS_OFF)
-		fo.set_hint_style(cairo.HINT_STYLE_NONE)
-		ctx.set_font_options(fo)
+		#fo.set_hint_metrics(cairo.HINT_METRICS_OFF)
+		#fo.set_hint_style(cairo.HINT_STYLE_NONE)
+		#ctx.set_font_options(fo)
 
 		# Set antialiasing for drawing commands
 		#ctx.set_antialias(cairo.ANTIALIAS_DEFAULT)
@@ -87,22 +128,22 @@ class MapWidget(Gtk.DrawingArea, MapBase):
 				start_time = time.time()
 				layer.cache_surface = None
 				layer.do_viewport()
-				self.elapsed(layer.name, start_time)
+				self.show_elapsed(layer.name, start_time)
 				layer.stale = False
 			for layer in self.layers_osd:
 				self.feedback.debug(2, " %s" % layer.__class__.__name__)
 				start_time = time.time()
 				layer.do_viewport()
-				self.elapsed(layer.name, start_time)
+				self.show_elapsed(layer.name, start_time)
 			self.updated_viewport = False
 
 		# Possibly rotate 90 degrees
 		if self.rotate:
 			ctx.rotate(math.pi / -2.0)
-			ctx.translate(-self.width, 0)	
+			ctx.translate(-self.width, 0)
 
 		# Translate coordinate space to compensate for dragging
-		# which may be in progress and then paint the layers.			
+		# which may be in progress and then paint the layers.
 		ctx.save()
 		ctx.translate(self.drag_offset[0], self.drag_offset[1])
 
@@ -116,12 +157,12 @@ class MapWidget(Gtk.DrawingArea, MapBase):
 					start_time = time.time()
 					layer.cache_surface = None
 					layer.do_viewport()
-					self.elapsed("%s (reproject)" % layer.name, start_time)
+					self.show_elapsed("%s (reproject)" % layer.name, start_time)
 					layer.stale = False
 			ctx.save()
 			start_time = time.time()
 			layer.do_draw_cached(ctx)
-			self.elapsed(layer.name, start_time)
+			self.show_elapsed(layer.name, start_time)
 			ctx.restore()
 
 		ctx.restore()
@@ -137,14 +178,35 @@ class MapWidget(Gtk.DrawingArea, MapBase):
 
 		return False
 
-	def elapsed(self, opname, start_time):
+	def show_elapsed(self, opname, start_time):
 		stop_time = time.time()
 		elapsed_time = int((stop_time - start_time) * 1000 + 0.5)
 		self.feedback.debug(3, " %s: %d ms" % (opname, elapsed_time))
 
-	def key_press_event(self, widget, event):
-		keyname = Gdk.keyval_name(event.keyval)
-		self.feedback.debug(2, "key %s (%d) was pressed" % (keyname, event.keyval))
+	def on_window_resize(self, x, y, width, height):
+		"""Window size or position has changed"""
+		self.set_size(width, height)
+
+		if self.zoom_to_extent_deferred:
+			self.zoom_to_extent(*self.zoom_to_extent_deferred)
+			self.zoom_to_extent_deferred = None
+
+		# Static resize mode keeps the actual map (visible in the map widget)
+		# from shifting on the screen even as the map widget is resized and
+		# repositioned within the application's window.
+		elif self.static_resize and self.prev_window_config:
+			p_x, p_y, p_width, p_height = self.prev_window_config
+			self.scroll(
+				(width  - p_width) / 2 + (x - p_x),
+				(height - p_height) / 2 + (y - p_y)
+				)
+
+		self.prev_window_config = (x, y, width, height)
+
+	def on_keypress(self, keyval):
+		"""Key pressed while map is in focus"""
+		keyname = Gdk.keyval_name(keyval)
+		self.feedback.debug(2, "key %s (%d) was pressed" % (keyname, keyval))
 		if keyname == "Up":
 			self.scroll(0, -5)
 		elif keyname == "Down":
@@ -159,28 +221,26 @@ class MapWidget(Gtk.DrawingArea, MapBase):
 			self.zoom_out()
 		return True		# don't pass on
 
-	# Mouse wheel zooming
-	def scroll_event_cb(self, widget, gdkevent):
-		#print("Event:", gdkevent.x, gdkevent.y, gdkevent.direction)
-		#print("position:", self.get_center_and_zoom())
+	def on_mouse_scroll(self, direction:float):
+		"""Mouse wheel zooming"""
 		zoom = self.get_zoom()
 		zoom_step_factor = math.pow(2, self.zoom_step)
 		center_x = (self.width / 2)
 		center_y = (self.height / 2)
-		distance_x = (gdkevent.x - center_x)
-		distance_y = (gdkevent.y - center_y)
+		distance_x = (self.mouse_x - center_x)
+		distance_y = (self.mouse_y - center_y)
 		# Zoom in: new center is between existing center and mouse pointer
-		if gdkevent.direction == Gdk.ScrollDirection.UP:
-			new_center_x = gdkevent.x - (distance_x / zoom_step_factor)
-			new_center_y = gdkevent.y - (distance_y / zoom_step_factor)
+		if direction < 0:
+			new_center_x = self.mouse_x - (distance_x / zoom_step_factor)
+			new_center_y = self.mouse_y - (distance_y / zoom_step_factor)
 			new_center = self.unproject_point(new_center_x, new_center_y)
 			if self.zoom_in() != zoom:
 				self.set_center(new_center.lat, new_center.lon)
 			return True
 		# Zoom out: new center is beyond existing center as seen from mouse pointer
-		elif gdkevent.direction == Gdk.ScrollDirection.DOWN:
-			new_center_x = gdkevent.x - (distance_x * zoom_step_factor)
-			new_center_y = gdkevent.y - (distance_y * zoom_step_factor)
+		elif direction > 0:
+			new_center_x = self.mouse_x - (distance_x * zoom_step_factor)
+			new_center_y = self.mouse_y - (distance_y * zoom_step_factor)
 			#print("new center:", new_center_x, new_center_y)
 			new_center = self.unproject_point(new_center_x, new_center_y)
 			if self.zoom_out() != zoom:
@@ -188,28 +248,30 @@ class MapWidget(Gtk.DrawingArea, MapBase):
 			return True
 		return False
 
-	# Mouse down event on map
-	def button_press_event(self, widget, gdkevent):
-		self.feedback.debug(2, "button %d down (%s) at (%d, %d)" % (gdkevent.button, str(gdkevent.type), gdkevent.x, gdkevent.y))
+	def on_mouse_button_pressed(self, button, x, y):
+		"""Mouse button down event on map"""
+		self.feedback.debug(2, "button %d down at (%d, %d)" % (button, x, y))
 
 		# Click on map gives it focus so that user can scroll it and zoom using the keyboard.
 		self.grab_focus()
 
+
 		# Pass event down to layers
+		event = SimpleNamespace(button=button, x=x, y=y)
 		for layer in reversed(self.layers_ordered):
-			if layer.on_button_press(gdkevent):
+			if layer.on_button_press(event):
 				return True
 
 		# Since not handled above, must be for base layer. Keep track of dragging
 		# so that we can translate the drawing context to compensate.
-		if gdkevent.type == Gdk.EventType.BUTTON_PRESS and gdkevent.button == 1:
-			self.map_drag_start = [gdkevent.x, gdkevent.y]
+		if button == 1:
+			self.map_drag_start = [x, y]
 
 		return True
 
-	# Mouse button released over map
-	def button_release_event(self, widget, gdkevent):
-		self.feedback.debug(2, "button %d up at (%d, %d)" % (gdkevent.button, gdkevent.x, gdkevent.y))
+	def on_mouse_button_released(self, button, x, y):
+		"""Mouse button released over map"""
+		self.feedback.debug(2, "button %d up at (%d, %d)" % (button, x, y))
 
 		# Dragging done?
 		if self.map_drag_start is not None:
@@ -219,51 +281,40 @@ class MapWidget(Gtk.DrawingArea, MapBase):
 			self.map_drag_start = None
 
 		# Pass event down to layers
+		event = SimpleNamespace(button=button, x=x, y=y)
 		for layer in reversed(self.layers_ordered):
-			if layer.on_button_release(gdkevent):
+			if layer.on_button_release(event):
 				return True
 
 		return True
 
-	# Mouse pointer moved over map
-	def motion_notify_event(self, widget, gdkevent):
-		self.feedback.debug(10, "mouse pointer at (%d, %d) %s" % (gdkevent.x, gdkevent.y, str(gdkevent.type)))
+	def on_mouse_motion(self, x, y):
+		"""Mouse pointer moved over map"""
+		self.feedback.debug(10, "mouse pointer at (%d, %d)" % (x, y))
+
+		self.mouse_x = x
+		self.mouse_y = y
 
 		if self.coordinates_cb:
-			self.coordinates_cb(self.unproject_point(gdkevent.x, gdkevent.y))
+			self.coordinates_cb(self.unproject_point(x, y))
 
+		event = SimpleNamespace(x=x, y=y)
 		for layer in reversed(self.layers_ordered):
-			if layer.on_motion(gdkevent):
+			if layer.on_motion(event):
 				return True
 
 		if self.map_drag_start is not None:
-			self.drag_offset = [gdkevent.x - self.map_drag_start[0], gdkevent.y - self.map_drag_start[1]]
+			self.drag_offset = [x - self.map_drag_start[0], y - self.map_drag_start[1]]
 			self.queue_draw()
 
 		return False
 
-	# Move pointer has left the map.
-	def leave_notify_event(self, widget, gdkevent):
+	def on_mouse_leave(self):
+		"""Mouse pointer has left the map"""
 		self.feedback.debug(2, "mouse pointer left map")
 		if self.coordinates_cb:
 			self.coordinates_cb(None)
 
-	# Window size or position has changed
-	def configure_event(self, widget, event):
-		self.set_size(event.width, event.height)
-
-		# Static resize mode keeps the actual map (visible in the map widget)
-		# from shifting on the screen even as the map widget is resized and
-		# repositioned within the application's window.
-		if self.static_resize and self.prev_window_config:
-			p_x, p_y, p_width, p_height = self.prev_window_config
-			self.scroll(
-				(event.width  - p_width) / 2 + (event.x - p_x),
-				(event.height - p_height) / 2 + (event.y - p_y)
-				)
-
-		self.prev_window_config = (event.x, event.y, event.width, event.height)
-	
 	#====================================================================
 	# Public methods
 	#====================================================================
@@ -340,9 +391,6 @@ class MapPrint(MapCairo):
 		# Same base layers as MapWidget.
 		for layer in map_widget.layers_ordered:
 			print(" %s" % layer.name)
-			#if layer.name == "osm-default":
-			#	layer_obj = MapLayerBuilder("osm-default-svg")
-			#else:
 			layer_obj = copy.copy(layer)
 			self.add_layer(layer.name, layer_obj)
 		# Same OSD layers as MapWidget
@@ -496,4 +544,3 @@ class MapPrintProgress(MapFeedback):
 		if self.shown:
 			self.dialog.hide()
 			self.shown = False
-

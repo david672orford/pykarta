@@ -69,9 +69,10 @@ class GeocoderNominatim(GeocoderBase):
 				found_address_list.append((comp_type, comp_name))
 				found_address_dict[comp_type] = comp_name
 
-			if self.result_truly_matches(address, found_address_list):
+			# FIXME
+			if True or self.result_truly_matches(address, found_address_list):
 				self.debug("  Match")
-				result.coordinates = (float(place.get('lat')), float(place.get('lon')))
+				result.coordinates = (float(place.get("lat")), float(place.get("lon")))
 				if osm_type == ("node","place","house"):
 					result.precision = "ENTRANCE"
 				elif osm_type == ("way","building","yes"):

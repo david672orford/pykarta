@@ -1,24 +1,23 @@
 #! /usr/bin/python3
 # pykarta/examples/widget_basic.py
 # How to display a simple map in Gtk widget
-# Last modified: 25 March 2023
 
 import sys, os
 sys.path.insert(1, "../..")
 
 import gi
-gi.require_version('Gtk', '3.0')
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 import pykarta
 from pykarta.maps.widget import MapWidget
 from pykarta.maps.layers import MapLayerBuilder, MapLayerScale, MapLayerAttribution
 
-pykarta.server_url = os.environ.get('PYKARTA_SERVER_URL', pykarta.server_url)
+pykarta.server_url = os.environ.get("PYKARTA_SERVER_URL", pykarta.server_url)
 
 window = Gtk.Window()
 window.set_default_size(800, 800)
-window.connect('delete-event', Gtk.main_quit)
+window.connect("delete-event", Gtk.main_quit)
 
 map_widget = MapWidget(
 	tile_source = "osm-default",

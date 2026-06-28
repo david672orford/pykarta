@@ -6,7 +6,7 @@ import sys
 sys.path.insert(1, "../..")
 
 import gi
-gi.require_version('Gtk', '3.0')
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from pykarta.maps.widget import MapWidget
 from pykarta.maps.layers.marker import MapLayerMarker
@@ -14,7 +14,7 @@ from pykarta.maps.layers import MapLayerScale, MapLayerAttribution
 
 window = Gtk.Window()
 window.set_default_size(800, 800)
-window.connect('delete-event', Gtk.main_quit)
+window.connect("delete-event", Gtk.main_quit)
 
 map_widget = MapWidget(
 	tile_source = "osm-default",

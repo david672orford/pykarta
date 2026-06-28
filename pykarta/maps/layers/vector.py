@@ -1,7 +1,4 @@
-# pykarta/maps/layers/vector.py
-# An editable vector layer
-# Copyright 2013--2021, Trinity College
-# Last modified: 2 January 2022
+"""An editable vector layer"""
 
 from gi.repository import Gtk, Gdk
 import cairo
@@ -11,6 +8,18 @@ import weakref
 from pykarta.maps.layers import MapLayer
 from pykarta.geometry import Point, BoundingBox, LineString, Polygon
 import pykarta.draw
+
+IS_GTK4 = hasattr(Gtk, "get_major_version") and Gtk.get_major_version() == 4
+if IS_GTK4:
+	CURSOR_PENCIL = Gdk.Cursor.new_from_name("pencil", None)
+	CURSOR_SIZING = Gdk.Cursor.new_from_name("nwse-resize", None)
+	CURSOR_FLEUR = Gdk.Cursor.new_from_name("move", None)
+	CURSOR_X_CURSOR = Gdk.Cursor.new_from_name("crosshair", None)
+else:
+	CURSOR_PENCIL = Gdk.CursorType.PENCIL
+	CURSOR_SIZING = Gdk.CursorType.SIZING
+	CURSOR_FLEUR = Gdk.CursorType.FLEUR
+	CURSOR_X_CURSOR = Gdk.CursorType.X_CURSOR
 
 #============================================================================
 # A container layer which can hold vector objects
@@ -117,7 +126,7 @@ class MapLayerVector(MapLayer):
 					i = obj.get_draggable_point(gdkevent)
 					if i is not None:
 						self.dragger = MapDragger(obj, i)
-						self.containing_map.set_cursor(Gdk.FLEUR)
+						self.containing_map.set_cursor(CURSOR_FLEUR)
 						#break
 						# We bail out here so that if the select tool is active, we will not
 						# accidently select a nearby object when we move or delete a point.
@@ -543,7 +552,7 @@ class MapToolSelect(MapToolBase):
 # destructive power from the fact that the default tool done handler treats
 # it differently.
 class MapToolDelete(MapToolSelect):
-	cursor = Gdk.CursorType.X_CURSOR
+	cursor = CURSOR_X_CURSOR
 
 # All drawing tools are derived from this.
 class MapDrawBase(MapToolBase):
@@ -562,14 +571,14 @@ class MapDrawBase(MapToolBase):
 # Place a new map marker.
 class MapDrawMarker(MapDrawBase):
 	use_snapping = True
-	cursor = Gdk.CursorType.PENCIL
+	cursor = CURSOR_PENCIL
 	def on_button_press(self, gdkevent, x, y, pt):
 		self.fire_done(MapVectorMarker(pt, self.style))
 		return True
 
 class MapDrawLineString(MapDrawBase):
 	use_snapping = True
-	cursor = Gdk.CursorType.PENCIL
+	cursor = CURSOR_PENCIL
 	def on_button_press(self, gdkevent, x, y, pt):
 		self.projected_points.append((x,y))
 		self.points.append(pt)
@@ -590,7 +599,7 @@ class MapDrawLineString(MapDrawBase):
 
 class MapDrawPolygon(MapDrawBase):
 	use_snapping = True
-	cursor = Gdk.CursorType.PENCIL
+	cursor = CURSOR_PENCIL
 	def on_button_press(self, gdkevent, x, y, pt):
 		done = False
 		if len(self.projected_points) >= 3 and points_close((x, y), self.projected_points[0]):
@@ -617,7 +626,7 @@ class MapDrawPolygon(MapDrawBase):
 			pykarta.draw.stroke_with_style(ctx, {"line-width":1,"line-dasharray":(3,2)})
 
 class MapDrawBoundingBox(MapDrawBase):
-	cursor = Gdk.CursorType.SIZING
+	cursor = CURSOR_SIZING
 	def on_button_press(self, gdkevent, x, y, pt):
 		self.projected_points = [(x,y)]
 		self.points = [pt]

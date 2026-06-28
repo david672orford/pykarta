@@ -1,21 +1,15 @@
-# encoding=utf-8
-# pykarta/maps/layers/osm_svg.py
-# Copyright 2013--2018, Trinity College
-# Last modified: 22 October 2018
+"""Layer for OSM SVG export service"""
 
 import os
 import math
 import re
 #import gzip
+import rsvg
 
 from pykarta.maps.layers.base import MapLayer
 from pykarta.misc.http import simple_urlopen
 from pykarta.misc import file_age_in_days, SaveAtomically
 
-#try:
-#	import rsvg
-#except:
-#import pykarta.fallback.rsvg as rsvg
 
 #=============================================================================
 # Experimental layer which exports a map in SVG format from openstreetmap.org
@@ -27,27 +21,27 @@ class MapLayerSVG(MapLayer):
 	xlate = {
 		# Brown Buildings
 		"fill:rgb(74.72549%,66.27451%,66.27451%)": "fill:rgb(0%,100%,0%)",
-	
+
 		# Blue outline of highway=motorway
 		"stroke:rgb(46.666667%,53.333333%,63.137255%)": "stroke:rgb(0%,0%,0%)",
 		# Blue center highway=motorway
 		"stroke:rgb(53.72549%,64.313725%,79.607843%)": "stroke:rgb(0%,0%,100%)",
-	
+
 		# Reddish outline of highway=primary
 		"stroke:rgb(77.254902%,48.235294%,49.411765%)": "stroke:rgb(0%,0%,0%)",
 		# Reddish center of highway=primary
 		"stroke:rgb(86.666667%,62.352941%,62.352941%)": "stroke:rgb(90%,50%,50%)",
-	
+
 		# Orange outline of highway=secondary
 		"stroke:rgb(80%,63.137255%,41.568627%)": "stroke:rgb(0%,0%,0%)",
 		# Orange center of highway=secondary
 		"stroke:rgb(97.647059%,83.921569%,66.666667%)": "stroke:rgb(100%,70%,50%)",
-	
+
 		# Outline of highway=tertiary
 	    "stroke:rgb(77.647059%,77.647059%,54.117647%)": "stroke:rgb(0%,0%,0%)",
 		# Pale yellow center of highway=tertiary
 		"stroke:rgb(97.254902%,97.254902%,72.941176%)": "stroke:rgb(100%,100%,70%)",
-	
+
 		# White center of highway=residential, also white of holos
 	    #"stroke:rgb(100%,100%,100%)": "stroke:rgb(100%,0%,0%)",
 		# Gray border of highway=residential
@@ -67,7 +61,7 @@ class MapLayerSVG(MapLayer):
 		self.svg_scale = None
 
 		self.rgb_pattern = re.compile(r"(fill|stroke):rgb\([0-9\.]+%,[0-9\.]+%,[0-9\.]+%\)")
-	
+
 	def set_map(self, containing_map):
 		MapLayer.set_map(self, containing_map)
 		self.cache_dir = os.path.join(self.containing_map.tile_cache_basedir, self.source)
@@ -122,8 +116,8 @@ class MapLayerSVG(MapLayer):
 
 		# Load the SVG file into memory.
 		self.svg = rsvg.Handle()
-		#ifh = gzip.GzipFile(cachefile, "r")	
-		ifh = open(cachefile, "r")	
+		#ifh = gzip.GzipFile(cachefile, "r")
+		ifh = open(cachefile, "r")
 		for line in ifh:
 			# remove background color
 			if line.startswith("<rect"):
@@ -148,4 +142,3 @@ class MapLayerSVG(MapLayer):
 		self.containing_map.feedback.progress(1, 2, _("Rendering SVG file"))
 		ctx.scale(self.svg_scale, self.svg_scale)
 		self.svg.render_cairo(ctx)
-

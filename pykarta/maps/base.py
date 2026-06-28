@@ -1,10 +1,4 @@
-# encoding=utf-8
-#=============================================================================
-# pykarta/maps/base.py
-# Copyright 2013--2021, Trinity College
-# Last modified: 26 December 2021
-#=============================================================================
-
+"""Maps"""
 
 import os
 import sys
@@ -23,6 +17,7 @@ cache_cleaner_thread = None
 #=============================================================================
 # Common code for both the map widget and the map printer
 #=============================================================================
+
 class MapBase(object):
 	lazy_tiles = False			# Load tiles asyncronously?
 	print_mode = False			# Need higher resolution?
@@ -65,6 +60,7 @@ class MapBase(object):
 		self.layers_osd = []
 		self.updated_viewport = True
 		self.top_left_pixel = None
+		self.zoom_to_extent_deferred = None
 
 		if tile_source is not None:
 			self.feedback.debug(1, "Initial tile source: %s" % repr(tile_source))
@@ -116,7 +112,7 @@ class MapBase(object):
 	# Public methods: widget
 	#------------------------------------------------------------------------
 
-	# Noop here, but overridden in Gtk widget
+	# Noop here, but overridden in the Gtk widget
 	def queue_draw(self):
 		pass
 
@@ -260,8 +256,14 @@ class MapBase(object):
 		self.set_center_and_zoom(lat, lon, zoom)
 
 	# Zoom and position the map to show a particular area defined by bounding box.
-	def zoom_to_extent(self, bbox, padding=10, rotate_ok=False):
+	def zoom_to_extent(self, bbox:BoundingBox, padding:int=10, rotate_ok:bool=False):
 		self.feedback.debug(1, "zoom_to_extent(bbox, padding=%d, rotate_ok=%s)" % (padding, str(rotate_ok)))
+
+		# This will happen in the widget, if it is not yet rendered.
+		if self.width is None:
+			self.zoom_to_extent_deferred = (bbox, padding, rotate_ok)
+			return
+
 		center = bbox.center()
 		if center:		# If there is at least one point in the bbox,
 
@@ -368,7 +370,7 @@ class MapBase(object):
 		return self.layers_ordered[len(self.layers_ordered)-1].set_tool(tool)
 
 	# Add a layer to this map
-	def add_layer(self, layer_name, layer_obj, group=3):
+	def add_layer(self, layer_name:str, layer_obj, group=3):
 		""" add a layer object to the map """
 		self.feedback.debug(1, "add_layer(\"%s\", ...)" % layer_name)
 		assert not layer_name in self.layers_byname, "layer already added"
@@ -513,6 +515,7 @@ class MapBase(object):
 # 2) Creating a derived class and passing that to the map object
 #    constructor
 #=============================================================================
+
 class MapFeedback(object):
 	def __init__(self, debug_level=1, debug_callback=None, progress_callback=None):
 		self.debug_level = debug_level
@@ -529,13 +532,13 @@ class MapFeedback(object):
 		if self.debug_callback:
 			self.debug_callback(level, message)
 		elif level <= self.debug_level:
-			print("Map:", message)
+			print("Pykarta Map:", message)
 
 	def error(self, message):
 		if self.progress_callback:
 			self.progress_callback(None, None, message)
 		else:
-			print("Map Error:", message)
+			print("Pykarta Map Error:", message)
 
 	def progress_step(self, step=0, steps=1):
 		self.step = step
@@ -546,12 +549,13 @@ class MapFeedback(object):
 			fraction = (self.step / float(self.steps)) + float(finished) / float(total) / float(self.steps)
 			self.progress_callback(fraction, 1.0, message)
 		else:
-			print("Map Progress: %f of %f: %s" % (finished, total, message))
+			print("Pykarta Map Progress: %f of %f: %s" % (finished, total, message))
 
 #=============================================================================
 # Map which can be drawn directly on a Cairo context. This is used when
 # generating PDF files or when printing.
 #=============================================================================
+
 class MapCairo(MapBase):
 	print_mode = True
 

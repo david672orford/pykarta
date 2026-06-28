@@ -1,6 +1,4 @@
 #! /usr/bin/python3
-# pykarta/examples/widget_vector.py
-# Last modified: 25 March 2023
 
 import sys
 sys.path.insert(1, "../..")
@@ -21,7 +19,7 @@ from pykarta.maps.layers.vector import \
 
 window = Gtk.Window()
 window.set_default_size(800, 800)
-window.connect('delete-event', Gtk.main_quit)
+window.connect("delete-event", Gtk.main_quit)
 
 map_widget = MapWidget(
 	#tile_source = "osm-default",

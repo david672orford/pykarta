@@ -1,12 +1,7 @@
-# encoding=utf-8
-# pykarta/maps/layers/base.py
-# Copyright 2013--2022, Trinity College
-# Last modified: 2 January 2022
-
+"""Base classes for map layers"""
 
 import math
 import cairo
-import weakref
 from collections import OrderedDict
 
 from ...misc.i18n import *
@@ -16,10 +11,8 @@ from ...geometry.projection import project_to_tilespace
 class MapTileError(Exception):
 	pass
 
-#=============================================================================
-# Options for all map layers
-#=============================================================================
-class MapLayerOpts(object):
+class MapLayerOpts:
+	"""Options for all map layers"""
 	def __init__(self):
 		self.zoom_min = 0
 		self.zoom_max = 99
@@ -32,9 +25,8 @@ class MapLayerOpts(object):
 		self.opacity = 1.0
 
 #=============================================================================
-# Base of all map layers
-#=============================================================================
-class MapLayer(object):
+class MapLayer:
+	"""Base of all map layers"""
 	def __init__(self):
 		self.name = None
 		self.opts = MapLayerOpts()
@@ -95,24 +87,22 @@ class MapLayer(object):
 			self.do_draw(ctx)
 
 	# Mouse button pressed down while pointer is over map
-	def on_button_press(self, gdkevent):
+	def on_button_press(self, gdkevent) -> bool:
 		return False
 
 	# Mouse button released while pointer is over map
-	def on_button_release(self, gdkevent):
+	def on_button_release(self, gdkevent) -> bool:
 		return False
 
 	# Mouse pointer moving over map
-	def on_motion(self, gdkevent):
+	def on_motion(self, gdkevent) -> bool:
 		return False
 
 #=============================================================================
-# Base of all tile layers
-#=============================================================================
-
 class MapTileLayer(MapLayer):
+	"""Base of all tile layers"""
 	def __init__(self, tile_class):
-		MapLayer.__init__(self)
+		super().__init__()
 		self.tile_class = tile_class
 		self.ram_cache_max = 1000		# number of tiles to keep in RAM
 
@@ -124,9 +114,6 @@ class MapTileLayer(MapLayer):
 		self.tile_size = None
 		self.tile_ranges = None			# used for precaching
 		self.dedup = set()				# for deduplicating labels, shared by all the tiles
-
-	#def __del__(self):
-	#	print("Map: tile layer %s destroyed" % self.name)
 
 	# Called whenever viewport changes
 	def do_viewport(self):
@@ -262,9 +249,9 @@ class MapTileLayer(MapLayer):
 				#print zoom, x, y, xpixoff, ypixoff
 				ctx.save()
 				ctx.translate(xpixoff, ypixoff)
-	
+
 				tile, bigger_tile, subtile_scale_factor, x_adj, y_adj = tile_objs[i]
-	
+
 				if tile is not None:
 					tile.draw(ctx, self.tile_scale_factor, draw_pass)
 				elif bigger_tile is not None:
@@ -272,7 +259,7 @@ class MapTileLayer(MapLayer):
 					ctx.clip()
 					ctx.translate(x_adj, y_adj)
 					bigger_tile.draw(ctx, self.tile_scale_factor * subtile_scale_factor, draw_pass)
-	
+
 				ctx.restore()
 				tile_objs.append(tile)
 				i += 1
@@ -306,11 +293,8 @@ class MapTileLayer(MapLayer):
 		return None
 
 #=============================================================================
-# Objects to represent loaded tiles
-#=============================================================================
-
-# Used for raster image tiles
 class MapRasterTile(object):
+	"""Represents a loaded raster map tile"""
 	draw_passes = 1
 	def __init__(self, layer, filename, zoom, x, y, data=None):
 		self.layer = layer
@@ -347,4 +331,3 @@ class MapRasterTile(object):
 		ctx.scale(scale, scale)
 		ctx.set_source_surface(self.tile_surface, 0, 0)
 		ctx.paint_with_alpha(self.layer.opts.opacity)
-

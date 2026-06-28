@@ -1,8 +1,3 @@
-# pykarta/address/__init__.py
-# Copyright 2013--2019, Trinity College
-# Last modified: 8 October 2019
-
-
 import string
 import re
 
@@ -14,13 +9,13 @@ import re
 #  split_address("John Smith\n123 Main St\nN Anytown\nCT\n00001")
 # returns:
 #  {
-#  'Last Name':    'Smith',
-#  'First Name':   'John',
-#  'House Number': '123',
-#  'Street':       'Main Street',
-#  'Town':         'North Anytown,
-#  'State':        'CT',
-#  'ZIP':          '00001',
+#  "Last Name":    "Smith",
+#  "First Name":   "John",
+#  "House Number": "123",
+#  "Street":       "Main Street",
+#  "Town":         "North Anytown,
+#  "State":        "CT",
+#  "ZIP":          "00001",
 #  }
 #
 def split_address(address):
@@ -30,8 +25,8 @@ def split_address(address):
 	# whitespace from each line.
 	lines = []
 	for line in address.split("\n"):
-		line = re.sub('^\s+', '', line)
-		line = re.sub('\s+$', '', line)
+		line = re.sub(r"^\s+", "", line)
+		line = re.sub(r"\s+$", "", line)
 		if line:	# if not left empty,
 			#print("  \"%s\"" % line)
 			lines.append(line)
@@ -41,7 +36,7 @@ def split_address(address):
 
 	# Name
 	if lines:
-		if not re.match('^\d+ ', lines[0]):		# if no house number yet,
+		if not re.match("^\d+ ", lines[0]):		# if no house number yet,
 			name = lines.pop(0)
 			components.update(split_name(name))
 
@@ -63,25 +58,25 @@ def split_address(address):
 
 # Split a person's name into its component parts.
 def split_name(name, lastname_first=False):
-	if re.search(r'[A-Z]', name) and not re.search(r'[a-z]', name):
+	if re.search(r"[A-Z]", name) and not re.search(r"[a-z]", name):
 		name = name.title()
 
-	name = re.sub(r'^((Mr\.?)|(Mrs\.)|(Ms\.)) ', '', name, re.IGNORECASE)
-	name = re.sub(r' ((Jr)|(Sr)|(II)|(III))$', '', name, re.IGNORECASE)
+	name = re.sub(r"^((Mr\.?)|(Mrs\.)|(Ms\.)) ", "", name, re.IGNORECASE)
+	name = re.sub(r" ((Jr)|(Sr)|(II)|(III))$", "", name, re.IGNORECASE)
 
 	components = {}
-	match = re.match('^([^,]+), ?(.*)', name)		# Lastname, Firstname
+	match = re.match(r"^([^,]+), ?(.*)", name)		# Lastname, Firstname
 	if match:
-		components['Last Name'] = match.group(1)
-		components['First Name'] = match.group(2)
+		components["Last Name"] = match.group(1)
+		components["First Name"] = match.group(2)
 	else:
-		name_words = name.split(' ')
+		name_words = name.split(" ")
 		if lastname_first:
-			components['Last Name'] = name_words[0]
-			components['First Name'] = name_words[1:]
+			components["Last Name"] = name_words[0]
+			components["First Name"] = name_words[1:]
 		else:
-			components['Last Name'] = name_words[-1]
-			components['First Name'] = ' '.join(name_words[0:-1])
+			components["Last Name"] = name_words[-1]
+			components["First Name"] = " ".join(name_words[0:-1])
 	return components
 
 number_words = {

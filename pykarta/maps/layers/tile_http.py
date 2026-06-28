@@ -496,12 +496,14 @@ class MapTileDownloaderThread(threading.Thread):
 #=============================================================================
 # Clean the tile cache created by MapTileDownloader
 #=============================================================================
+
 class MapCacheCleaner(threading.Thread):
-	def __init__(self, cache_root, scan_interval=30, max_age=180):
+	def __init__(self, cache_root, scan_interval=30, max_age=180, debug=False):
 		threading.Thread.__init__(self, name="cache-cleaner")
 		self.daemon = True
 		self.cache_root = cache_root
 		day = 24 * 60 * 60
+		self.debug = debug
 
 		# Scan a tileset's cache if it was last scanned before this date.
 		self.scan_if_before = time.time() - scan_interval * day
@@ -518,7 +520,8 @@ class MapCacheCleaner(threading.Thread):
 
 	def run(self):
 		time.sleep(5)		# wait until after startup
-		print("Cache cleaner: starting")
+		if self.debug:
+			print("Cache cleaner: starting")
 
 		tilesets = []
 		tilesets_count = 0
@@ -536,7 +539,8 @@ class MapCacheCleaner(threading.Thread):
 			else:
 				#print("Cache cleaner: %s never cleaned" % tileset)
 				tilesets.append(tileset)
-		print("Cache cleaner: %d of %d tilesets need cleaning" % (len(tilesets), tilesets_count))
+		if self.debug:
+			print("Cache cleaner: %d of %d tilesets need cleaning" % (len(tilesets), tilesets_count))
 
 		random.shuffle(tilesets)
 
@@ -544,7 +548,8 @@ class MapCacheCleaner(threading.Thread):
 			cachedir = os.path.join(self.cache_root, tileset)
 			touchfile = os.path.join(cachedir, ".last-cleaned")
 
-			print("Cache cleaner: cleaning %s..." % tileset)
+			if self.debug:
+				print("Cache cleaner: cleaning %s..." % tileset)
 			total = 0
 			deleted = 0
 			for dirpath, dirnames, filenames in os.walk(cachedir, topdown=False):
@@ -569,18 +574,22 @@ class MapCacheCleaner(threading.Thread):
 						pass
 				time.sleep(self.directory_delay)
 
-			print("Cache cleaner: %d of %d tiles removed from %s" % (deleted, total, tileset))
+			if self.debug:
+				print("Cache cleaner: %d of %d tiles removed from %s" % (deleted, total, tileset))
 			if deleted == total:
-				print("Cache cleaner: removing empty cache %s..." % tileset)
+				if self.debug:
+					print("Cache cleaner: removing empty cache %s..." % tileset)
 				if os.path.exists(touchfile):
 					os.unlink(touchfile)
 				os.rmdir(cachedir)
 			else:
-				open(touchfile, "w")
+				with open(touchfile, "w") as fh:
+					pass
 
 			time.sleep(self.tileset_delay)
 
-		print("Cache cleaner: finished")
+		if self.debug:
+			print("Cache cleaner: finished")
 
 # Substitute for MapTileDownloader() for use when the map is in offline mode.
 class MapTileCacheLoader(object):

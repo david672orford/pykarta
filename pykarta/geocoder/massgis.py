@@ -1,11 +1,9 @@
-# pykarta/geocoder/massgis.py
-# Copyright 2013--2019, Trinity College Computing Center
-# Last modified: 22 October 2019
-
+"""MassGIS Geocoder"""
 
 import lxml.etree as ET
-from .geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
+
 import pykarta.address
+from .geocoder_base import GeocoderBase, GeocoderResult, GeocoderError
 
 # https://wiki.state.ma.us/confluence/pages/viewpage.action?pageId=451772508
 

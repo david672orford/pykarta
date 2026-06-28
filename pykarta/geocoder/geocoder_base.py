@@ -1,7 +1,4 @@
-# pykarta/geocoder/geocoder_base.py
-# Copyright 2013--2019, Trinity College Computing Center
-# Last modified: 4 May 2019
-
+"""Base Geocoder Object"""
 
 import threading
 try:
@@ -92,7 +89,7 @@ class GeocoderBase(object):
 				thread = GetThread(self, path, kwargs)
 				thread.start()
 				bump = 0.0
-				while thread.isAlive():
+				while thread.is_alive():
 					self.progress_bump(bump)
 					thread.join(0.2)
 					bump += 0.1
@@ -190,10 +187,10 @@ class GeocoderBase(object):
 
 	def result_truly_matches(self, address, reply_address_components):
 		to_find = (
-			('house_number', address[self.f_house_number]),
-			('street', address[self.f_street]),
+			("house_number", address[self.f_house_number]),
+			("street", address[self.f_street]),
 			(None, address[self.f_city]),
-			('state', address[self.f_state]),
+			("state", address[self.f_state]),
 			)
 		find_in = list(reply_address_components)[:]
 		#self.debug("Find %s in %s" % (str(to_find), str(find_in)))
