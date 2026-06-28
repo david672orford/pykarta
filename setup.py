@@ -16,7 +16,7 @@ setuptools.setup(
     url="https://github.com/david672orford/pykarta",
     packages=setuptools.find_packages(),
 	package_data={
-		"pykarta":["draw/*.svg", "maps/layers/symbols/*.svg"],
+		"pykarta":["draw/*.svg", "maps/default-marker.svg", "maps/layers/symbols/*.svg"],
 	},
     classifiers=[
         "Programming Language :: Python :: 2",
